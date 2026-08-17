@@ -1,6 +1,15 @@
-# 🎬 Kdrama Watchlist App
+# SarangTV: K-Drama Watchlist and Tracking System   
 
 A modern, full-stack Kdrama Watchlist application built with a **Modular Monolith** architecture.
+
+# Group Members
+- Zander Duhaylungsod
+- Hazeljoy Hingpit
+- Nazlah Nanding
+- Ervie Nazareno 
+
+# Course: CCE 106L – Applications Development and Emerging Technologies
+
 
 ## 🏗 Repository Structure
 
