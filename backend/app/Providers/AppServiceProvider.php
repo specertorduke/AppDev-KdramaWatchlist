@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // List of all active modules
-        $modules = ['Auth', 'Discover', 'Watchlist'];
+        $modules = ['Auth', 'Discover', 'Tracker'];
 
         // Automatically register api.php from each module
         foreach ($modules as $module) {
