@@ -414,6 +414,25 @@ class DiscoverService
     }
 
     /**
+     * Fetch season details (including episodes list) from TMDB.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function season(int $tmdbId, int $seasonNumber = 1): ?array
+    {
+        try {
+            $response = $this->get("tv/{$tmdbId}/season/{$seasonNumber}", [
+                'language' => 'en-US',
+            ]);
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::warning("Failed to fetch TMDB season {$seasonNumber} for [{$tmdbId}]: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Resolve genre names from genre IDs.
      *
      * @param  array<int>  $genreIds
@@ -441,7 +460,8 @@ class DiscoverService
             return null;
         }
 
-        // Clean hook for future Watchlist/List integration
-        return null;
+        return \App\Modules\Tracker\Models\Tracker::where('user_id', $user->id)
+            ->where('tmdb_id', $tmdbId)
+            ->value('status');
     }
 }

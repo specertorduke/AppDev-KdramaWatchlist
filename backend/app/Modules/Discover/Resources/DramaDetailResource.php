@@ -91,6 +91,54 @@ class DramaDetailResource extends JsonResource
             }
         }
 
+        // Handle seasons extraction
+        $seasons = [];
+        if (isset($this->resource['seasons']) && is_array($this->resource['seasons'])) {
+            foreach ($this->resource['seasons'] as $season) {
+                $seasonPoster = $season['poster_path'] ?? null;
+                $seasonPosterUrl = null;
+                if (!empty($seasonPoster)) {
+                    $seasonPosterUrl = str_starts_with($seasonPoster, 'http')
+                        ? $seasonPoster
+                        : "{$imageBaseUrl}{$seasonPoster}";
+                }
+
+                $seasons[] = [
+                    'id'            => (int) ($season['id'] ?? 0),
+                    'name'          => (string) ($season['name'] ?? ''),
+                    'season_number' => (int) ($season['season_number'] ?? 0),
+                    'episode_count' => (int) ($season['episode_count'] ?? 0),
+                    'poster_url'    => $seasonPosterUrl,
+                    'air_date'      => $season['air_date'] ?? null,
+                ];
+            }
+        }
+
+        // Handle individual episodes extraction
+        $episodes = [];
+        if (isset($this->resource['episodes']) && is_array($this->resource['episodes'])) {
+            foreach ($this->resource['episodes'] as $ep) {
+                $stillPath = $ep['still_path'] ?? null;
+                $stillUrl = null;
+                if (!empty($stillPath)) {
+                    $stillUrl = str_starts_with($stillPath, 'http')
+                        ? $stillPath
+                        : "{$imageBaseUrl}{$stillPath}";
+                }
+
+                $episodes[] = [
+                    'id'             => (int) ($ep['id'] ?? 0),
+                    'episode_number' => (int) ($ep['episode_number'] ?? 0),
+                    'name'           => (string) ($ep['name'] ?? ''),
+                    'overview'       => $ep['overview'] ?? null,
+                    'runtime'        => isset($ep['runtime']) ? (int) $ep['runtime'] : null,
+                    'still_url'      => $stillUrl,
+                    'air_date'       => $ep['air_date'] ?? null,
+                    'rating'         => isset($ep['vote_average']) ? round((float) $ep['vote_average'], 1) : 0.0,
+                ];
+            }
+        }
+
         // Handle rating
         $rating = isset($this->resource['vote_average']) ? round((float) $this->resource['vote_average'], 1) : 0.0;
 
@@ -108,6 +156,8 @@ class DramaDetailResource extends JsonResource
             'status'             => $this->resource['status'] ?? null,
             'number_of_seasons'  => isset($this->resource['number_of_seasons']) ? (int) $this->resource['number_of_seasons'] : null,
             'number_of_episodes' => isset($this->resource['number_of_episodes']) ? (int) $this->resource['number_of_episodes'] : null,
+            'seasons'            => $seasons,
+            'episodes'           => $episodes,
             'trailer'            => $trailer,
             'watch_status'       => $this->resource['watch_status'] ?? null,
         ];
