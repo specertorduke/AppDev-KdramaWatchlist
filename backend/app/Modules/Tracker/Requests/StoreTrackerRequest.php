@@ -24,12 +24,13 @@ class StoreTrackerRequest extends FormRequest
     {
         return [
             'tmdb_id'         => ['required', 'integer', 'min:1'],
-            'status'          => ['required', 'string', 'in:watching,completed,plan_to_watch,on_hold,dropped'],
-            'current_episode' => ['nullable', 'integer', 'min:0'],
+            'status'          => ['sometimes', 'string', 'in:watching,completed,plan_to_watch,on_hold,dropped'],
+            'current_episode' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'total_episodes'  => ['nullable', 'integer', 'min:1'],
             'rating'          => ['nullable', 'integer', 'min:1', 'max:10'],
             'review_notes'    => ['nullable', 'string', 'max:5000'],
             'rewatch_count'   => ['nullable', 'integer', 'min:0', 'max:1000'],
+            'is_favorite'     => ['sometimes', 'boolean'],
         ];
     }
 

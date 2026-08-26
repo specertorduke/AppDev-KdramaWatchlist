@@ -29,6 +29,7 @@ class UpdateTrackerRequest extends FormRequest
             'rating'          => ['nullable', 'integer', 'min:1', 'max:10'],
             'review_notes'    => ['nullable', 'string', 'max:5000'],
             'rewatch_count'   => ['sometimes', 'integer', 'min:0', 'max:1000'],
+            'is_favorite'     => ['sometimes', 'boolean'],
         ];
     }
 

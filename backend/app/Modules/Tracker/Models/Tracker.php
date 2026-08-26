@@ -20,11 +20,13 @@ class Tracker extends Model
         'rating',
         'review_notes',
         'rewatch_count',
+        'is_favorite',
     ];
 
     protected $attributes = [
         'current_episode' => 0,
         'rewatch_count'   => 0,
+        'is_favorite'     => false,
     ];
 
     /**
@@ -45,6 +47,7 @@ class Tracker extends Model
             'total_episodes'  => 'integer',
             'rating'          => 'integer',
             'rewatch_count'   => 'integer',
+            'is_favorite'     => 'boolean',
         ];
     }
 

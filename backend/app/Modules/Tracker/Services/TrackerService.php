@@ -34,6 +34,10 @@ class TrackerService
             $query->where('status', $status);
         }
 
+        if (isset($filters['favorite']) && filter_var($filters['favorite'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== null) {
+            $query->where('is_favorite', filter_var($filters['favorite'], FILTER_VALIDATE_BOOLEAN));
+        }
+
         $perPage = max(1, min(100, (int) ($filters['per_page'] ?? 20)));
         $page = max(1, (int) ($filters['page'] ?? 1));
 
@@ -51,9 +55,14 @@ class TrackerService
             ->pluck('count', 'status')
             ->toArray();
 
+        $favoritesCount = Tracker::where('user_id', $user->id)
+            ->where('is_favorite', true)
+            ->count();
+
         $allStatuses = ['watching', 'completed', 'plan_to_watch', 'on_hold', 'dropped'];
         $counts = [
-            'all' => array_sum($rawCounts),
+            'all'       => array_sum($rawCounts),
+            'favorites' => $favoritesCount,
         ];
 
         foreach ($allStatuses as $st) {
@@ -111,6 +120,7 @@ class TrackerService
             }
         }
 
+        $status = $data['status'] ?? 'plan_to_watch';
         $current = (int) ($data['current_episode'] ?? 0);
         $total = isset($data['total_episodes']) ? (int) $data['total_episodes'] : null;
 
@@ -122,9 +132,10 @@ class TrackerService
 
         // Auto-complete if current episode reaches total
         if ($total !== null && $total > 0 && $current >= $total) {
-            $data['status'] = 'completed';
+            $status = 'completed';
         }
 
+        $data['status'] = $status;
         $data['current_episode'] = $current;
         $data['rewatch_count'] = (int) ($data['rewatch_count'] ?? 0);
 
