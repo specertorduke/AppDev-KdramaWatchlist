@@ -83,6 +83,15 @@ class DiscoverService
     protected static ?array $cachedGenreList = null;
 
     /**
+     * Clear in-memory cached genre data (useful for testing).
+     */
+    public static function resetCache(): void
+    {
+        static::$cachedGenreMap = null;
+        static::$cachedGenreList = null;
+    }
+
+    /**
      * Fetch TV genre list from TMDB or cache.
      *
      * @return array<int, string> [id => name]

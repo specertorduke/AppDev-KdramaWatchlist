@@ -36,15 +36,21 @@ class DramaCardResource extends JsonResource
         // Handle rating
         $rating = isset($this->resource['vote_average']) ? round((float) $this->resource['vote_average'], 1) : 0.0;
 
+        // Handle total episodes if available
+        $totalEpisodes = isset($this->resource['number_of_episodes'])
+            ? (int) $this->resource['number_of_episodes']
+            : (isset($this->resource['total_episodes']) ? (int) $this->resource['total_episodes'] : null);
+
         return [
-            'tmdb_id'      => (int) ($this->resource['id'] ?? $this->resource['tmdb_id'] ?? 0),
-            'title'        => (string) ($this->resource['name'] ?? $this->resource['title'] ?? ''),
-            'poster_url'   => $posterUrl,
-            'release_year' => $releaseYear,
-            'rating'       => $rating,
-            'rank'         => isset($this->resource['rank']) ? (int) $this->resource['rank'] : null,
-            'genres'       => $this->resource['genres'] ?? [],
-            'watch_status' => $this->resource['watch_status'] ?? null,
+            'tmdb_id'        => (int) ($this->resource['id'] ?? $this->resource['tmdb_id'] ?? 0),
+            'title'          => (string) ($this->resource['name'] ?? $this->resource['title'] ?? ''),
+            'poster_url'     => $posterUrl,
+            'release_year'   => $releaseYear,
+            'rating'         => $rating,
+            'rank'           => isset($this->resource['rank']) ? (int) $this->resource['rank'] : null,
+            'genres'         => $this->resource['genres'] ?? [],
+            'total_episodes' => $totalEpisodes,
+            'watch_status'   => $this->resource['watch_status'] ?? null,
         ];
     }
 }
