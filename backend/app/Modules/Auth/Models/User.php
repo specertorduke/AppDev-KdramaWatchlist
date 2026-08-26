@@ -35,4 +35,12 @@ class User extends Authenticatable
     {
         return UserFactory::new();
     }
+
+    /**
+     * Get the trackers for the user.
+     */
+    public function trackers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Modules\Tracker\Models\Tracker::class);
+    }
 }
