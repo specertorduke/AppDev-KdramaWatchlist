@@ -146,6 +146,39 @@ class TrackerTest extends TestCase
         ]);
     }
 
+    public function test_authenticated_user_can_create_tracker_with_only_tmdb_id(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/tv/99999*' => Http::response([
+                'id' => 99999,
+                'name' => 'Goblin',
+                'number_of_episodes' => 16,
+                'poster_path' => '/goblin.jpg',
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/v1/tracker', [
+            'tmdb_id' => 99999,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.tmdb_id', 99999)
+            ->assertJsonPath('data.status', 'plan_to_watch')
+            ->assertJsonPath('data.current_episode', 0)
+            ->assertJsonPath('data.total_episodes', 16)
+            ->assertJsonPath('data.progress_percentage', 0);
+
+        $this->assertDatabaseHas('trackers', [
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 99999,
+            'status'          => 'plan_to_watch',
+            'current_episode' => 0,
+            'total_episodes'  => 16,
+        ]);
+    }
+
     public function test_duplicate_tracker_creation_is_rejected_with_422(): void
     {
         Sanctum::actingAs($this->user);
@@ -774,4 +807,204 @@ class TrackerTest extends TestCase
             'tmdb_id' => 12345,
         ]);
     }
+
+    // ==========================================
+    // 7. Favorite Tests
+    // ==========================================
+
+    public function test_user_can_create_tracker_with_is_favorite(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/tv/12345*' => Http::response([
+                'id' => 12345,
+                'name' => 'Queen of Tears',
+                'number_of_episodes' => 16,
+            ], 200),
+        ]);
+
+        $response = $this->postJson('/api/v1/tracker', [
+            'tmdb_id'     => 12345,
+            'status'      => 'watching',
+            'is_favorite' => true,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.tmdb_id', 12345)
+            ->assertJsonPath('data.is_favorite', true);
+
+        $this->assertDatabaseHas('trackers', [
+            'user_id'     => $this->user->id,
+            'tmdb_id'     => 12345,
+            'is_favorite' => 1,
+        ]);
+    }
+
+    public function test_user_can_update_is_favorite_via_patch(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 12345,
+            'status'          => 'watching',
+            'current_episode' => 2,
+            'total_episodes'  => 16,
+            'is_favorite'     => false,
+        ]);
+
+        Http::fake([
+            '*/tv/12345*' => Http::response(['id' => 12345, 'name' => 'Queen of Tears'], 200),
+        ]);
+
+        // Toggle to true
+        $response1 = $this->patchJson('/api/v1/tracker/12345', [
+            'is_favorite' => true,
+        ]);
+
+        $response1->assertStatus(200)
+            ->assertJsonPath('data.is_favorite', true);
+
+        $this->assertDatabaseHas('trackers', [
+            'user_id'     => $this->user->id,
+            'tmdb_id'     => 12345,
+            'is_favorite' => 1,
+        ]);
+
+        // Toggle back to false
+        $response2 = $this->patchJson('/api/v1/tracker/12345', [
+            'is_favorite' => false,
+        ]);
+
+        $response2->assertStatus(200)
+            ->assertJsonPath('data.is_favorite', false);
+
+        $this->assertDatabaseHas('trackers', [
+            'user_id'     => $this->user->id,
+            'tmdb_id'     => 12345,
+            'is_favorite' => 0,
+        ]);
+    }
+
+    public function test_user_can_filter_trackers_by_favorite(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 101,
+            'status'          => 'watching',
+            'current_episode' => 2,
+            'total_episodes'  => 16,
+            'is_favorite'     => true,
+        ]);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 102,
+            'status'          => 'completed',
+            'current_episode' => 16,
+            'total_episodes'  => 16,
+            'is_favorite'     => true,
+        ]);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 103,
+            'status'          => 'plan_to_watch',
+            'current_episode' => 0,
+            'total_episodes'  => 16,
+            'is_favorite'     => false,
+        ]);
+
+        // Another user's favorite shouldn't appear
+        Tracker::create([
+            'user_id'         => $this->otherUser->id,
+            'tmdb_id'         => 104,
+            'status'          => 'watching',
+            'current_episode' => 1,
+            'total_episodes'  => 16,
+            'is_favorite'     => true,
+        ]);
+
+        Http::fake([
+            '*/tv/*' => Http::response(['id' => 101, 'name' => 'Drama'], 200),
+        ]);
+
+        // Filter favorite=true
+        $resFavorites = $this->getJson('/api/v1/tracker?favorite=true');
+        $resFavorites->assertStatus(200)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.counts.all', 3)
+            ->assertJsonPath('meta.counts.favorites', 2);
+
+        // Filter favorite=1
+        $resFavorites1 = $this->getJson('/api/v1/tracker?favorite=1');
+        $resFavorites1->assertStatus(200)
+            ->assertJsonCount(2, 'data');
+
+        // Filter favorite=false
+        $resNonFavorites = $this->getJson('/api/v1/tracker?favorite=false');
+        $resNonFavorites->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.tmdb_id', 103);
+    }
+
+    public function test_meta_counts_accurately_reflects_favorites_count(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 201,
+            'status'          => 'watching',
+            'current_episode' => 2,
+            'total_episodes'  => 16,
+            'is_favorite'     => true,
+        ]);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 202,
+            'status'          => 'completed',
+            'current_episode' => 16,
+            'total_episodes'  => 16,
+            'is_favorite'     => true,
+        ]);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 203,
+            'status'          => 'plan_to_watch',
+            'current_episode' => 0,
+            'total_episodes'  => 16,
+            'is_favorite'     => false,
+        ]);
+
+        Tracker::create([
+            'user_id'         => $this->user->id,
+            'tmdb_id'         => 204,
+            'status'          => 'on_hold',
+            'current_episode' => 3,
+            'total_episodes'  => 16,
+            'is_favorite'     => false,
+        ]);
+
+        Http::fake([
+            '*/tv/*' => Http::response(['id' => 201, 'name' => 'Drama'], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/tracker');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('meta.counts.all', 4)
+            ->assertJsonPath('meta.counts.favorites', 2)
+            ->assertJsonPath('meta.counts.watching', 1)
+            ->assertJsonPath('meta.counts.completed', 1)
+            ->assertJsonPath('meta.counts.plan_to_watch', 1)
+            ->assertJsonPath('meta.counts.on_hold', 1)
+            ->assertJsonPath('meta.counts.dropped', 0);
+    }
 }
+

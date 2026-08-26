@@ -15,6 +15,24 @@ class FilterTrackerRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('favorite')) {
+            $fav = $this->input('favorite');
+            if (is_string($fav)) {
+                $lower = strtolower(trim($fav));
+                if (in_array($lower, ['true', '1'], true)) {
+                    $this->merge(['favorite' => true]);
+                } elseif (in_array($lower, ['false', '0'], true)) {
+                    $this->merge(['favorite' => false]);
+                }
+            }
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
@@ -23,6 +41,7 @@ class FilterTrackerRequest extends FormRequest
     {
         return [
             'status'   => ['nullable', 'string', 'in:all,watching,completed,plan_to_watch,on_hold,dropped'],
+            'favorite' => ['nullable', 'boolean'],
             'page'     => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

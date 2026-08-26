@@ -24,6 +24,7 @@ class TrackerCardResource extends JsonResource
             'rating'              => $this->rating,
             'review_notes'        => $this->review_notes,
             'rewatch_count'       => $this->rewatch_count,
+            'is_favorite'         => (bool) $this->is_favorite,
             'created_at'          => $this->created_at?->toISOString(),
             'updated_at'          => $this->updated_at?->toISOString(),
             'drama'               => $this->dramaMetadata,
