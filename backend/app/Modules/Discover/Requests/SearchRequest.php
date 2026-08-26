@@ -19,8 +19,9 @@ class SearchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'query' => ['required', 'string', 'min:1', 'max:255'],
-            'page'  => ['nullable', 'integer', 'min:1', 'max:500'],
+            'query'  => ['required_without:search', 'nullable', 'string', 'min:1', 'max:255'],
+            'search' => ['required_without:query', 'nullable', 'string', 'min:1', 'max:255'],
+            'page'   => ['nullable', 'integer', 'min:1', 'max:500'],
         ];
     }
 }
