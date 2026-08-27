@@ -12,9 +12,11 @@ import {
   Search,
   Settings,
   Send,
+  LogOut,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
 import {
   currentDrama,
   dashboardStats,
@@ -31,6 +33,10 @@ const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: S
 
 function DashboardHeader({ activeTab }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const { user } = useAuth()
+
+  const displayName = user?.name || dashboardUser.name
+  const avatarUrl = user?.avatar || dashboardUser.avatar
 
   return (
     <header className="dashboard-header">
@@ -44,23 +50,40 @@ function DashboardHeader({ activeTab }) {
       <div className="dashboard-actions">
         <button type="button" aria-label="Search"><Search size={20} /></button>
         <button className="profile-avatar" type="button" aria-label="Open profile" onClick={() => setProfileOpen((open) => !open)}>
-          <img src={dashboardUser.avatar} alt="" />
+          <img src={avatarUrl} alt={displayName} />
         </button>
       </div>
-      {profileOpen && <ProfileMenu />}
+      {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} />}
     </header>
   )
 }
 
-function ProfileMenu() {
-  return <div className="profile-menu">
-    <div className="profile-menu-user"><strong>Kim Ji-young</strong><span>kdramaaddict@email.com</span></div>
-    <Link to="/tracker">My Tracker</Link>
-    <Link to="/profile">Stats</Link>
-    <Link to="/profile">Profile</Link>
-    <Link to="/profile">Settings</Link>
-    <button type="button">Sign Out</button>
-  </div>
+function ProfileMenu({ onClose }) {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    onClose?.()
+    await logout()
+    navigate('/login')
+  }
+
+  return (
+    <div className="profile-menu">
+      <div className="profile-menu-user">
+        <strong>{user?.name || 'K-Drama Fan'}</strong>
+        <span>{user?.email || 'user@sarangtv.app'}</span>
+      </div>
+      <Link to="/tracker" onClick={onClose}>My Tracker</Link>
+      <Link to="/profile" onClick={onClose}>Stats</Link>
+      <Link to="/profile" onClick={onClose}>Profile</Link>
+      <Link to="/profile" onClick={onClose}>Settings</Link>
+      <button type="button" onClick={handleLogout}>
+        <LogOut size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+        Sign Out
+      </button>
+    </div>
+  )
 }
 
 function StatCard({ stat }) {
@@ -158,7 +181,37 @@ function TrackerRow({ drama }) {
 }
 
 function ProfilePage() {
-  return <DashboardLayout activeTab="profile"><section className="profile-summary"><img src={dashboardUser.avatar} alt="" /><div><h1>Kim Ji-young</h1><p>kdramaaddict@email.com</p></div><button type="button" aria-label="Edit profile"><Edit3 size={18} /></button></section><section className="profile-stats"><div><strong>4</strong><span>Dramas</span></div><div><strong>18</strong><span>Episodes</span></div><div><strong>17h</strong><span>Watched</span></div></section><section className="profile-links"><Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>4 dramas tracked</small></span><ChevronRight /></Link><Link to="/profile"><BarChart3 /> <span><b>Stats & History</b><small>18 episodes · 17h</small></span><ChevronRight /></Link><Link to="/profile"><Settings /> <span><b>Settings</b><small>Notifications, quality, account</small></span><ChevronRight /></Link></section><button className="signout-button" type="button">↪ &nbsp; Sign Out</button></DashboardLayout>
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
+
+  return <DashboardLayout activeTab="profile">
+    <section className="profile-summary">
+      <img src={dashboardUser.avatar} alt="" />
+      <div>
+        <h1>{user?.name || 'Kim Ji-young'}</h1>
+        <p>{user?.email || 'kdramaaddict@email.com'}</p>
+      </div>
+      <button type="button" aria-label="Edit profile"><Edit3 size={18} /></button>
+    </section>
+    <section className="profile-stats">
+      <div><strong>4</strong><span>Dramas</span></div>
+      <div><strong>18</strong><span>Episodes</span></div>
+      <div><strong>17h</strong><span>Watched</span></div>
+    </section>
+    <section className="profile-links">
+      <Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>4 dramas tracked</small></span><ChevronRight /></Link>
+      <Link to="/profile"><BarChart3 /> <span><b>Stats & History</b><small>18 episodes · 17h</small></span><ChevronRight /></Link>
+      <Link to="/profile"><Settings /> <span><b>Settings</b><small>Notifications, quality, account</small></span><ChevronRight /></Link>
+    </section>
+    <button className="signout-button" type="button" onClick={handleLogout}>
+      <LogOut size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Sign Out
+    </button>
+  </DashboardLayout>
 }
 
 function DashboardLayout({ activeTab, children }) {
@@ -166,12 +219,15 @@ function DashboardLayout({ activeTab, children }) {
 }
 
 function Dashboard() {
+  const { user } = useAuth()
+  const firstName = user?.name ? user.name.split(' ')[0] : dashboardUser.name
+
   return (
     <main className="dashboard-page">
       <DashboardHeader activeTab="home" />
       <div className="dashboard-content">
         <section className="dashboard-welcome" aria-labelledby="welcome-heading">
-          <h1 id="welcome-heading">Annyeong, {dashboardUser.name}! <span>♡</span></h1>
+          <h1 id="welcome-heading">Annyeong, {firstName}! <span>♡</span></h1>
           <p>무슨 드라마 볼까? <em>What drama should we watch?</em></p>
         </section>
 

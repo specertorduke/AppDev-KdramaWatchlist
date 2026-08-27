@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
 import './App.css'
 
@@ -28,13 +29,21 @@ const features = [
 ]
 
 function LandingPage() {
+  const { isAuthenticated } = useAuth()
+
   return (
     <main className="landing-page">
       <header className="site-header">
         <Link className="brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
         <nav className="header-nav" aria-label="Account navigation">
-          <Link className="login-link" to="/login">Log In</Link>
-          <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
+          {isAuthenticated ? (
+            <Link className="button button-primary button-small" to="/dashboard">Dashboard</Link>
+          ) : (
+            <>
+              <Link className="login-link" to="/login">Log In</Link>
+              <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -43,8 +52,14 @@ function LandingPage() {
           <h1>Your K-drama <em>diary.</em></h1>
           <p>Track what you watch, rate the ones that hit different, and keep<br className="desktop-break" /> a simple record of your drama life — no fuss.</p>
           <div className="hero-actions">
-            <Link className="button button-primary" to="/signup">Sign Up</Link>
-            <Link className="button button-outline" to="/login">Log In</Link>
+            {isAuthenticated ? (
+              <Link className="button button-primary" to="/dashboard">Open My Dashboard</Link>
+            ) : (
+              <>
+                <Link className="button button-primary" to="/signup">Sign Up</Link>
+                <Link className="button button-outline" to="/login">Log In</Link>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -64,7 +79,9 @@ function LandingPage() {
 
       <section className="cta-section">
         <p>Your dramas, your list, your pace.</p>
-        <Link className="button button-primary" to="/signup">Create your watchlist</Link>
+        <Link className="button button-primary" to={isAuthenticated ? '/dashboard' : '/signup'}>
+          {isAuthenticated ? 'Go to Watchlist' : 'Create your watchlist'}
+        </Link>
       </section>
 
       <footer className="site-footer">
@@ -79,7 +96,71 @@ function LandingPage() {
 
 function AuthPage({ mode }) {
   const isSignup = mode === 'signup'
+  const navigate = useNavigate()
+  const { login, register, isAuthenticated, isLoading: authLoading } = useAuth()
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+  })
   const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  // If already logged in, redirect to dashboard
+  if (!authLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    // Clear error for field on change
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: null }))
+    }
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setErrorMessage('')
+    setFieldErrors({})
+    setIsSubmitting(true)
+
+    try {
+      if (isSignup) {
+        await register({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          password_confirmation: formData.password_confirmation,
+        })
+      } else {
+        await login({
+          email: formData.email,
+          password: formData.password,
+        })
+      }
+      navigate('/dashboard')
+    } catch (err) {
+      if (err.response) {
+        if (err.response.status === 422 && err.response.data?.errors) {
+          setFieldErrors(err.response.data.errors)
+        }
+        setErrorMessage(
+          err.response.data?.message ||
+          (isSignup ? 'Registration failed. Please check the inputs.' : 'Invalid credentials. Please try again.')
+        )
+      } else {
+        setErrorMessage('Cannot connect to the backend server. Please make sure the API is running.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <main className="auth-page">
@@ -96,17 +177,43 @@ function AuthPage({ mode }) {
           <p>{isSignup ? 'Create an account to begin tracking.' : 'Log in to your watchlist.'}</p>
         </div>
 
-        <form className="auth-form" onSubmit={(event) => event.preventDefault()}>
+        {errorMessage && (
+          <div className="auth-alert-error" role="alert">
+            {errorMessage}
+          </div>
+        )}
+
+        <form className="auth-form" onSubmit={handleSubmit} noValidate>
           {isSignup && (
             <label className="auth-field">
               <span>Name</span>
-              <input name="name" type="text" placeholder="DramaFan2026" />
+              <input
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="DramaFan2026"
+                disabled={isSubmitting}
+              />
+              {fieldErrors.name && (
+                <span className="field-error-text">{fieldErrors.name[0]}</span>
+              )}
             </label>
           )}
 
           <label className="auth-field">
             <span>Email</span>
-            <input name="email" type="email" placeholder="you@example.com" />
+            <input
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@example.com"
+              disabled={isSubmitting}
+            />
+            {fieldErrors.email && (
+              <span className="field-error-text">{fieldErrors.email[0]}</span>
+            )}
           </label>
 
           <label className="auth-field">
@@ -115,7 +222,10 @@ function AuthPage({ mode }) {
               <input
                 name="password"
                 type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange}
                 placeholder={isSignup ? 'Min. 8 characters' : '••••••••'}
+                disabled={isSubmitting}
               />
               <button
                 type="button"
@@ -126,11 +236,42 @@ function AuthPage({ mode }) {
                 {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
             </span>
+            {fieldErrors.password && (
+              <span className="field-error-text">{fieldErrors.password[0]}</span>
+            )}
           </label>
 
-          {!isSignup && <Link className="forgot-link" to="/forgot-password">Forgot password?</Link>}
+          {isSignup && (
+            <label className="auth-field">
+              <span>Confirm Password</span>
+              <span className="password-input">
+                <input
+                  name="password_confirmation"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password_confirmation}
+                  onChange={handleChange}
+                  placeholder="Repeat your password"
+                  disabled={isSubmitting}
+                />
+              </span>
+              {fieldErrors.password_confirmation && (
+                <span className="field-error-text">{fieldErrors.password_confirmation[0]}</span>
+              )}
+            </label>
+          )}
 
-          <button className="auth-submit" type="submit">{isSignup ? 'Create Account' : 'Log In'}</button>
+          {!isSignup && <Link className="forgot-link" to="/login">Forgot password?</Link>}
+
+          <button className="auth-submit" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span className="submit-loading">
+                <Loader2 className="spinner-icon" size={16} />
+                {isSignup ? 'Creating Account...' : 'Logging In...'}
+              </span>
+            ) : (
+              isSignup ? 'Create Account' : 'Log In'
+            )}
+          </button>
 
           <p className="auth-switch">
             {isSignup ? 'Already have an account?' : 'No account?'}{' '}
@@ -144,20 +285,68 @@ function AuthPage({ mode }) {
   )
 }
 
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="auth-loading-screen">
+        <Loader2 className="spinner-icon" size={32} />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<AuthPage mode="login" />} />
-        <Route path="/signup" element={<AuthPage mode="signup" />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/discover" element={<DiscoverPage />} />
-        <Route path="/tracker" element={<TrackerPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="*" element={<LandingPage />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<AuthPage mode="login" />} />
+          <Route path="/signup" element={<AuthPage mode="signup" />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/discover"
+            element={
+              <ProtectedRoute>
+                <DiscoverPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tracker"
+            element={
+              <ProtectedRoute>
+                <TrackerPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<LandingPage />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
