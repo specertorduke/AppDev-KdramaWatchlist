@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService, setOnUnauthorizedCallback } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -9,6 +10,10 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setOnUnauthorizedCallback(() => {
+      setUser(null);
+      setToken(null);
+    });
     loadStoredAuth();
   }, []);
 
@@ -27,25 +32,43 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (userData, authToken) => {
-    try {
-      setUser(userData);
-      setToken(authToken);
-      await AsyncStorage.setItem('auth_token', authToken);
-      await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-    } catch (e) {
-      console.error('Failed to save auth state:', e);
-    }
+  const login = async (email, password) => {
+    // Rely strictly on backend validation
+    const response = await authService.login({ email, password });
+    const { user: userData, token: authToken } = response.data;
+    setUser(userData);
+    setToken(authToken);
+    await AsyncStorage.setItem('auth_token', authToken);
+    await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+    return response.data;
+  };
+
+  const register = async (name, email, password, passwordConfirmation) => {
+    // Rely strictly on backend validation
+    const response = await authService.register({
+      name,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+    });
+    const { user: userData, token: authToken } = response.data;
+    setUser(userData);
+    setToken(authToken);
+    await AsyncStorage.setItem('auth_token', authToken);
+    await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+    return response.data;
   };
 
   const logout = async () => {
     try {
+      if (token) {
+        await authService.logout().catch(() => {});
+      }
+    } finally {
       setUser(null);
       setToken(null);
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('auth_user');
-    } catch (e) {
-      console.error('Failed to clear auth state:', e);
     }
   };
 
@@ -57,6 +80,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!token,
         isLoading,
         login,
+        register,
         logout,
       }}
     >
