@@ -9,10 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Pressable,
 } from 'react-native';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
-import { User, Mail, Lock, AlertCircle, ArrowLeft } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
@@ -20,6 +21,7 @@ export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -30,19 +32,21 @@ export default function RegisterScreen({ navigation }) {
     setFieldErrors({});
 
     try {
-      // Backend handles all validation (min 8 chars, matching passwords, unique email)
+      // Backend handles validation rules
       await register(name, email, password, passwordConfirmation);
     } catch (err) {
       if (err.response) {
         if (err.response.status === 422) {
           const data = err.response.data;
-          setErrorMessage(data.message || 'Validation failed.');
+          setErrorMessage(data.message || 'Registration failed.');
           setFieldErrors(data.errors || {});
         } else {
-          setErrorMessage(err.response.data?.message || 'Registration failed.');
+          setErrorMessage(
+            err.response.data?.message || 'Registration failed. Please check inputs.'
+          );
         }
       } else {
-        setErrorMessage('Cannot connect to backend server. Please verify backend is running.');
+        setErrorMessage('Cannot connect to the backend server. Please ensure the API is running.');
       }
     } finally {
       setLoading(false);
@@ -54,35 +58,47 @@ export default function RegisterScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={20} color={colors.textSecondary} />
-          <Text style={styles.backButtonText}>Back to Sign In</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {/* Back Link */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={10}
+        >
+          <Ionicons name="arrow-back" size={16} color="#8D8B98" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
+        {/* Brand Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join thousands of K-Drama enthusiasts</Text>
+          <Text style={styles.brand}>SARANGTV</Text>
+          <Text style={styles.title}>Start your watchlist</Text>
+          <Text style={styles.subtitle}>Create an account to begin tracking.</Text>
         </View>
 
+        {/* Global Error Banner */}
         {errorMessage ? (
-          <View style={styles.errorBox}>
-            <AlertCircle size={18} color={colors.danger} />
-            <Text style={styles.errorText}>{errorMessage}</Text>
+          <View style={styles.alertError}>
+            <Ionicons name="alert-circle" size={18} color="#EF4444" />
+            <Text style={styles.alertErrorText}>{errorMessage}</Text>
           </View>
         ) : null}
 
+        {/* Form Container */}
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={[styles.inputWrapper, fieldErrors.name && styles.inputError]}>
-              <User size={18} color={colors.textMuted} style={styles.inputIcon} />
+          {/* Name Field */}
+          <View style={styles.field}>
+            <Text style={styles.label}>Name</Text>
+            <View style={[styles.inputWrapper, fieldErrors.name && styles.inputWrapperError]}>
               <TextInput
                 style={styles.input}
-                placeholder="e.g. Hong Gil-dong"
-                placeholderTextColor={colors.textMuted}
+                placeholder="DramaFan2026"
+                placeholderTextColor="#5A5866"
                 value={name}
-                onChangeText={setName}
+                onChangeText={(val) => {
+                  setName(val);
+                  if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: null }));
+                }}
               />
             </View>
             {fieldErrors.name && (
@@ -90,18 +106,21 @@ export default function RegisterScreen({ navigation }) {
             )}
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={[styles.inputWrapper, fieldErrors.email && styles.inputError]}>
-              <Mail size={18} color={colors.textMuted} style={styles.inputIcon} />
+          {/* Email Field */}
+          <View style={styles.field}>
+            <Text style={styles.label}>Email</Text>
+            <View style={[styles.inputWrapper, fieldErrors.email && styles.inputWrapperError]}>
               <TextInput
                 style={styles.input}
-                placeholder="e.g. user@example.com"
-                placeholderTextColor={colors.textMuted}
+                placeholder="you@example.com"
+                placeholderTextColor="#5A5866"
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: null }));
+                }}
               />
             </View>
             {fieldErrors.email && (
@@ -109,35 +128,59 @@ export default function RegisterScreen({ navigation }) {
             )}
           </View>
 
-          <View style={styles.inputGroup}>
+          {/* Password Field */}
+          <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputWrapper, fieldErrors.password && styles.inputError]}>
-              <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, fieldErrors.password && styles.inputWrapperError]}>
               <TextInput
                 style={styles.input}
-                placeholder="Choose a strong password"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry
+                placeholder="Min. 8 characters"
+                placeholderTextColor="#5A5866"
+                secureTextEntry={!showPassword}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: null }));
+                }}
               />
+              <Pressable
+                onPress={() => setShowPassword((prev) => !prev)}
+                style={styles.eyeButton}
+                hitSlop={10}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={19}
+                  color="#716C77"
+                />
+              </Pressable>
             </View>
             {fieldErrors.password && (
               <Text style={styles.fieldErrorText}>{fieldErrors.password[0]}</Text>
             )}
           </View>
 
-          <View style={styles.inputGroup}>
+          {/* Confirm Password Field */}
+          <View style={styles.field}>
             <Text style={styles.label}>Confirm Password</Text>
-            <View style={[styles.inputWrapper, fieldErrors.password_confirmation && styles.inputError]}>
-              <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <View
+              style={[
+                styles.inputWrapper,
+                fieldErrors.password_confirmation && styles.inputWrapperError,
+              ]}
+            >
               <TextInput
                 style={styles.input}
-                placeholder="Re-enter password"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry
+                placeholder="Repeat your password"
+                placeholderTextColor="#5A5866"
+                secureTextEntry={!showPassword}
                 value={passwordConfirmation}
-                onChangeText={setPasswordConfirmation}
+                onChangeText={(val) => {
+                  setPasswordConfirmation(val);
+                  if (fieldErrors.password_confirmation) {
+                    setFieldErrors((prev) => ({ ...prev, password_confirmation: null }));
+                  }
+                }}
               />
             </View>
             {fieldErrors.password_confirmation && (
@@ -145,17 +188,30 @@ export default function RegisterScreen({ navigation }) {
             )}
           </View>
 
+          {/* Submit Button */}
           <TouchableOpacity
-            style={styles.registerButton}
+            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
             onPress={handleRegister}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color={colors.white} />
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.submitButtonText}>Creating Account...</Text>
+              </View>
             ) : (
-              <Text style={styles.registerButtonText}>Register</Text>
+              <Text style={styles.submitButtonText}>Create Account</Text>
             )}
           </TouchableOpacity>
+
+          {/* Switch Prompt */}
+          <View style={styles.switchRow}>
+            <Text style={styles.switchPrompt}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} hitSlop={8}>
+              <Text style={styles.switchLink}>Log in</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -165,106 +221,145 @@ export default function RegisterScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#080808',
   },
   scrollContent: {
     flexGrow: 1,
-    padding: spacing.xl,
-    paddingTop: spacing.xxl,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 36,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xl,
-    gap: spacing.xs,
+    marginBottom: 20,
+    gap: 6,
+    alignSelf: 'flex-start',
   },
   backButtonText: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
+    color: '#8D8B98',
+    fontSize: 14,
     fontWeight: '600',
   },
   header: {
-    marginBottom: spacing.xl,
+    alignItems: 'center',
+    marginBottom: 26,
+  },
+  brand: {
+    color: '#EB5B78',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 14,
   },
   title: {
-    ...typography.h1,
-    color: colors.text,
+    color: '#F7F0F0',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 6,
   },
   subtitle: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginTop: 4,
+    color: '#8D8B98',
+    fontSize: 14,
+    fontWeight: '500',
   },
-  errorBox: {
+  alertError: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    padding: spacing.md,
-    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
-    borderColor: colors.danger,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
   },
-  errorText: {
-    ...typography.bodySmall,
-    color: colors.danger,
+  alertErrorText: {
+    color: '#F87171',
+    fontSize: 13,
+    fontWeight: '500',
     flex: 1,
   },
   form: {
     width: '100%',
   },
-  inputGroup: {
-    marginBottom: spacing.md,
+  field: {
+    marginBottom: 16,
   },
   label: {
-    ...typography.bodySmall,
+    color: '#C5C1CC',
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    marginBottom: 7,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    backgroundColor: '#12121A',
     borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    height: 50,
+    borderColor: '#242330',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 48,
   },
-  inputError: {
-    borderColor: colors.danger,
-  },
-  inputIcon: {
-    marginRight: spacing.sm,
+  inputWrapperError: {
+    borderColor: '#EF4444',
   },
   input: {
     flex: 1,
-    color: colors.text,
+    color: '#F7F0F0',
     fontSize: 15,
+    paddingVertical: 0,
+  },
+  eyeButton: {
+    padding: 4,
   },
   fieldErrorText: {
-    ...typography.caption,
-    color: colors.danger,
-    marginTop: 4,
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 5,
+    fontWeight: '500',
   },
-  registerButton: {
-    backgroundColor: colors.primary,
-    height: 52,
+  submitButton: {
+    backgroundColor: '#EB5B78',
     borderRadius: 12,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.md,
-    shadowColor: colors.primary,
+    marginTop: 10,
+    shadowColor: '#EB5B78',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 4,
   },
-  registerButtonText: {
-    ...typography.body,
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
+  },
+  switchPrompt: {
+    color: '#716C77',
+    fontSize: 14,
+  },
+  switchLink: {
+    color: '#EB5B78',
+    fontSize: 14,
     fontWeight: '700',
-    color: colors.white,
   },
 });

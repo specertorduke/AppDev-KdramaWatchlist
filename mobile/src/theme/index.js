@@ -1,76 +1,58 @@
 export const colors = {
-  // Backgrounds
-  background: '#0B0F19',
-  card: '#161F30',
-  cardHover: '#1E2B42',
-  surface: '#121927',
-  
-  // Brand / Accents
-  primary: '#E50914', // Drama Red / Coral accent
-  primaryHover: '#FF2E3B',
-  primarySoft: 'rgba(229, 9, 20, 0.15)',
-  secondary: '#6366F1', // Indigo / K-Wave
-  secondarySoft: 'rgba(99, 102, 241, 0.15)',
-  accent: '#F59E0B', // Star / Rating Gold
-  
-  // Status Colors
-  watching: '#3B82F6',
-  planToWatch: '#8B5CF6',
-  completed: '#10B981',
-  dropped: '#EF4444',
-  
-  // Neutrals & Typography
-  text: '#F8FAFC',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
-  border: '#1E293B',
-  borderLight: '#334155',
-  
-  // States
+  bg: '#07070E',
+  nav: '#0B0B13',
+  panel: '#11111B',
+  panel2: '#151521',
+  text: '#F0EEE8',
+  muted: '#8D8B98',
+  red: '#C8102E',
+  redBright: '#E8213F',
+  line: 'rgba(255,255,255,0.08)',
+  gold: '#FFD76A',
+  blue: '#60A5FA',
+  green: '#10B981',
+  purple: '#8B5CF6',
   white: '#FFFFFF',
   black: '#000000',
-  danger: '#F43F5E',
-  success: '#10B981',
+  danger: '#EF4444',
 };
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 40,
+  xs: 6,
+  sm: 9,
+  md: 14,
+  lg: 18,
+  xl: 24,
+  xxl: 32,
 };
 
 export const typography = {
   h1: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: colors.text,
   },
   h2: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
   },
   h3: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
   },
   body: {
-    fontSize: 15,
-    fontWeight: '400',
+    fontSize: 14,
     color: colors.text,
   },
   bodySmall: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: colors.muted,
   },
   caption: {
     fontSize: 11,
-    fontWeight: '500',
-    color: colors.textMuted,
+    color: colors.muted,
   },
 };
+

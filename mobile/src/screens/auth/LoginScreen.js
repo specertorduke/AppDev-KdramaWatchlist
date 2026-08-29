@@ -9,15 +9,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Pressable,
 } from 'react-native';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
-import { Film, Lock, Mail, AlertCircle } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -28,7 +30,7 @@ export default function LoginScreen({ navigation }) {
     setFieldErrors({});
 
     try {
-      // Send directly to backend without client validation
+      // Backend handles validation (422)
       await login(email, password);
     } catch (err) {
       if (err.response) {
@@ -37,10 +39,12 @@ export default function LoginScreen({ navigation }) {
           setErrorMessage(data.message || 'Validation failed.');
           setFieldErrors(data.errors || {});
         } else {
-          setErrorMessage(err.response.data?.message || 'Login failed. Please check credentials.');
+          setErrorMessage(
+            err.response.data?.message || 'Invalid credentials. Please try again.'
+          );
         }
       } else {
-        setErrorMessage('Cannot connect to backend server. Please verify backend is running.');
+        setErrorMessage('Cannot connect to the backend server. Please ensure the API is running.');
       }
     } finally {
       setLoading(false);
@@ -52,35 +56,39 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.brandContainer}>
-          <View style={styles.iconCircle}>
-            <Film size={36} color={colors.white} />
-          </View>
-          <Text style={styles.brandTitle}>SarangTV</Text>
-          <Text style={styles.brandSubtitle}>Your Ultimate K-Drama Tracker</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {/* Brand Header */}
+        <View style={styles.header}>
+          <Text style={styles.brand}>SARANGTV</Text>
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.subtitle}>Log in to your watchlist.</Text>
         </View>
 
+        {/* Global Error Banner */}
         {errorMessage ? (
-          <View style={styles.errorBox}>
-            <AlertCircle size={18} color={colors.danger} />
-            <Text style={styles.errorText}>{errorMessage}</Text>
+          <View style={styles.alertError}>
+            <Ionicons name="alert-circle" size={18} color="#EF4444" />
+            <Text style={styles.alertErrorText}>{errorMessage}</Text>
           </View>
         ) : null}
 
+        {/* Form Container */}
         <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={[styles.inputWrapper, fieldErrors.email && styles.inputError]}>
-              <Mail size={18} color={colors.textMuted} style={styles.inputIcon} />
+          {/* Email Field */}
+          <View style={styles.field}>
+            <Text style={styles.label}>Email</Text>
+            <View style={[styles.inputWrapper, fieldErrors.email && styles.inputWrapperError]}>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor={colors.textMuted}
+                placeholder="you@example.com"
+                placeholderTextColor="#5A5866"
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: null }));
+                }}
               />
             </View>
             {fieldErrors.email && (
@@ -88,40 +96,60 @@ export default function LoginScreen({ navigation }) {
             )}
           </View>
 
-          <View style={styles.inputGroup}>
+          {/* Password Field */}
+          <View style={styles.field}>
             <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputWrapper, fieldErrors.password && styles.inputError]}>
-              <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, fieldErrors.password && styles.inputWrapperError]}>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry
+                placeholder="••••••••"
+                placeholderTextColor="#5A5866"
+                secureTextEntry={!showPassword}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: null }));
+                }}
               />
+              <Pressable
+                onPress={() => setShowPassword((prev) => !prev)}
+                style={styles.eyeButton}
+                hitSlop={10}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={19}
+                  color="#716C77"
+                />
+              </Pressable>
             </View>
             {fieldErrors.password && (
               <Text style={styles.fieldErrorText}>{fieldErrors.password[0]}</Text>
             )}
           </View>
 
+          {/* Submit Button */}
           <TouchableOpacity
-            style={styles.loginButton}
+            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
             onPress={handleLogin}
             disabled={loading}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color={colors.white} />
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.submitButtonText}>Logging In...</Text>
+              </View>
             ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
+              <Text style={styles.submitButtonText}>Log In</Text>
             )}
           </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.signupLink}>Sign Up</Text>
+          {/* Switch Prompt */}
+          <View style={styles.switchRow}>
+            <Text style={styles.switchPrompt}>No account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')} hitSlop={8}>
+              <Text style={styles.switchLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -133,126 +161,133 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#080808',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: spacing.xl,
+    paddingHorizontal: 24,
+    paddingVertical: 36,
   },
-  brandContainer: {
+  header: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: 28,
   },
-  iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
+  brand: {
+    color: '#EB5B78',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 16,
   },
-  brandTitle: {
-    ...typography.h1,
-    color: colors.text,
-    letterSpacing: 0.5,
+  title: {
+    color: '#F7F0F0',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 6,
   },
-  brandSubtitle: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    marginTop: 2,
+  subtitle: {
+    color: '#8D8B98',
+    fontSize: 14,
+    fontWeight: '500',
   },
-  errorBox: {
+  alertError: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    padding: spacing.md,
-    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
-    borderColor: colors.danger,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
   },
-  errorText: {
-    ...typography.bodySmall,
-    color: colors.danger,
+  alertErrorText: {
+    color: '#F87171',
+    fontSize: 13,
+    fontWeight: '500',
     flex: 1,
   },
   form: {
     width: '100%',
   },
-  inputGroup: {
-    marginBottom: spacing.md,
+  field: {
+    marginBottom: 18,
   },
   label: {
-    ...typography.bodySmall,
+    color: '#C5C1CC',
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    backgroundColor: '#12121A',
     borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
+    borderColor: '#242330',
+    borderRadius: 12,
+    paddingHorizontal: 14,
     height: 50,
   },
-  inputError: {
-    borderColor: colors.danger,
-  },
-  inputIcon: {
-    marginRight: spacing.sm,
+  inputWrapperError: {
+    borderColor: '#EF4444',
   },
   input: {
     flex: 1,
-    color: colors.text,
+    color: '#F7F0F0',
     fontSize: 15,
+    paddingVertical: 0,
+  },
+  eyeButton: {
+    padding: 4,
   },
   fieldErrorText: {
-    ...typography.caption,
-    color: colors.danger,
-    marginTop: 4,
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 5,
+    fontWeight: '500',
   },
-  loginButton: {
-    backgroundColor: colors.primary,
-    height: 52,
+  submitButton: {
+    backgroundColor: '#EB5B78',
     borderRadius: 12,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.sm,
-    shadowColor: colors.primary,
+    marginTop: 8,
+    shadowColor: '#EB5B78',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 4,
   },
-  loginButtonText: {
-    ...typography.body,
-    fontWeight: '700',
-    color: colors.white,
+  submitButtonDisabled: {
+    opacity: 0.7,
   },
-  footer: {
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.xl,
+    marginTop: 24,
   },
-  footerText: {
-    ...typography.bodySmall,
-    color: colors.textMuted,
+  switchPrompt: {
+    color: '#716C77',
+    fontSize: 14,
   },
-  signupLink: {
-    ...typography.bodySmall,
-    color: colors.primary,
+  switchLink: {
+    color: '#EB5B78',
+    fontSize: 14,
     fontWeight: '700',
   },
 });
