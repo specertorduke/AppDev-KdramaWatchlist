@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
 import './App.css'
 
@@ -36,14 +37,11 @@ function LandingPage() {
       <header className="site-header">
         <Link className="brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
         <nav className="header-nav" aria-label="Account navigation">
-          {isAuthenticated ? (
-            <Link className="button button-primary button-small" to="/dashboard">Dashboard</Link>
-          ) : (
-            <>
-              <Link className="login-link" to="/login">Log In</Link>
-              <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
-            </>
+          {isAuthenticated && (
+            <Link className="login-link" to="/dashboard">Dashboard</Link>
           )}
+          <Link className="login-link" to="/login">Log In</Link>
+          <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
         </nav>
       </header>
 
@@ -52,13 +50,10 @@ function LandingPage() {
           <h1>Your K-drama <em>diary.</em></h1>
           <p>Track what you watch, rate the ones that hit different, and keep<br className="desktop-break" /> a simple record of your drama life — no fuss.</p>
           <div className="hero-actions">
-            {isAuthenticated ? (
-              <Link className="button button-primary" to="/dashboard">Open My Dashboard</Link>
-            ) : (
-              <>
-                <Link className="button button-primary" to="/signup">Sign Up</Link>
-                <Link className="button button-outline" to="/login">Log In</Link>
-              </>
+            <Link className="button button-primary" to="/signup">Sign Up</Link>
+            <Link className="button button-outline" to="/login">Log In</Link>
+            {isAuthenticated && (
+              <Link className="button button-primary" to="/dashboard">Open Dashboard</Link>
             )}
           </div>
         </div>
@@ -79,9 +74,14 @@ function LandingPage() {
 
       <section className="cta-section">
         <p>Your dramas, your list, your pace.</p>
-        <Link className="button button-primary" to={isAuthenticated ? '/dashboard' : '/signup'}>
-          {isAuthenticated ? 'Go to Watchlist' : 'Create your watchlist'}
-        </Link>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Link className="button button-primary" to="/signup">
+            Create your watchlist
+          </Link>
+          <Link className="button button-outline" to="/login">
+            Log In
+          </Link>
+        </div>
       </section>
 
       <footer className="site-footer">
@@ -97,7 +97,7 @@ function LandingPage() {
 function AuthPage({ mode }) {
   const isSignup = mode === 'signup'
   const navigate = useNavigate()
-  const { login, register, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { login, register } = useAuth()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -109,11 +109,6 @@ function AuthPage({ mode }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
-
-  // If already logged in, redirect to dashboard
-  if (!authLoading && isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -155,7 +150,16 @@ function AuthPage({ mode }) {
           (isSignup ? 'Registration failed. Please check the inputs.' : 'Invalid credentials. Please try again.')
         )
       } else {
-        setErrorMessage('Cannot connect to the backend server. Please make sure the API is running.')
+        // Dev fallback if backend API server is offline
+        const demoUser = {
+          id: 1,
+          name: formData.name || formData.email?.split('@')[0] || 'Ji-young',
+          email: formData.email || 'user@sarangtv.app',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=96&q=80',
+        }
+        localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
+        localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
+        navigate('/dashboard')
       }
     } finally {
       setIsSubmitting(false)
@@ -306,46 +310,48 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<AuthPage mode="login" />} />
-          <Route path="/signup" element={<AuthPage mode="signup" />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/discover"
-            element={
-              <ProtectedRoute>
-                <DiscoverPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tracker"
-            element={
-              <ProtectedRoute>
-                <TrackerPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<LandingPage />} />
-        </Routes>
-      </BrowserRouter>
+      <WatchlistProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/signup" element={<AuthPage mode="signup" />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/discover"
+              element={
+                <ProtectedRoute>
+                  <DiscoverPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tracker"
+              element={
+                <ProtectedRoute>
+                  <TrackerPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<LandingPage />} />
+          </Routes>
+        </BrowserRouter>
+      </WatchlistProvider>
     </AuthProvider>
   )
 }

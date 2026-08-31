@@ -20,21 +20,21 @@ import {
   Star,
   CheckCircle2,
   Heart,
+  Loader2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useWatchlist } from '../context/WatchlistContext.jsx'
+import discoverService, {
+  mapDramaCard,
+  mapDramaDetail,
+  DEFAULT_POSTER_IMAGE,
+  DEFAULT_BACKDROP_IMAGE,
+} from '../services/discoverService.js'
 import {
-  currentDrama,
-  dashboardStats,
   dashboardUser,
   quickAccess,
-  recommendedDramas,
-  discoverDramas,
-  discoverGenres,
-  trackerDramas,
-  searchableDramas,
-  top5Dramas,
 } from '../data/dashboardData.js'
 
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
@@ -43,10 +43,14 @@ const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: S
 const searchGenres = ['All', 'Trending', 'Romance', 'Action', 'Thriller', 'Fantasy', 'Comedy', 'Drama', 'Historical']
 
 function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
+  const { addToWatchlist, isInWatchlist } = useWatchlist()
   const [query, setQuery] = useState('')
   const [activeGenre, setActiveGenre] = useState('All')
   const [addedIds, setAddedIds] = useState({})
   const [toastMessage, setToastMessage] = useState('')
+  const [dramas, setDramas] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [genreIdMap, setGenreIdMap] = useState({})
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -58,7 +62,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
-  // Reset search when opened
+  // Manage body scroll locking
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -70,31 +74,88 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
     }
   }, [isOpen])
 
-  const filteredDramas = useMemo(() => {
-    return searchableDramas.filter((drama) => {
-      const matchesGenre =
-        activeGenre === 'All'
-          ? true
-          : activeGenre === 'Trending'
-          ? drama.rating >= 9.2
-          : drama.genres.some((g) => g.toLowerCase() === activeGenre.toLowerCase())
+  // Load TV genre map on mount
+  useEffect(() => {
+    async function loadGenres() {
+      try {
+        const res = await discoverService.getGenres()
+        if (res?.data && res.data.length > 0) {
+          const map = res.data.reduce((acc, g) => ({ ...acc, [g.name.toLowerCase()]: g.id }), {})
+          setGenreIdMap(map)
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    loadGenres()
+  }, [])
 
-      const q = query.trim().toLowerCase()
-      const matchesQuery =
-        !q ||
-        drama.title.toLowerCase().includes(q) ||
-        drama.cast?.toLowerCase().includes(q) ||
-        drama.synopsis?.toLowerCase().includes(q) ||
-        drama.genres.some((g) => g.toLowerCase().includes(q))
+  // Fetch API dramas when modal opens or query/genre changes
+  useEffect(() => {
+    if (!isOpen) return
 
-      return matchesGenre && matchesQuery
-    })
-  }, [query, activeGenre])
+    let isCancelled = false
+    const trimmed = query.trim()
 
-  const handleAdd = (drama) => {
-    setAddedIds((prev) => ({ ...prev, [drama.id]: true }))
+    if (trimmed) {
+      setIsSearching(true)
+      const timeout = setTimeout(async () => {
+        try {
+          const res = await discoverService.searchDramas({ query: trimmed })
+          if (!isCancelled) {
+            if (res?.data && res.data.length > 0) {
+              const mapped = res.data.map((d, index) => mapDramaCard(d, index))
+              setDramas(mapped)
+            } else {
+              setDramas([])
+            }
+          }
+        } catch {
+          if (!isCancelled) setDramas([])
+        } finally {
+          if (!isCancelled) setIsSearching(false)
+        }
+      }, 300)
+
+      return () => {
+        isCancelled = true
+        clearTimeout(timeout)
+      }
+    } else {
+      setIsSearching(true)
+      const genreId = (activeGenre === 'All' || activeGenre === 'Trending') ? null : genreIdMap[activeGenre.toLowerCase()]
+      discoverService
+        .getDiscover({ page: 1, genre_id: genreId })
+        .then((res) => {
+          if (!isCancelled) {
+            if (res?.data && res.data.length > 0) {
+              const mapped = res.data.map((d, index) => mapDramaCard(d, index))
+              setDramas(mapped)
+            } else {
+              setDramas([])
+            }
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) setDramas([])
+        })
+        .finally(() => {
+          if (!isCancelled) setIsSearching(false)
+        })
+
+      return () => {
+        isCancelled = true
+      }
+    }
+  }, [isOpen, query, activeGenre, genreIdMap])
+
+  const handleAdd = async (drama) => {
+    const dramaId = drama.tmdb_id || drama.id
+    setAddedIds((prev) => ({ ...prev, [dramaId]: true }))
     setToastMessage(`"${drama.title}" added to your Plan to Watch list!`)
-    onDramaAdded?.(drama)
+
+    const addedItem = await addToWatchlist(drama, 'Plan')
+    onDramaAdded?.(addedItem || drama)
 
     setTimeout(() => {
       setToastMessage('')
@@ -171,15 +232,33 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
         {/* Results List */}
         <div className="modal-results-container">
           <div className="modal-results-count">
-            <span>{filteredDramas.length} {filteredDramas.length === 1 ? 'drama' : 'dramas'} available</span>
+            <span>{dramas.length} {dramas.length === 1 ? 'drama' : 'dramas'} available</span>
+            {isSearching && (
+              <Loader2
+                size={15}
+                style={{
+                  display: 'inline-block',
+                  marginLeft: '8px',
+                  verticalAlign: 'middle',
+                  animation: 'spin 1s linear infinite',
+                  color: '#eb5b78',
+                }}
+              />
+            )}
           </div>
 
-          {filteredDramas.length > 0 ? (
+          {isSearching && dramas.length === 0 ? (
+            <div className="modal-empty-state">
+              <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
+              <p>Searching K-Drama catalog...</p>
+            </div>
+          ) : dramas.length > 0 ? (
             <div className="modal-results-grid">
-              {filteredDramas.map((drama) => {
-                const isAdded = !!addedIds[drama.id]
+              {dramas.map((drama) => {
+                const dramaId = drama.tmdb_id || drama.id
+                const isAdded = !!addedIds[dramaId] || isInWatchlist(dramaId)
                 return (
-                  <article className="modal-drama-card" key={drama.id}>
+                  <article className="modal-drama-card" key={dramaId}>
                     <div className="modal-drama-poster" style={{ backgroundImage: `url(${drama.image})` }}>
                       <span className="modal-rating-badge">★ {drama.rating}</span>
                     </div>
@@ -188,20 +267,19 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
                       <div className="modal-drama-top">
                         <h3>{drama.title}</h3>
                         <span className="modal-drama-meta">
-                          {drama.year} · {drama.episodes} eps
+                          {drama.year} · {drama.genres?.slice(0, 2).join(' · ') || 'K-Drama'}
                         </span>
                       </div>
 
                       <div className="modal-drama-tags">
-                        {drama.genres.slice(0, 3).map((g) => (
+                        {drama.genres?.slice(0, 3).map((g) => (
                           <span className="genre-pill" key={g}>{g}</span>
                         ))}
                       </div>
 
-                      <p className="modal-drama-synopsis">{drama.synopsis}</p>
+                      <p className="modal-drama-synopsis">{drama.overview || drama.synopsis}</p>
 
                       <div className="modal-drama-bottom">
-                        <small className="modal-drama-cast">Cast: {drama.cast}</small>
                         <button
                           type="button"
                           className={`modal-add-button ${isAdded ? 'added' : ''}`}
@@ -229,7 +307,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
             <div className="modal-empty-state">
               <Film size={40} />
               <h3>No dramas found</h3>
-              <p>We couldn't find any K-dramas matching "{query}". Try a different title or genre!</p>
+              <p>{query ? `We couldn't find any K-dramas matching "${query}". Try searching another title or actor!` : 'No K-dramas found in this genre.'}</p>
               <button
                 type="button"
                 className="button button-outline button-small"
@@ -238,7 +316,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
                   setActiveGenre('All')
                 }}
               >
-                Reset filters
+                Reset search
               </button>
             </div>
           )}
@@ -353,33 +431,90 @@ function CircularProgressAvatar({ src, progress = 19, size = 68, strokeWidth = 4
   )
 }
 
-function CurrentDrama() {
+function CurrentDrama({ onDetailsClick }) {
+  const { stats, updateWatchlist } = useWatchlist()
+  const navigate = useNavigate()
+  const active = stats.currentlyWatching
+
+  if (!active) {
+    return (
+      <article className="current-drama" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="current-drama-content" style={{ padding: '24px' }}>
+          <div className="watching-label"><i /> Watching progress</div>
+          <div style={{ marginTop: '14px', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '17px', color: '#f0ecf3', margin: '0 0 6px', fontFamily: 'Georgia, serif' }}>
+              No drama currently watching
+            </h3>
+            <p style={{ fontSize: '13px', color: '#8c8697', margin: 0, lineHeight: 1.5 }}>
+              Add a K-Drama to your tracker and set its status as Watching to track your episodes.
+            </p>
+          </div>
+          <div className="current-drama-footer" style={{ borderTop: 0, paddingTop: 0 }}>
+            <span>Tracked<strong>{stats.totalTracked} dramas</strong></span>
+            <div>
+              <button
+                className="log-button"
+                type="button"
+                onClick={() => navigate('/discover')}
+              >
+                <Search size={14} /> Explore Catalog
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+    )
+  }
+
+  const avatarImg = active.poster || active.image || DEFAULT_POSTER_IMAGE
+  const backdropImg = active.backdrop || active.image || DEFAULT_BACKDROP_IMAGE
+  const progressVal = typeof active.progress === 'number' ? active.progress : 0
+  const curEp = active.current_episode || 1
+  const totalEps = active.episodes || 16
+
+  const handleLogNextEp = () => {
+    if (curEp < totalEps) {
+      updateWatchlist(active.tmdb_id || active.id, {
+        current_episode: curEp + 1,
+        watchedCount: curEp + 1,
+      })
+    } else {
+      updateWatchlist(active.tmdb_id || active.id, {
+        status: 'Completed',
+        current_episode: totalEps,
+        watchedCount: totalEps,
+      })
+    }
+  }
+
   return (
     <article className="current-drama">
-      <div className="current-drama-image" style={{ backgroundImage: `url(${currentDrama.image})` }} />
+      <div className="current-drama-image" style={{ backgroundImage: `url(${backdropImg})` }} />
       <div className="current-drama-content">
         <div className="watching-label"><i /> Watching progress</div>
         <div className="current-show-row">
           <CircularProgressAvatar
-            src={currentDrama.avatar}
-            progress={currentDrama.progress}
+            src={avatarImg}
+            progress={progressVal}
             size={68}
             strokeWidth={4.5}
           />
           <div>
-            <h3>{currentDrama.title}</h3>
-            <p>{currentDrama.episode} · {currentDrama.runtime}</p>
+            <h3>{active.title}</h3>
+            <p>Ep {curEp} of {totalEps} · ~60 min</p>
             <div className="progress-row">
-              <div className="progress-bar"><span style={{ width: `${currentDrama.progress}%` }} /></div>
-              <b>{currentDrama.progress}%</b>
+              <div className="progress-bar"><span style={{ width: `${progressVal}%` }} /></div>
+              <b>{progressVal}%</b>
             </div>
           </div>
         </div>
         <div className="current-drama-footer">
-          <span>Logged<strong>{currentDrama.logged}</strong></span>
+          <span>Logged<strong>{active.logged || 'Recently'}</strong></span>
           <div>
-            <button className="detail-button" type="button">Details</button>
-            <button className="log-button" type="button"><Check size={15} /> Log Ep 4</button>
+            <button className="detail-button" type="button" onClick={() => onDetailsClick?.(active)}>Details</button>
+            <button className="log-button" type="button" onClick={handleLogNextEp}>
+              <Check size={15} /> Log Ep {Math.min(curEp + 1, totalEps)}
+            </button>
           </div>
         </div>
       </div>
@@ -440,34 +575,86 @@ function DramaCard({ drama }) {
 }
 
 function DramaDetailView({ drama, onBack }) {
-  const [status, setStatus] = useState(drama.status || 'Watching')
-  const [myRating, setMyRating] = useState(drama.myRating || 9)
+  const { getWatchlistItem, updateWatchlist, addToWatchlist } = useWatchlist()
+  const dramaId = drama.tmdb_id || drama.id
+  const savedItem = getWatchlistItem(dramaId)
+
+  const [status, setStatus] = useState(savedItem?.status || drama.status || 'Watching')
+  const [myRating, setMyRating] = useState(savedItem?.rating || drama.myRating || 9)
   const [hoverRating, setHoverRating] = useState(0)
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [myNotes, setMyNotes] = useState(drama.myNotes || '')
+  const [isFavorite, setIsFavorite] = useState(savedItem?.is_favorite || false)
+  const [myNotes, setMyNotes] = useState(savedItem?.notes || drama.myNotes || '')
   const [noteSaved, setNoteSaved] = useState(false)
-  const [episodesList, setEpisodesList] = useState(
-    drama.episodeList || [
-      { number: 1, title: 'The First Meeting', watched: true },
-      { number: 2, title: 'Shattered Glass', watched: true },
-      { number: 3, title: 'The Red Thread', watched: true },
-      { number: 4, title: 'Promises at Dawn', watched: false },
-    ]
-  )
+  const [episodesList, setEpisodesList] = useState(() => {
+    const total = drama.episodes || 16
+    const watched = savedItem?.watchedCount || (savedItem?.status === 'Watching' ? 1 : 0)
+    return Array.from({ length: Math.min(total, 32) }, (_, i) => ({
+      number: i + 1,
+      title: `Episode ${i + 1}`,
+      watched: i < watched,
+    }))
+  })
 
   const watchedCount = episodesList.filter((ep) => ep.watched).length
   const totalEpisodes = drama.episodes || episodesList.length || 16
   const progressPct = totalEpisodes > 0 ? Math.round((watchedCount / totalEpisodes) * 100) : 0
 
+  const handleStatusChange = (newStatus) => {
+    setStatus(newStatus)
+    if (savedItem) {
+      updateWatchlist(dramaId, { status: newStatus })
+    } else {
+      addToWatchlist(drama, newStatus)
+    }
+  }
+
+  const handleRatingChange = (newRating) => {
+    setMyRating(newRating)
+    if (savedItem) {
+      updateWatchlist(dramaId, { rating: newRating })
+    } else {
+      addToWatchlist({ ...drama, myRating: newRating }, status)
+    }
+  }
+
   const toggleEpisode = (epNum) => {
-    setEpisodesList((prev) =>
-      prev.map((ep) => (ep.number === epNum ? { ...ep, watched: !ep.watched } : ep))
-    )
+    setEpisodesList((prev) => {
+      const updated = prev.map((ep) => (ep.number === epNum ? { ...ep, watched: !ep.watched } : ep))
+      const newWatchedCount = updated.filter((ep) => ep.watched).length
+      const newStatus = newWatchedCount === totalEpisodes ? 'Completed' : (newWatchedCount > 0 ? 'Watching' : status)
+      setStatus(newStatus)
+
+      if (savedItem) {
+        updateWatchlist(dramaId, {
+          watchedCount: newWatchedCount,
+          current_episode: newWatchedCount,
+          status: newStatus,
+        })
+      } else {
+        addToWatchlist({ ...drama, watchedCount: newWatchedCount, current_episode: newWatchedCount }, newStatus)
+      }
+      return updated
+    })
   }
 
   const handleSaveNotes = () => {
     setNoteSaved(true)
+    if (savedItem) {
+      updateWatchlist(dramaId, { notes: myNotes })
+    } else {
+      addToWatchlist({ ...drama, myNotes }, status)
+    }
     setTimeout(() => setNoteSaved(false), 2200)
+  }
+
+  const handleToggleFavorite = () => {
+    const nextFav = !isFavorite
+    setIsFavorite(nextFav)
+    if (savedItem) {
+      updateWatchlist(dramaId, { is_favorite: nextFav })
+    } else {
+      addToWatchlist({ ...drama, is_favorite: nextFav }, status)
+    }
   }
 
   const statusOptions = ['Watching', 'Completed', 'Plan to Watch', 'On Hold', 'Dropped']
@@ -513,13 +700,17 @@ function DramaDetailView({ drama, onBack }) {
           <p className="detail-available-on">Available on {drama.availableOn || drama.network}</p>
 
           <div className="detail-header-actions">
-            <button className="detail-update-status-button" type="button">
-              <Plus size={16} /> Update Status
+            <button
+              className="detail-update-status-button"
+              type="button"
+              onClick={() => handleStatusChange(status === 'Watching' ? 'Completed' : 'Watching')}
+            >
+              <Plus size={16} /> {status === 'Watching' ? 'Mark Completed' : 'Set as Watching'}
             </button>
             <button
               className={`detail-heart-button ${isFavorite ? 'active' : ''}`}
               type="button"
-              onClick={() => setIsFavorite((prev) => !prev)}
+              onClick={handleToggleFavorite}
               aria-label="Add to favorites"
             >
               <Heart size={18} fill={isFavorite ? '#eb5b78' : 'none'} color={isFavorite ? '#eb5b78' : '#8e889b'} />
@@ -597,7 +788,7 @@ function DramaDetailView({ drama, onBack }) {
             <div className="detail-progress-header">
               <h3 className="detail-card-heading">PROGRESS</h3>
               <span className="progress-header-meta">
-                {watchedCount}/{totalEpisodes} eps · added {drama.addedDate || 'Jul 12, 2025'}
+                {watchedCount}/{totalEpisodes} eps · added {savedItem?.addedDate || drama.addedDate || 'Recently'}
               </span>
             </div>
 
@@ -606,7 +797,7 @@ function DramaDetailView({ drama, onBack }) {
               <div className="detail-progress-bar" style={{ width: `${progressPct}%` }} />
             </div>
             <div className="detail-progress-info-row">
-              <span className="progress-remaining">{drama.remainingTime || '~14h remaining'}</span>
+              <span className="progress-remaining">{drama.remainingTime || `~${Math.max(1, totalEpisodes - watchedCount)}h remaining`}</span>
               <span className="progress-pct-text">{progressPct}%</span>
             </div>
 
@@ -619,7 +810,7 @@ function DramaDetailView({ drama, onBack }) {
                     key={st}
                     type="button"
                     className={`status-option-pill ${status === st ? 'active' : ''}`}
-                    onClick={() => setStatus(st)}
+                    onClick={() => handleStatusChange(st)}
                   >
                     {st}
                   </button>
@@ -638,7 +829,7 @@ function DramaDetailView({ drama, onBack }) {
                       key={starNum}
                       type="button"
                       className={`star-pick-button ${isFilled ? 'filled' : ''}`}
-                      onClick={() => setMyRating(starNum)}
+                      onClick={() => handleRatingChange(starNum)}
                       onMouseEnter={() => setHoverRating(starNum)}
                       aria-label={`Rate ${starNum} out of 10`}
                     >
@@ -705,21 +896,91 @@ function DiscoverPage() {
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [selectedGenre, setSelectedGenre] = useState('All')
+  const [genreList, setGenreList] = useState(['All', 'Romance', 'Comedy', 'Drama', 'Action', 'Mystery', 'Fantasy', 'Thriller'])
+  const [genreIdMap, setGenreIdMap] = useState({})
+  const [gridDramas, setGridDramas] = useState([])
+  const [top5List, setTop5List] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const topDrama = top5Dramas[currentSlide]
+  const topDrama = top5List[currentSlide] || top5List[0] || null
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true)
+      try {
+        const [discRes, genRes] = await Promise.all([
+          discoverService.getDiscover({ page: 1 }),
+          discoverService.getGenres(),
+        ])
+
+        if (discRes?.data && discRes.data.length > 0) {
+          const mapped = discRes.data.map((d, index) => mapDramaCard(d, index))
+          setTop5List(mapped.slice(0, 5))
+          setGridDramas(mapped)
+        }
+
+        if (genRes?.data && genRes.data.length > 0) {
+          const names = ['All', ...genRes.data.map((g) => g.name)]
+          const idMap = genRes.data.reduce((acc, g) => ({ ...acc, [g.name.toLowerCase()]: g.id }), {})
+          setGenreList(names)
+          setGenreIdMap(idMap)
+        }
+      } catch {
+        // API offline
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
 
   const handlePrevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + top5Dramas.length) % top5Dramas.length)
+    if (top5List.length === 0) return
+    setCurrentSlide((prev) => (prev - 1 + top5List.length) % top5List.length)
   }
 
   const handleNextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % top5Dramas.length)
+    if (top5List.length === 0) return
+    setCurrentSlide((prev) => (prev + 1) % top5List.length)
   }
 
-  const handleOpenDetails = (drama) => {
-    const fullDrama =
-      top5Dramas.find((d) => d.id === drama.id || d.title.toLowerCase() === drama.title.toLowerCase()) || drama
-    setSelectedDrama(fullDrama)
+  const handleGenreSelect = async (genre) => {
+    setSelectedGenre(genre)
+    const genreId = genre === 'All' ? null : genreIdMap[genre.toLowerCase()]
+    setIsLoading(true)
+    try {
+      const res = await discoverService.getDiscover({ page: 1, genre_id: genreId })
+      if (res?.data && res.data.length > 0) {
+        const mapped = res.data.map((d, index) => mapDramaCard(d, index))
+        setGridDramas(mapped)
+      } else {
+        setGridDramas([])
+      }
+    } catch {
+      setGridDramas([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleOpenDetails = async (drama) => {
+    try {
+      const tmdbId = drama.tmdb_id || drama.id
+      if (tmdbId) {
+        const res = await discoverService.getDramaDetails(tmdbId)
+        if (res?.data) {
+          const detail = mapDramaDetail(res.data)
+          setSelectedDrama(detail)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          return
+        }
+      }
+    } catch {
+      // API detail fetch failed
+    }
+
+    setSelectedDrama(mapDramaDetail(drama))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -730,46 +991,52 @@ function DiscoverPage() {
       ) : (
         <>
           {/* Top 5 Carousel */}
-          <section className="discover-hero" style={{ backgroundImage: `url(${topDrama.image})` }}>
-            <button className="discover-back" type="button" onClick={handlePrevSlide} aria-label="Previous drama">
-              ‹
-            </button>
-            <div className="discover-hero-copy">
-              <span>{topDrama.weekHighlight}</span>
-              <h1>{topDrama.title}</h1>
-              <div>
-                <button className="view-details" type="button" onClick={() => handleOpenDetails(topDrama)}>
-                  ▣ &nbsp;View Details
-                </button>
-                <b>★ {topDrama.rating}</b>
+          {topDrama ? (
+            <section className="discover-hero" style={{ backgroundImage: `url(${topDrama.image || topDrama.backdrop || DEFAULT_BACKDROP_IMAGE})` }}>
+              <button className="discover-back" type="button" onClick={handlePrevSlide} aria-label="Previous drama">
+                ‹
+              </button>
+              <div className="discover-hero-copy">
+                <span>{topDrama.weekHighlight || `#${currentSlide + 1} THIS WEEK`}</span>
+                <h1>{topDrama.title}</h1>
+                <div>
+                  <button className="view-details" type="button" onClick={() => handleOpenDetails(topDrama)}>
+                    ▣ &nbsp;View Details
+                  </button>
+                  <b>★ {topDrama.rating}</b>
+                </div>
               </div>
-            </div>
-            <button className="discover-next" type="button" onClick={handleNextSlide} aria-label="Next drama">
-              ›
-            </button>
+              <button className="discover-next" type="button" onClick={handleNextSlide} aria-label="Next drama">
+                ›
+              </button>
 
-            {/* Carousel Slide Indicators */}
-            <div className="carousel-dots">
-              {top5Dramas.map((d, index) => (
-                <button
-                  key={d.id}
-                  type="button"
-                  className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
-                  onClick={() => setCurrentSlide(index)}
-                  aria-label={`Go to slide ${index + 1}: ${d.title}`}
-                />
-              ))}
-            </div>
-          </section>
+              {/* Carousel Slide Indicators */}
+              <div className="carousel-dots">
+                {top5List.map((d, index) => (
+                  <button
+                    key={d.id || index}
+                    type="button"
+                    className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+                    onClick={() => setCurrentSlide(index)}
+                    aria-label={`Go to slide ${index + 1}: ${d.title}`}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : isLoading ? (
+            <section className="discover-hero" style={{ minHeight: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
+            </section>
+          ) : null}
 
           {/* Genre Filters */}
           <div className="genre-list" role="tablist">
-            {discoverGenres.map((genre) => (
+            {genreList.map((genre) => (
               <button
                 className={selectedGenre === genre ? 'selected' : ''}
                 type="button"
                 key={genre}
-                onClick={() => setSelectedGenre(genre)}
+                onClick={() => handleGenreSelect(genre)}
               >
                 {genre}
               </button>
@@ -778,18 +1045,31 @@ function DiscoverPage() {
 
           {/* Discover Grid */}
           <section className="discover-grid">
-            {discoverDramas.map((drama) => (
-              <div
-                key={drama.title}
-                onClick={() => handleOpenDetails(drama)}
-                style={{ cursor: 'pointer' }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && handleOpenDetails(drama)}
-              >
-                <DiscoverCard drama={drama} />
+            {isLoading && gridDramas.length === 0 ? (
+              <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
+                <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
+                <h3>Loading K-Dramas...</h3>
               </div>
-            ))}
+            ) : gridDramas.length > 0 ? (
+              gridDramas.map((drama) => (
+                <div
+                  key={drama.id || drama.title}
+                  onClick={() => handleOpenDetails(drama)}
+                  style={{ cursor: 'pointer' }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleOpenDetails(drama)}
+                >
+                  <DiscoverCard drama={drama} />
+                </div>
+              ))
+            ) : (
+              <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
+                <Film size={36} />
+                <h3>No K-Dramas available</h3>
+                <p>Try selecting another genre or refresh the page.</p>
+              </div>
+            )}
           </section>
         </>
       )}
@@ -834,8 +1114,9 @@ const FILTER_TO_SLUG = {
 
 function TrackerPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [trackerList, setTrackerList] = useState(trackerDramas)
+  const { watchlist, stats } = useWatchlist()
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
+  const [selectedDrama, setSelectedDrama] = useState(null)
 
   const urlParam = searchParams.get('filter')?.toLowerCase()
   const initialFilter = urlParam && FILTER_SLUG_MAP[urlParam] ? FILTER_SLUG_MAP[urlParam] : 'All'
@@ -861,91 +1142,98 @@ function TrackerPage() {
     }
   }
 
-  const handleDramaAdded = (newDrama) => {
-    // Add to user's tracker list under "Plan" status if not already added
-    setTrackerList((prev) => {
-      if (prev.some((d) => d.title.toLowerCase() === newDrama.title.toLowerCase())) {
-        return prev
-      }
-      const newEntry = {
-        id: Date.now(),
-        title: newDrama.title,
-        meta: `${newDrama.genres.slice(0, 2).join(' · ')}`,
-        episodes: `0/${newDrama.episodes} eps`,
-        progress: 0,
-        status: 'Plan',
-        tone: 'purple',
-        image: newDrama.image,
-      }
-      return [newEntry, ...prev]
-    })
+  const handleDramaClick = (drama) => {
+    setSelectedDrama(mapDramaDetail(drama))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Filter tabs with dynamic counts
+  // Filter tabs with dynamic live counts from user's personal watchlist
   const filterTabs = [
-    { key: 'All', label: `All (${trackerList.length})` },
-    { key: 'Favorites', label: `Favorites (0)` },
-    { key: 'Watching', label: `Watching (${trackerList.filter((d) => d.status === 'Watching').length})` },
-    { key: 'Completed', label: `Completed (${trackerList.filter((d) => d.status === 'Completed' || d.status === 'Done').length})` },
-    { key: 'Plan', label: `Plan (${trackerList.filter((d) => d.status === 'Plan').length})` },
-    { key: 'On Hold', label: `On Hold (${trackerList.filter((d) => d.status === 'On Hold' || d.status === 'Paused').length})` },
-    { key: 'Dropped', label: `Dropped (${trackerList.filter((d) => d.status === 'Dropped').length})` },
+    { key: 'All', label: `All (${stats.totalTracked})` },
+    { key: 'Favorites', label: `Favorites (${stats.favoritesCount})` },
+    { key: 'Watching', label: `Watching (${stats.watchingCount})` },
+    { key: 'Completed', label: `Completed (${stats.completedCount})` },
+    { key: 'Plan', label: `Plan (${stats.planCount})` },
+    { key: 'On Hold', label: `On Hold (${stats.onHoldCount})` },
+    { key: 'Dropped', label: `Dropped (${stats.droppedCount})` },
   ]
 
-  const displayedDramas = trackerList.filter((drama) => {
-    if (activeFilter === 'All') return true
-    if (activeFilter === 'Watching') return drama.status === 'Watching'
-    if (activeFilter === 'Completed') return drama.status === 'Completed' || drama.status === 'Done'
-    if (activeFilter === 'Plan') return drama.status === 'Plan'
-    if (activeFilter === 'On Hold') return drama.status === 'On Hold' || drama.status === 'Paused'
-    if (activeFilter === 'Dropped') return drama.status === 'Dropped'
-    if (activeFilter === 'Favorites') return false
-    return true
-  })
+  const displayedDramas = useMemo(() => {
+    return watchlist.filter((drama) => {
+      if (activeFilter === 'All') return true
+      if (activeFilter === 'Watching') return drama.status === 'Watching'
+      if (activeFilter === 'Completed') return drama.status === 'Completed' || drama.status === 'Done'
+      if (activeFilter === 'Plan') return drama.status === 'Plan' || drama.status === 'Plan to Watch'
+      if (activeFilter === 'On Hold') return drama.status === 'On Hold' || drama.status === 'Paused'
+      if (activeFilter === 'Dropped') return drama.status === 'Dropped'
+      if (activeFilter === 'Favorites') return !!drama.is_favorite
+      return true
+    })
+  }, [watchlist, activeFilter])
 
   return (
     <DashboardLayout activeTab="tracker" onOpenAddDrama={() => setIsAddDramaOpen(true)}>
-      <section className="tracker-heading">
-        <h1>My Tracker</h1>
-        <button className="tracker-add" type="button" onClick={() => setIsAddDramaOpen(true)}>
-          <Plus size={15} /> Add Drama
-        </button>
-      </section>
-
-      <div className="tracker-filters" role="tablist" aria-label="Tracker status filters">
-        {filterTabs.map((tab) => (
-          <button
-            className={activeFilter === tab.key ? 'selected' : ''}
-            type="button"
-            key={tab.key}
-            role="tab"
-            aria-selected={activeFilter === tab.key}
-            onClick={() => handleFilterClick(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <section className="tracker-list">
-        {displayedDramas.length > 0 ? (
-          displayedDramas.map((drama) => <TrackerRow drama={drama} key={drama.id || drama.title} />)
-        ) : (
-          <div className="tracker-empty-state">
-            <Film size={36} />
-            <h3>No dramas in "{activeFilter}"</h3>
-            <p>You don't have any K-dramas with this status yet.</p>
+      {selectedDrama ? (
+        <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
+      ) : (
+        <>
+          <section className="tracker-heading">
+            <h1>My Tracker</h1>
             <button className="tracker-add" type="button" onClick={() => setIsAddDramaOpen(true)}>
-              <Plus size={15} /> Add a Drama
+              <Plus size={15} /> Add Drama
             </button>
+          </section>
+
+          <div className="tracker-filters" role="tablist" aria-label="Tracker status filters">
+            {filterTabs.map((tab) => (
+              <button
+                className={activeFilter === tab.key ? 'selected' : ''}
+                type="button"
+                key={tab.key}
+                role="tab"
+                aria-selected={activeFilter === tab.key}
+                onClick={() => handleFilterClick(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        )}
-      </section>
+
+          <section className="tracker-list">
+            {displayedDramas.length > 0 ? (
+              displayedDramas.map((drama) => (
+                <div
+                  key={drama.id || drama.title}
+                  onClick={() => handleDramaClick(drama)}
+                  style={{ cursor: 'pointer' }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleDramaClick(drama)}
+                >
+                  <TrackerRow drama={drama} />
+                </div>
+              ))
+            ) : (
+              <div className="tracker-empty-state">
+                <Film size={36} />
+                <h3>{stats.totalTracked === 0 ? 'Your Tracker is Empty' : `No dramas in "${activeFilter}"`}</h3>
+                <p>
+                  {stats.totalTracked === 0
+                    ? "You haven't added any K-Dramas to your personal tracker yet. Search or explore Discover to start tracking!"
+                    : `You don't have any K-dramas marked as ${activeFilter}.`}
+                </p>
+                <button className="tracker-add" type="button" onClick={() => setIsAddDramaOpen(true)}>
+                  <Plus size={15} /> {stats.totalTracked === 0 ? 'Add Your First Drama' : 'Add Drama'}
+                </button>
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       <AddDramaModal
         isOpen={isAddDramaOpen}
         onClose={() => setIsAddDramaOpen(false)}
-        onDramaAdded={handleDramaAdded}
       />
     </DashboardLayout>
   )
@@ -954,28 +1242,29 @@ function TrackerPage() {
 function TrackerRow({ drama }) {
   return (
     <article className="tracker-row">
-      <img src={drama.image} alt={drama.title} />
+      <img src={drama.poster || drama.image || DEFAULT_POSTER_IMAGE} alt={drama.title} />
       <div className="tracker-info">
         <h2>{drama.title}</h2>
-        <p>{drama.meta}</p>
-        <span>{drama.episodes}</span>
-        <div className={`tracker-progress progress-${drama.tone}`}>
-          <i style={{ width: `${drama.progress}%` }} />
+        <p>{drama.meta || `${drama.year || '2025'}`}</p>
+        <span>{drama.current_episode || drama.watchedCount || 0}/{drama.episodes || 16} eps</span>
+        <div className={`tracker-progress progress-${drama.tone || 'blue'}`}>
+          <i style={{ width: `${drama.progress || 0}%` }} />
         </div>
         {drama.rating && (
           <b className="tracker-rating">
-            ★ {drama.rating} <em>{drama.note}</em>
+            ★ {drama.rating} <em>{drama.notes ? `"${drama.notes.slice(0, 30)}..."` : ''}</em>
           </b>
         )}
       </div>
-      <strong className={`tracker-status status-${drama.tone}`}>{drama.status}</strong>
-      <b className={`tracker-percent percent-${drama.tone}`}>{drama.progress}%</b>
+      <strong className={`tracker-status status-${drama.tone || 'blue'}`}>{drama.status}</strong>
+      <b className={`tracker-percent percent-${drama.tone || 'blue'}`}>{drama.progress || 0}%</b>
     </article>
   )
 }
 
 function ProfilePage() {
   const { user, logout } = useAuth()
+  const { stats } = useWatchlist()
   const navigate = useNavigate()
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
 
@@ -987,7 +1276,7 @@ function ProfilePage() {
   return (
     <DashboardLayout activeTab="profile" onOpenAddDrama={() => setIsAddDramaOpen(true)}>
       <section className="profile-summary">
-        <img src={dashboardUser.avatar} alt="" />
+        <img src={user?.avatar || dashboardUser.avatar} alt="" />
         <div>
           <h1>{user?.name || 'Kim Ji-young'}</h1>
           <p>{user?.email || 'kdramaaddict@email.com'}</p>
@@ -995,13 +1284,13 @@ function ProfilePage() {
         <button type="button" aria-label="Edit profile"><Edit3 size={18} /></button>
       </section>
       <section className="profile-stats">
-        <div><strong>4</strong><span>Dramas</span></div>
-        <div><strong>18</strong><span>Episodes</span></div>
-        <div><strong>17h</strong><span>Watched</span></div>
+        <div><strong>{stats.totalTracked}</strong><span>Dramas</span></div>
+        <div><strong>{stats.totalEpisodesWatched}</strong><span>Episodes</span></div>
+        <div><strong>{stats.hoursWatched}h</strong><span>Watched</span></div>
       </section>
       <section className="profile-links">
-        <Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>4 dramas tracked</small></span><ChevronRight /></Link>
-        <Link to="/profile"><BarChart3 /> <span><b>Stats & History</b><small>18 episodes · 17h</small></span><ChevronRight /></Link>
+        <Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>{stats.totalTracked} dramas tracked</small></span><ChevronRight /></Link>
+        <Link to="/profile"><BarChart3 /> <span><b>Stats & History</b><small>{stats.totalEpisodesWatched} episodes · {stats.hoursWatched}h</small></span><ChevronRight /></Link>
         <Link to="/profile"><Settings /> <span><b>Settings</b><small>Notifications, quality, account</small></span><ChevronRight /></Link>
       </section>
       <button className="signout-button" type="button" onClick={handleLogout}>
@@ -1024,33 +1313,110 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
 
 function Dashboard() {
   const { user } = useAuth()
-  const firstName = user?.name ? user.name.split(' ')[0] : dashboardUser.name
+  const { stats } = useWatchlist()
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Fan'
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
+  const [recommendedList, setRecommendedList] = useState([])
+  const [selectedDrama, setSelectedDrama] = useState(null)
+  const [isLoadingRecommended, setIsLoadingRecommended] = useState(true)
+
+  useEffect(() => {
+    async function loadRecommended() {
+      setIsLoadingRecommended(true)
+      try {
+        const res = await discoverService.getDiscover({ page: 1 })
+        if (res?.data && res.data.length > 0) {
+          const mapped = res.data.slice(0, 4).map((d, index) => mapDramaCard(d, index))
+          setRecommendedList(mapped)
+        }
+      } catch {
+        // API offline
+      } finally {
+        setIsLoadingRecommended(false)
+      }
+    }
+    loadRecommended()
+  }, [])
+
+  const handleDramaClick = async (drama) => {
+    try {
+      const tmdbId = drama.tmdb_id || drama.id
+      if (tmdbId) {
+        const res = await discoverService.getDramaDetails(tmdbId)
+        if (res?.data) {
+          setSelectedDrama(mapDramaDetail(res.data))
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          return
+        }
+      }
+    } catch {
+      // API detail fetch failed
+    }
+    setSelectedDrama(mapDramaDetail(drama))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Dynamic user-specific stats
+  const dynamicStats = [
+    { label: 'Total Tracked', value: stats.totalTracked.toString(), detail: `${stats.watchingCount} watching`, icon: 'bookmark', tone: 'orange' },
+    { label: 'Episodes Watched', value: stats.totalEpisodesWatched.toString(), detail: `${stats.completedCount} completed`, icon: 'play', tone: 'cyan' },
+    { label: 'Plan to Watch', value: stats.planCount.toString(), detail: `${stats.onHoldCount} on hold`, icon: 'check', tone: 'green' },
+    { label: 'Hours Watched', value: `${stats.hoursWatched}h`, detail: 'Total watch time', icon: 'clock', tone: 'purple' },
+  ]
 
   return (
     <main className="dashboard-page">
       <DashboardHeader activeTab="home" onOpenAddDrama={() => setIsAddDramaOpen(true)} />
       <div className="dashboard-content">
-        <section className="dashboard-welcome" aria-labelledby="welcome-heading">
-          <h1 id="welcome-heading">Annyeong, {firstName}! <span>♡</span></h1>
-          <p>무슨 드라마 볼까? <em>What drama should we watch?</em></p>
-        </section>
-
-        <section className="dashboard-overview" aria-label="Watchlist overview">
-          <div className="stats-grid">
-            {dashboardStats.map((stat) => <StatCard stat={stat} key={stat.label} />)}
+        {selectedDrama ? (
+          <div className="dashboard-subpage">
+            <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
           </div>
-          <CurrentDrama />
-        </section>
+        ) : (
+          <>
+            <section className="dashboard-welcome" aria-labelledby="welcome-heading">
+              <h1 id="welcome-heading">Annyeong, {firstName}! <span>♡</span></h1>
+              <p>무슨 드라마 볼까? <em>What drama should we watch?</em></p>
+            </section>
 
-        <QuickAccess onOpenAddDrama={() => setIsAddDramaOpen(true)} />
+            <section className="dashboard-overview" aria-label="Watchlist overview">
+              <div className="stats-grid">
+                {dynamicStats.map((stat) => <StatCard stat={stat} key={stat.label} />)}
+              </div>
+              <CurrentDrama
+                onDetailsClick={(drama) => handleDramaClick(drama)}
+                onOpenAddDrama={() => setIsAddDramaOpen(true)}
+              />
+            </section>
 
-        <section className="dashboard-section recommended-section" aria-labelledby="recommended-heading">
-          <h2 id="recommended-heading">Recommended</h2>
-          <div className="drama-grid">
-            {recommendedDramas.map((drama) => <DramaCard drama={drama} key={drama.title} />)}
-          </div>
-        </section>
+            <QuickAccess onOpenAddDrama={() => setIsAddDramaOpen(true)} />
+
+            <section className="dashboard-section recommended-section" aria-labelledby="recommended-heading">
+              <h2 id="recommended-heading">Recommended</h2>
+              <div className="drama-grid">
+                {isLoadingRecommended && recommendedList.length === 0 ? (
+                  <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
+                    <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
+                    <p>Loading recommendations...</p>
+                  </div>
+                ) : (
+                  recommendedList.map((drama) => (
+                    <div
+                      key={drama.id || drama.title}
+                      onClick={() => handleDramaClick(drama)}
+                      style={{ cursor: 'pointer' }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && handleDramaClick(drama)}
+                    >
+                      <DramaCard drama={drama} />
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </>
+        )}
       </div>
 
       <AddDramaModal
