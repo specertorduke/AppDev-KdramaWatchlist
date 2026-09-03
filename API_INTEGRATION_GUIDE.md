@@ -63,6 +63,7 @@ Authorization: Bearer <plain_text_token>
 | **Discover** | `GET` | `/discover/genres` | Yes (`Bearer`) | List all available TMDB TV genre categories |
 | **Discover** | `GET` | `/discover/search` | Yes (`Bearer`) | Search K-dramas by title, actor/actress, or keyword |
 | **Discover** | `GET` | `/discover/{tmdb_id}` | Yes (`Bearer`) | Full drama details with Season 1 episodes, trailer & credits |
+| **Discover** | `POST` | `/discover/chatbot` | Yes (`Bearer`) | Context-aware AI Chatbot recommendation assistant powered by Google Gemini |
 | **Tracker** | `GET` | `/tracker` | Yes (`Bearer`) | List tracked dramas with status/favorite filter and status counts |
 | **Tracker** | `POST` | `/tracker` | Yes (`Bearer`) | Add a drama to the user's watchlist/tracker |
 | **Tracker** | `GET` | `/tracker/{tmdb_id}` | Yes (`Bearer`) | Get detailed tracker progress and metadata for a drama |
@@ -438,6 +439,48 @@ Authorization: Bearer <plain_text_token>
 
 ---
 
+#### 5. AI Chatbot Recommendation Assistant
+- **Route:** `POST /api/v1/discover/chatbot`
+- **Auth:** `Bearer <token>` (Rate limited by `throttle:api`)
+- **Headers:**
+  ```http
+  Authorization: Bearer <token>
+  Accept: application/json
+  Content-Type: application/json
+  ```
+- **Description:** Context-aware conversational AI assistant powered by Google Gemini. It delivers tailored, spoiler-free K-Drama recommendations, answers plot/vibe questions, and automatically takes into account the user's tracked viewing history (completed and currently watching dramas). Off-topic/non-drama queries are politely declined.
+- **Request Body:**
+  ```json
+  {
+    "message": "Can you recommend a romantic comedy K-Drama with an enemies-to-lovers trope?"
+  }
+  ```
+- **Validation Rules:**
+  - `message`: `required|string|min:2|max:500`
+- **Success Response (`200 OK`):**
+  ```json
+  {
+    "reply": "I would love to help you find your next binge-worthy K-Drama! Here are three fantastic romantic comedy K-Dramas with the enemies-to-lovers trope:\n\n1. **Love to Hate You (2023)**: Fast-paced, mature rom-com between a fierce attorney and a top actor.\n2. **Mad for Each Other (2021)**: Hilarious and touching healing romance between eccentric neighbors.\n3. **Shooting Stars (2022)**: Bubbly backstage showbiz romance between an agency PR lead and a superstar."
+  }
+  ```
+- **Context Injection Mechanics:**
+  - The backend automatically queries the user's `trackers` table for `completed` and `watching` TMDB show records.
+  - The model is instructed to provide fresh suggestions that avoid dramas the user has already finished or is actively watching, unless the user explicitly requests rewatch advice.
+- **Resilience & Fallback Behavior:**
+  - If upstream Gemini API encounters temporary high demand (`503`), quota thresholds (`429`), or network timeouts, the endpoint automatically fails over to active secondary models.
+  - If all remote attempts fail, the endpoint returns an HTTP `200 OK` with a safe, user-friendly fallback reply rather than breaking the chat UI:
+    ```json
+    {
+      "reply": "The recommendation service is temporarily busy. Please try again shortly."
+    }
+    ```
+- **Error Responses:**
+  - `401 Unauthorized`: Missing or invalid Bearer authentication token.
+  - `422 Unprocessable Content`: Validation failure (e.g. `message` missing, `< 2` characters, or `> 500` characters).
+  - `429 Too Many Requests`: Triggered if the user exceeds standard API rate limits.
+
+---
+
 ### 3.4 Tracker Endpoints
 
 ---
@@ -753,6 +796,21 @@ In drama details (`/discover/:id`) and tracking modals:
 |    [✓] Ep 2: Checked if ep.episode_number <= current_episode                  |
 |    [ ] Ep 3: Click to jump/update progress                                    |
 +-------------------------------------------------------------------------------+
+
++-------------------------------------------------------------------------------+
+|                    AI CHATBOT RECOMMENDATION DRAWER / MODAL                   |
+|  [ Chat with K-Drama AI Assistant ]                                     [ X ] |
+|                                                                               |
+|  Bot: "Annyeong! What kind of drama are you in the mood for today?"           |
+|                                                                               |
+|  User: "Recommend an enemies-to-lovers rom-com"                               |
+|                                                                               |
+|  Bot: "I recommend 'Love to Hate You' or 'Mad for Each Other'! Taking your    |
+|       completed shows into account, both offer great banter and heart..."     |
+|                                                                               |
+|  Pill Suggestions: [ Thriller with twists ] [ Heartwarming ] [ Melodrama ]    |
+|  [ Type your prompt... (min 2, max 500 chars) ] [ Send: POST /chatbot ]      |
++-------------------------------------------------------------------------------+
 ```
 
 ---
@@ -864,5 +922,21 @@ export interface TrackerMetaCounts {
   plan_to_watch: number;
   on_hold: number;
   dropped: number;
+}
+
+export interface ChatbotRequest {
+  message: string;
+}
+
+export interface ChatbotResponse {
+  reply: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'bot';
+  text: string;
+  timestamp: string;
+  status?: 'sending' | 'sent' | 'error';
 }
 ```
