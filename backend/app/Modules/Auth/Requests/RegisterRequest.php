@@ -17,8 +17,9 @@ class RegisterRequest extends FormRequest
         return [
             'name'        => ['required', 'string', 'max:255'],
             'email'       => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password'    => ['required', 'string', Password::defaults(), 'confirmed'],
-            'device_name' => ['nullable', 'string', 'max:255'],
+            'password'               => ['required', 'string', Password::defaults(), 'confirmed'],
+            'terms_privacy_accepted' => ['required', 'accepted'],
+            'device_name'            => ['nullable', 'string', 'max:255'],
         ];
     }
 }

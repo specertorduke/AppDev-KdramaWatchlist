@@ -15,11 +15,12 @@ class AuthTest extends TestCase
     public function test_user_can_register(): void
     {
         $response = $this->postJson('/api/v1/auth/register', [
-            'name'                  => 'John Doe',
-            'email'                 => 'john@example.com',
-            'password'              => 'password123',
-            'password_confirmation' => 'password123',
-            'device_name'           => 'mobile-app',
+            'name'                   => 'John Doe',
+            'email'                  => 'john@example.com',
+            'password'               => 'password123',
+            'password_confirmation'  => 'password123',
+            'terms_privacy_accepted' => true,
+            'device_name'            => 'mobile-app',
         ]);
 
         $response->assertStatus(201)
@@ -30,12 +31,67 @@ class AuthTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('users', [
-            'email' => 'john@example.com',
+            'email'                  => 'john@example.com',
+            'terms_privacy_accepted' => true,
         ]);
 
         $user = User::where('email', 'john@example.com')->first();
         $this->assertCount(1, $user->tokens);
         $this->assertEquals('mobile-app', $user->tokens->first()->name);
+        $this->assertTrue($user->terms_privacy_accepted);
+        $this->assertNotNull($user->terms_privacy_accepted_at);
+    }
+
+    public function test_user_cannot_register_without_accepting_terms_and_privacy(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                  => 'John Doe',
+            'email'                 => 'john@example.com',
+            'password'              => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['terms_privacy_accepted']);
+    }
+
+    public function test_user_cannot_register_when_terms_and_privacy_is_false(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'John Doe',
+            'email'                  => 'john@example.com',
+            'password'               => 'password123',
+            'password_confirmation'  => 'password123',
+            'terms_privacy_accepted' => false,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['terms_privacy_accepted']);
+    }
+
+    public function test_user_registration_stores_acceptance_and_timestamp(): void
+    {
+        $beforeRegistration = now()->subSecond();
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'Jane Doe',
+            'email'                  => 'jane.agreement@example.com',
+            'password'               => 'password123',
+            'password_confirmation'  => 'password123',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('users', [
+            'email'                  => 'jane.agreement@example.com',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $user = User::where('email', 'jane.agreement@example.com')->first();
+        $this->assertTrue($user->terms_privacy_accepted);
+        $this->assertNotNull($user->terms_privacy_accepted_at);
+        $this->assertTrue($user->terms_privacy_accepted_at->greaterThanOrEqualTo($beforeRegistration));
     }
 
     public function test_user_cannot_register_with_duplicate_email(): void
@@ -43,10 +99,11 @@ class AuthTest extends TestCase
         User::factory()->create(['email' => 'john@example.com']);
 
         $response = $this->postJson('/api/v1/auth/register', [
-            'name'                  => 'Another John',
-            'email'                 => 'john@example.com',
-            'password'              => 'password123',
-            'password_confirmation' => 'password123',
+            'name'                   => 'Another John',
+            'email'                  => 'john@example.com',
+            'password'               => 'password123',
+            'password_confirmation'  => 'password123',
+            'terms_privacy_accepted' => true,
         ]);
 
         $response->assertStatus(422)
