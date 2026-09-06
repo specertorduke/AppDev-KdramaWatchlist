@@ -4,6 +4,7 @@ import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
+import StatsHistoryPage from './components/StatsHistoryPage.jsx'
 import './App.css'
 
 function LandingPage() {
@@ -555,6 +556,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/stats"
+              element={
+                <ProtectedRoute>
+                  <StatsHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/stats"
+              element={
+                <ProtectedRoute>
+                  <StatsHistoryPage />
                 </ProtectedRoute>
               }
             />

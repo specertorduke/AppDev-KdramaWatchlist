@@ -336,7 +336,7 @@ function ProfileMenu({ onClose }) {
         <span>{user?.email || 'user@sarangtv.app'}</span>
       </div>
       <Link to="/tracker" onClick={onClose}>My Tracker</Link>
-      <Link to="/profile" onClick={onClose}>Stats</Link>
+      <Link to="/stats" onClick={onClose}>Stats & History</Link>
       <Link to="/profile" onClick={onClose}>Profile</Link>
       <Link to="/profile" onClick={onClose}>Settings</Link>
       <button type="button" onClick={handleLogout}>
@@ -1438,7 +1438,7 @@ function ProfilePage() {
       </section>
       <section className="profile-links">
         <Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>{stats.totalTracked} dramas tracked</small></span><ChevronRight /></Link>
-        <Link to="/profile"><BarChart3 /> <span><b>Stats & History</b><small>{stats.totalEpisodesWatched} episodes · {stats.hoursWatched}h</small></span><ChevronRight /></Link>
+        <Link to="/stats"><BarChart3 /> <span><b>Stats & History</b><small>{stats.totalEpisodesWatched} episodes · {stats.hoursWatched}h</small></span><ChevronRight /></Link>
         <Link to="/profile"><Settings /> <span><b>Settings</b><small>Notifications, quality, account</small></span><ChevronRight /></Link>
       </section>
       <button className="signout-button" type="button" onClick={handleLogout}>
@@ -1592,5 +1592,5 @@ function Dashboard() {
   )
 }
 
-export { DiscoverPage, ProfilePage, TrackerPage }
+export { DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, ProfilePage, TrackerPage }
 export default Dashboard
