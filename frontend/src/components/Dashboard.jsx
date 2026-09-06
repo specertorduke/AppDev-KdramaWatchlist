@@ -42,17 +42,13 @@ import {
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
 const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Send }
 
-const searchGenres = ['All', 'Trending', 'Romance', 'Action', 'Thriller', 'Fantasy', 'Comedy', 'Drama', 'Historical']
-
 function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
   const { addToWatchlist, isInWatchlist } = useWatchlist()
   const [query, setQuery] = useState('')
-  const [activeGenre, setActiveGenre] = useState('All')
   const [addedIds, setAddedIds] = useState({})
   const [toastMessage, setToastMessage] = useState('')
   const [dramas, setDramas] = useState([])
   const [isSearching, setIsSearching] = useState(false)
-  const [genreIdMap, setGenreIdMap] = useState({})
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -76,23 +72,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
     }
   }, [isOpen])
 
-  // Load TV genre map on mount
-  useEffect(() => {
-    async function loadGenres() {
-      try {
-        const res = await discoverService.getGenres()
-        if (res?.data && res.data.length > 0) {
-          const map = res.data.reduce((acc, g) => ({ ...acc, [g.name.toLowerCase()]: g.id }), {})
-          setGenreIdMap(map)
-        }
-      } catch {
-        // Fallback
-      }
-    }
-    loadGenres()
-  }, [])
-
-  // Fetch API dramas when modal opens or query/genre changes
+  // Fetch API dramas when modal opens or search query changes
   useEffect(() => {
     if (!isOpen) return
 
@@ -125,9 +105,8 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
       }
     } else {
       setIsSearching(true)
-      const genreId = (activeGenre === 'All' || activeGenre === 'Trending') ? null : genreIdMap[activeGenre.toLowerCase()]
       discoverService
-        .getDiscover({ page: 1, genre_id: genreId })
+        .getDiscover({ page: 1 })
         .then((res) => {
           if (!isCancelled) {
             if (res?.data && res.data.length > 0) {
@@ -149,7 +128,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
         isCancelled = true
       }
     }
-  }, [isOpen, query, activeGenre, genreIdMap])
+  }, [isOpen, query])
 
   const handleAdd = async (drama) => {
     const dramaId = drama.tmdb_id || drama.id
@@ -176,7 +155,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
               <Sparkles size={14} /> Quick Add
             </div>
             <h2 id="add-drama-modal-title">Add Drama to Watchlist</h2>
-            <p>Search K-dramas across all genres and quickly add them to your tracker.</p>
+            <p>Search K-dramas by title or actor and quickly add them to your tracker.</p>
           </div>
           <button className="modal-close-button" type="button" onClick={onClose} aria-label="Close modal">
             <X size={20} />
@@ -189,7 +168,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
             <Search className="search-input-icon" size={18} />
             <input
               type="text"
-              placeholder="Search by title, genre, actor (e.g. Queen of Tears, Goblin)..."
+              placeholder="Search by title, actor (e.g. Queen of Tears, Goblin)..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
@@ -205,22 +184,6 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Genre Tabs */}
-        <div className="modal-genre-tabs" role="tablist" aria-label="Filter dramas by genre">
-          {searchGenres.map((genre) => (
-            <button
-              key={genre}
-              type="button"
-              role="tab"
-              aria-selected={activeGenre === genre}
-              className={`modal-genre-tab ${activeGenre === genre ? 'active' : ''}`}
-              onClick={() => setActiveGenre(genre)}
-            >
-              {genre}
-            </button>
-          ))}
         </div>
 
         {/* Toast Feedback */}
@@ -309,17 +272,16 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
             <div className="modal-empty-state">
               <Film size={40} />
               <h3>No dramas found</h3>
-              <p>{query ? `We couldn't find any K-dramas matching "${query}". Try searching another title or actor!` : 'No K-dramas found in this genre.'}</p>
-              <button
-                type="button"
-                className="button button-outline button-small"
-                onClick={() => {
-                  setQuery('')
-                  setActiveGenre('All')
-                }}
-              >
-                Reset search
-              </button>
+              <p>{query ? `We couldn't find any K-dramas matching "${query}". Try searching another title or actor!` : 'No K-dramas available at the moment.'}</p>
+              {query && (
+                <button
+                  type="button"
+                  className="button button-outline button-small"
+                  onClick={() => setQuery('')}
+                >
+                  Reset search
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -1083,7 +1045,7 @@ function DiscoverPage() {
           {topDrama ? (
             <section className="discover-hero" style={{ backgroundImage: `url(${topDrama.image || topDrama.backdrop || DEFAULT_BACKDROP_IMAGE})` }}>
               <button className="discover-back" type="button" onClick={handlePrevSlide} aria-label="Previous drama">
-                ‹
+                <ChevronLeft size={22} />
               </button>
               <div className="discover-hero-copy">
                 <span>{topDrama.weekHighlight || `#${currentSlide + 1} THIS WEEK`}</span>
@@ -1096,7 +1058,7 @@ function DiscoverPage() {
                 </div>
               </div>
               <button className="discover-next" type="button" onClick={handleNextSlide} aria-label="Next drama">
-                ›
+                <ChevronRight size={22} />
               </button>
 
               {/* Carousel Slide Indicators */}

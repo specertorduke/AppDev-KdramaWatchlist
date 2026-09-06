@@ -1431,30 +1431,31 @@
 .discover-back, .discover-next {
   position: absolute;
   z-index: 3;
-  top: 44%;
+  top: 50%;
+  transform: translateY(-50%);
   width: 44px;
   height: 44px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #353344;
   border-radius: 50%;
   background: rgba(17, 17, 27, 0.85);
   backdrop-filter: blur(4px);
   color: #e5e0ea;
-  font-size: 32px;
-  line-height: 1;
+  padding: 0;
   cursor: pointer;
   transition: all 180ms ease;
 }
 
-.discover-back { left: 16px; }
-.discover-next { right: 16px; }
+.discover-back { left: 20px; }
+.discover-next { right: 20px; }
 
 .discover-back:hover, .discover-next:hover {
   background: #eb5b78;
   border-color: #eb5b78;
   color: #fff;
-  transform: scale(1.08);
+  transform: translateY(-50%) scale(1.08);
 }
 
 .carousel-dots {
@@ -2474,7 +2475,7 @@
 }
 
 .modal-search-wrapper {
-  padding: 16px 28px 10px;
+  padding: 18px 28px 16px;
 }
 
 .modal-search-box {
@@ -2531,40 +2532,6 @@
 .search-clear-button:hover {
   background: #36334d;
   color: #fff;
-}
-
-.modal-genre-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 6px 28px 14px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #2b273b transparent;
-}
-
-.modal-genre-tab {
-  flex: 0 0 auto;
-  padding: 6px 14px;
-  border: 1px solid #242232;
-  border-radius: 20px;
-  background: #151420;
-  color: #8e8897;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 160ms ease;
-}
-
-.modal-genre-tab:hover {
-  border-color: #4a3e5c;
-  color: #ddd9e3;
-  background: #1c1a2c;
-}
-
-.modal-genre-tab.active {
-  border-color: #eb5b78;
-  background: #2e1724;
-  color: #f17892;
 }
 
 .modal-toast {
@@ -2819,9 +2786,6 @@
     padding: 12px 18px 8px;
   }
 
-  .modal-genre-tabs {
-    padding: 4px 18px 12px;
-  }
 
   .modal-results-container {
     padding: 0 18px 18px;
@@ -2852,8 +2816,17 @@
 
   .profile-menu { top: 60px; right: 10px; width: 260px; }
   .discover-hero { min-height: 330px; }
-  .discover-hero-copy h1 { font-size: 29px; }
-  .discover-next, .discover-back { width: 34px; height: 34px; font-size: 25px; }
+  .discover-next, .discover-back {
+    width: 36px;
+    height: 36px;
+    transform: translateY(-50%);
+  }
+  .discover-back { left: 10px; }
+  .discover-next { right: 10px; }
+  .discover-next svg, .discover-back svg {
+    width: 18px;
+    height: 18px;
+  }
   .discover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
   .discover-poster { height: 55vw; }
   .tracker-row { min-height: 130px; padding: 12px; }
