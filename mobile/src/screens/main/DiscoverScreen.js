@@ -108,7 +108,14 @@ export default function DiscoverScreen({ navigation }) {
       {/* Header */}
       <View style={styles.topHeader}>
         <View style={styles.brandArea}>
-          <Text style={styles.brand}>SarangTV</Text>
+          <View style={styles.brandRow}>
+            <Image
+              source={require('../../../assets/sarangtv-logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.brand}>SarangTV</Text>
+          </View>
           <Text style={styles.pageTitle}>Discover</Text>
         </View>
 
@@ -342,12 +349,21 @@ const styles = StyleSheet.create({
   brandArea: {
     justifyContent: 'center',
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  logoImage: {
+    width: 22,
+    height: 22,
+  },
   brand: {
-    color: '#E8A9B9',
+    color: '#F5A9C4',
     fontSize: 16,
     fontWeight: '900',
     lineHeight: 19,
-    marginBottom: 2,
   },
   pageTitle: {
     color: colors.text,

@@ -7,6 +7,7 @@ import {
   Pressable,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
@@ -94,6 +95,11 @@ export default function AccountChooserScreen({ navigation }) {
 
         {/* LOGO */}
         <View style={styles.logoContainer}>
+          <Image
+            source={require('../../../assets/sarangtv-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.logo}>SarangTV</Text>
         </View>
 
@@ -250,10 +256,15 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 36,
+    marginTop: 28,
+  },
+  logoImage: {
+    width: 72,
+    height: 72,
+    marginBottom: 8,
   },
   logo: {
-    color: colors.redBright,
+    color: '#F5A9C4',
     fontSize: 22,
     fontWeight: '900',
     letterSpacing: -0.4,

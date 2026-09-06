@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   Pressable,
+  Image,
 } from 'react-native';
 import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
@@ -72,6 +73,11 @@ export default function RegisterScreen({ navigation }) {
 
         {/* Brand Header */}
         <View style={styles.header}>
+          <Image
+            source={require('../../../assets/sarangtv-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.brand}>SARANGTV</Text>
           <Text style={styles.title}>Start your watchlist</Text>
           <Text style={styles.subtitle}>Create an account to begin tracking.</Text>
@@ -259,8 +265,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 26,
   },
+  logoImage: {
+    width: 80,
+    height: 80,
+    marginBottom: 10,
+  },
   brand: {
-    color: '#EB5B78',
+    color: '#F5A9C4',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 2,

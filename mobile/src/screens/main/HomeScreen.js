@@ -75,7 +75,14 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.screen}>
       {/* Top Mobile Bar */}
       <View style={styles.topBar}>
-        <Text style={styles.logo}>SarangTV</Text>
+        <View style={styles.logoRow}>
+          <Image
+            source={require('../../../assets/sarangtv-logo.png')}
+            style={styles.topBarLogoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.logo}>SarangTV</Text>
+        </View>
 
         <View style={styles.topBarRight}>
           <Pressable
@@ -425,8 +432,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   topBar: {
-    height: 45,
-    paddingHorizontal: 10,
+    height: 48,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -434,9 +441,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  topBarLogoImage: {
+    width: 28,
+    height: 28,
+  },
   logo: {
-    color: '#E9A8B8',
-    fontSize: 16,
+    color: '#F5A9C4',
+    fontSize: 17,
     fontWeight: '900',
     letterSpacing: -0.4,
   },

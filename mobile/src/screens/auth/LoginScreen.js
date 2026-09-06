@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   Pressable,
+  Image,
 } from 'react-native';
 import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
@@ -77,6 +78,11 @@ export default function LoginScreen({ navigation, route }) {
 
         {/* Brand Header */}
         <View style={styles.header}>
+          <Image
+            source={require('../../../assets/sarangtv-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.brand}>SARANGTV</Text>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Log in to your watchlist.</Text>
@@ -220,12 +226,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  logoImage: {
+    width: 80,
+    height: 80,
+    marginBottom: 10,
+  },
   brand: {
-    color: '#EB5B78',
+    color: '#F5A9C4',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 2,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   title: {
     color: '#F7F0F0',

@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
   itemActive: {
-    backgroundColor: 'rgba(232, 33, 63, 0.10)',
+    backgroundColor: 'rgba(245, 169, 196, 0.12)',
   },
   itemPressed: {
     opacity: 0.6,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   iconContainerActive: {
-    backgroundColor: 'rgba(232, 33, 63, 0.12)',
+    backgroundColor: 'rgba(245, 169, 196, 0.16)',
   },
   label: {
     color: colors.muted,
