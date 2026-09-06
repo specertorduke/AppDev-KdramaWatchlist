@@ -152,10 +152,10 @@ export default function Chatbot() {
           <div className="chatbot-header">
             <div className="chatbot-header-title">
               <span className="chatbot-ai-badge">
-                <Sparkles size={14} />
+                <img src="/logo.png" alt="SarangTV AI" className="chatbot-header-logo" />
               </span>
               <div>
-                <h3>SarangTV AI</h3>
+                <h3>Sarang<span className="brand-tv-accent">TV</span> AI</h3>
                 <span className="chatbot-status-dot">Online</span>
               </div>
             </div>
@@ -207,7 +207,7 @@ export default function Chatbot() {
               return (
                 <div key={msg.id} className="chatbot-msg-row ai">
                   <div className="chatbot-ai-avatar">
-                    <Bot size={14} />
+                    <img src="/logo.png" alt="AI" className="chatbot-avatar-img" />
                   </div>
                   <div className={`chatbot-bubble ai ${msg.isError ? 'error-bubble' : ''}`}>
                     {msg.isError ? (

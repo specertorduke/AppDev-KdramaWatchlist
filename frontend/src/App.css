@@ -21,11 +21,34 @@
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   color: #ed8ea4;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 23px;
   font-weight: 700;
-  letter-spacing: -1.4px;
+  letter-spacing: -0.6px;
+  text-decoration: none;
+}
+
+.brand-tv-accent {
+  color: #E85D75 !important;
+}
+
+.brand-logo-img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(235, 91, 120, 0.25));
+  transition: transform 0.2s ease;
+}
+
+.brand:hover .brand-logo-img,
+.auth-brand:hover .brand-logo-img,
+.dashboard-brand:hover .brand-logo-img {
+  transform: scale(1.08) rotate(-3deg);
 }
 
 .header-nav {
@@ -252,6 +275,9 @@
 }
 
 .auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   color: #ed8ea4;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 22px;
@@ -753,11 +779,15 @@
 }
 
 .dashboard-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   color: #f09ab0;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 25px;
   font-weight: 700;
-  letter-spacing: -1.4px;
+  letter-spacing: -0.6px;
+  text-decoration: none;
 }
 
 .dashboard-nav {
@@ -3638,6 +3668,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.chatbot-header-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
 
 .chatbot-header-title h3 {
@@ -3738,6 +3775,13 @@
   justify-content: center;
   flex-shrink: 0;
   margin-top: 2px;
+  overflow: hidden;
+}
+
+.chatbot-avatar-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .chatbot-bubble {

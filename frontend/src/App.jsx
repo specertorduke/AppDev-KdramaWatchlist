@@ -13,7 +13,10 @@ function LandingPage() {
   return (
     <main className="landing-page">
       <header className="site-header">
-        <Link className="brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
+        <Link className="brand" to={isAuthenticated ? '/dashboard' : '/'} aria-label="SarangTV home">
+          <img src="/logo.png" alt="SarangTV logo" className="brand-logo-img" />
+          <span>Sarang<span className="brand-tv-accent">TV</span></span>
+        </Link>
         <nav className="header-nav" aria-label="Account navigation">
           {isAuthenticated ? (
             <Link className="button button-primary button-small" to="/dashboard">Dashboard</Link>
@@ -142,7 +145,10 @@ function AuthPage({ mode }) {
             <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
             Back
           </Link>
-          <Link className="auth-brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
+          <Link className="auth-brand" to="/" aria-label="SarangTV home">
+            <img src="/logo.png" alt="SarangTV logo" className="brand-logo-img" />
+            <span>Sarang<span className="brand-tv-accent">TV</span></span>
+          </Link>
           <div className="auth-nav-spacer" aria-hidden="true" />
         </div>
 
