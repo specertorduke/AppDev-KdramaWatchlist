@@ -12,7 +12,6 @@ import {
   Play,
   Plus,
   Search,
-  Settings,
   Send,
   LogOut,
   X,
@@ -38,6 +37,7 @@ import {
   dashboardUser,
   quickAccess,
 } from '../data/dashboardData.js'
+import EditProfileModal from './EditProfileModal.jsx'
 
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
 const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Send }
@@ -338,7 +338,6 @@ function ProfileMenu({ onClose }) {
       <Link to="/tracker" onClick={onClose}>My Tracker</Link>
       <Link to="/stats" onClick={onClose}>Stats & History</Link>
       <Link to="/profile" onClick={onClose}>Profile</Link>
-      <Link to="/profile" onClick={onClose}>Settings</Link>
       <button type="button" onClick={handleLogout}>
         <LogOut size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
         Sign Out
@@ -1415,6 +1414,7 @@ function ProfilePage() {
   const { stats } = useWatchlist()
   const navigate = useNavigate()
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -1424,12 +1424,18 @@ function ProfilePage() {
   return (
     <DashboardLayout activeTab="profile" onOpenAddDrama={() => setIsAddDramaOpen(true)}>
       <section className="profile-summary">
-        <img src={user?.avatar || dashboardUser.avatar} alt="" />
+        <img src={user?.avatar || user?.avatar_url || dashboardUser.avatar} alt="" />
         <div>
           <h1>{user?.name || 'Kim Ji-young'}</h1>
           <p>{user?.email || 'kdramaaddict@email.com'}</p>
         </div>
-        <button type="button" aria-label="Edit profile"><Edit3 size={18} /></button>
+        <button
+          type="button"
+          aria-label="Edit profile"
+          onClick={() => setIsEditProfileOpen(true)}
+        >
+          <Edit3 size={18} />
+        </button>
       </section>
       <section className="profile-stats">
         <div><strong>{stats.totalTracked}</strong><span>Dramas</span></div>
@@ -1439,12 +1445,12 @@ function ProfilePage() {
       <section className="profile-links">
         <Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>{stats.totalTracked} dramas tracked</small></span><ChevronRight /></Link>
         <Link to="/stats"><BarChart3 /> <span><b>Stats & History</b><small>{stats.totalEpisodesWatched} episodes · {stats.hoursWatched}h</small></span><ChevronRight /></Link>
-        <Link to="/profile"><Settings /> <span><b>Settings</b><small>Notifications, quality, account</small></span><ChevronRight /></Link>
       </section>
       <button className="signout-button" type="button" onClick={handleLogout}>
         <LogOut size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Sign Out
       </button>
       <AddDramaModal isOpen={isAddDramaOpen} onClose={() => setIsAddDramaOpen(false)} />
+      <EditProfileModal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} />
     </DashboardLayout>
   )
 }

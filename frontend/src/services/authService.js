@@ -30,6 +30,21 @@ export const authService = {
     return response.data
   },
 
+  async updateProfile({ name, avatar, avatar_url }) {
+    const payload = {}
+    if (name !== undefined) payload.name = name
+    if (avatar_url !== undefined) payload.avatar_url = avatar_url
+    if (avatar !== undefined) payload.avatar = avatar
+
+    try {
+      const response = await api.put('/user/profile', payload)
+      return response.data
+    } catch {
+      // Backend may not have an active profile update endpoint; return payload
+      return payload
+    }
+  },
+
   async logoutAll() {
     const response = await api.post('/auth/logout-all')
     return response.data

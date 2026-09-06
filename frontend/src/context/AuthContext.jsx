@@ -16,8 +16,19 @@ export function AuthProvider({ children }) {
       if (token) {
         try {
           const userData = await authService.getMe()
-          setUser(userData)
-          localStorage.setItem('sarangtv_user', JSON.stringify(userData))
+          const userKey = userData?.id || userData?.email
+          let customFields = {}
+          if (userKey) {
+            try {
+              const savedCustom = localStorage.getItem(`sarangtv_profile_${userKey}`)
+              if (savedCustom) customFields = JSON.parse(savedCustom)
+            } catch {
+              // Ignore parse errors
+            }
+          }
+          const merged = { ...userData, ...customFields }
+          setUser(merged)
+          localStorage.setItem('sarangtv_user', JSON.stringify(merged))
         } catch {
           // Token invalid or expired
           setToken(null)
@@ -31,6 +42,39 @@ export function AuthProvider({ children }) {
 
     loadUser()
   }, [token])
+
+  const updateProfile = async ({ name, avatar }) => {
+    let apiResult = null
+    try {
+      apiResult = await authService.updateProfile({ name, avatar, avatar_url: avatar })
+    } catch {
+      // Offline fallback
+    }
+
+    setUser((prev) => {
+      const updated = {
+        ...(prev || {}),
+        ...(apiResult?.user || (apiResult?.id ? apiResult : {})),
+        ...(name ? { name } : {}),
+        ...(avatar ? { avatar, avatar_url: avatar } : {}),
+      }
+      localStorage.setItem('sarangtv_user', JSON.stringify(updated))
+      const userKey = updated?.id || updated?.email
+      if (userKey) {
+        localStorage.setItem(
+          `sarangtv_profile_${userKey}`,
+          JSON.stringify({
+            name: updated.name,
+            avatar: updated.avatar || updated.avatar_url,
+            avatar_url: updated.avatar || updated.avatar_url,
+          })
+        )
+      }
+      return updated
+    })
+
+    return true
+  }
 
   const login = async (credentials) => {
     const data = await authService.login(credentials)
@@ -77,6 +121,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
