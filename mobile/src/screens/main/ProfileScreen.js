@@ -17,10 +17,51 @@ import { userService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout, openAccountChooser, removeSavedAccount } = useAuth();
+  const { user, logout, openAccountChooser, updateProfileAvatar } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState(user?.avatarIcon || 'heart');
+  const [selectedColor, setSelectedColor] = useState(user?.color || '#F5A9C4');
+
+  const AVATAR_ICONS = [
+    { id: 'heart', icon: 'heart', label: 'Romance Lead' },
+    { id: 'sparkles', icon: 'sparkles', label: 'K-Drama Star' },
+    { id: 'film', icon: 'film', label: 'Binge Watcher' },
+    { id: 'flame', icon: 'flame', label: 'Plot Twist' },
+    { id: 'ribbon', icon: 'ribbon', label: 'Award Winner' },
+    { id: 'glasses', icon: 'glasses', label: 'Chaebol Heir' },
+    { id: 'planet', icon: 'planet', label: 'Fantasy / Sci-Fi' },
+    { id: 'flash', icon: 'flash', label: 'Action Hero' },
+    { id: 'cafe', icon: 'cafe', label: 'Coffee Prince' },
+    { id: 'happy', icon: 'happy', label: 'Second Lead' },
+    { id: 'musical-notes', icon: 'musical-notes', label: 'OST Lover' },
+    { id: 'paw', icon: 'paw', label: 'Drama Mascot' },
+  ];
+
+  const COLOR_PALETTES = [
+    '#F5A9C4', // Signature Pink
+    '#E085A6', // Deep Rose
+    '#6B2638', // Wine
+    '#29234D', // Midnight Plum
+    '#3A315A', // Royal Violet
+    '#19313B', // Deep Teal
+    '#2D4B3E', // Forest Sage
+    '#D97706', // Sunset Amber
+  ];
+
+  useEffect(() => {
+    if (user?.avatarIcon) setSelectedIcon(user.avatarIcon);
+    if (user?.color) setSelectedColor(user.color);
+  }, [user]);
+
+  const handleSaveAvatar = async (icon, color) => {
+    setSelectedIcon(icon);
+    setSelectedColor(color);
+    await updateProfileAvatar({ avatarIcon: icon, color });
+    setShowAvatarModal(false);
+  };
 
   const fetchProfileStats = async () => {
     try {
@@ -56,6 +97,9 @@ export default function ProfileScreen({ navigation }) {
     await logout();
   };
 
+  const activeColor = user?.color || selectedColor || '#F5A9C4';
+  const activeIcon = user?.avatarIcon || selectedIcon;
+
   return (
     <ScrollView
       style={styles.screen}
@@ -71,9 +115,26 @@ export default function ProfileScreen({ navigation }) {
     >
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
-        </View>
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.avatar,
+            { backgroundColor: activeColor },
+            hovered && styles.avatarHovered,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => setShowAvatarModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Change profile avatar"
+        >
+          {activeIcon ? (
+            <Ionicons name={activeIcon} size={24} color="#FFFFFF" />
+          ) : (
+            <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
+          )}
+          <View style={styles.avatarBadge}>
+            <Ionicons name="camera" size={10} color="#FFFFFF" />
+          </View>
+        </Pressable>
 
         <View style={styles.profileInfo}>
           <Text style={styles.name}>{user?.name || 'Kim Ji-young'}</Text>
@@ -81,6 +142,19 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.headerActionBtn,
+              hovered && styles.headerActionBtnHovered,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => setShowAvatarModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Choose Avatar"
+          >
+            <Ionicons name="color-palette-outline" size={15} color={colors.text} />
+          </Pressable>
+
           <Pressable
             style={({ pressed, hovered }) => [
               styles.headerActionBtn,
@@ -104,7 +178,7 @@ export default function ProfileScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel="Edit profile"
           >
-            <Ionicons name="create-outline" size={15} color={colors.text} />
+            <Ionicons name="settings-outline" size={15} color={colors.text} />
           </Pressable>
         </View>
       </View>
@@ -239,6 +313,112 @@ export default function ProfileScreen({ navigation }) {
         <Ionicons name="log-out-outline" size={14} color={colors.redBright} />
         <Text style={styles.signOutText}>Sign Out</Text>
       </Pressable>
+
+      {/* Netflix-Style Profile Avatar Chooser Modal */}
+      <Modal
+        visible={showAvatarModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowAvatarModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Choose Profile Style</Text>
+                <Text style={styles.modalSubtitle}>Pick an icon and theme for your profile</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => setShowAvatarModal(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </Pressable>
+            </View>
+
+            {/* Current Preview */}
+            <View style={styles.previewContainer}>
+              <View style={[styles.avatarPreview, { backgroundColor: selectedColor }]}>
+                <Ionicons name={selectedIcon} size={44} color="#FFFFFF" />
+              </View>
+              <Text style={styles.previewLabel}>
+                {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
+              </Text>
+            </View>
+
+            {/* Color Swatches */}
+            <Text style={styles.modalSectionHeading}>CHOOSE COLOR THEME</Text>
+            <View style={styles.colorPaletteRow}>
+              {COLOR_PALETTES.map((col) => {
+                const isSelected = selectedColor === col;
+                return (
+                  <Pressable
+                    key={col}
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: col },
+                      isSelected && styles.colorSwatchActive,
+                    ]}
+                    onPress={() => setSelectedColor(col)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select color ${col}`}
+                  >
+                    {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Icon Grid */}
+            <Text style={styles.modalSectionHeading}>SELECT DRAMA PERSONA</Text>
+            <ScrollView style={styles.iconScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.iconGrid}>
+                {AVATAR_ICONS.map((item) => {
+                  const isSelected = selectedIcon === item.icon;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      style={[
+                        styles.iconTile,
+                        isSelected && [styles.iconTileActive, { borderColor: selectedColor }],
+                      ]}
+                      onPress={() => setSelectedIcon(item.icon)}
+                      accessibilityRole="button"
+                      accessibilityLabel={item.label}
+                    >
+                      <View style={[styles.iconTileBg, { backgroundColor: isSelected ? selectedColor : '#1C1B2A' }]}>
+                        <Ionicons name={item.icon} size={22} color="#FFFFFF" />
+                      </View>
+                      <Text style={[styles.iconTileLabel, isSelected && styles.iconTileLabelActive]} numberOfLines={1}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {/* Modal Actions */}
+            <View style={styles.modalActions}>
+              <Pressable
+                style={styles.cancelBtn}
+                onPress={() => setShowAvatarModal(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.saveAvatarBtn, { backgroundColor: selectedColor }]}
+                onPress={() => handleSaveAvatar(selectedIcon, selectedColor)}
+              >
+                <Text style={styles.saveAvatarBtnText}>Save Profile Style</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -405,5 +585,184 @@ const styles = StyleSheet.create({
     color: colors.redBright,
     fontSize: 10,
     fontWeight: '800',
+  },
+  avatarHovered: {
+    opacity: 0.9,
+    transform: [{ scale: 1.05 }],
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#1E1B2E',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#07070E',
+  },
+  /* MODAL STYLES */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#100F1B',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 20,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modalSubtitle: {
+    color: '#8D8B98',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  previewContainer: {
+    alignItems: 'center',
+    marginVertical: 12,
+    paddingVertical: 12,
+    backgroundColor: '#0A0A12',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  avatarPreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  previewLabel: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  modalSectionHeading: {
+    color: '#8D8B98',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  colorPaletteRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 10,
+  },
+  colorSwatch: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorSwatchActive: {
+    borderColor: '#FFFFFF',
+    transform: [{ scale: 1.1 }],
+  },
+  iconScroll: {
+    maxHeight: 180,
+  },
+  iconGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  iconTile: {
+    width: '31%',
+    backgroundColor: '#141322',
+    borderRadius: 10,
+    padding: 8,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  iconTileActive: {
+    backgroundColor: '#1E1A2C',
+  },
+  iconTileBg: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  iconTileLabel: {
+    color: '#A19EA9',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  iconTileLabelActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  cancelBtnText: {
+    color: '#D7D4DC',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  saveAvatarBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+  },
+  saveAvatarBtnText: {
+    color: '#07070E',
+    fontSize: 12,
+    fontWeight: '900',
   },
 });

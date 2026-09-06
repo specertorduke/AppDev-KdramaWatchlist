@@ -13,8 +13,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { homeService, trackerService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
+  const { user } = useAuth();
   const { width } = useWindowDimensions();
   const isSmallPhone = width <= 380;
   const horizontalPadding = isSmallPhone ? 10 : 12;
@@ -100,13 +102,18 @@ export default function HomeScreen({ navigation }) {
           <Pressable
             style={({ pressed, hovered }) => [
               styles.avatarButton,
+              { backgroundColor: user?.color || '#292546' },
               hovered && styles.avatarButtonHovered,
               pressed && styles.avatarButtonPressed,
             ]}
             onPress={() => navigation.navigate('Profile')}
             accessibilityLabel="Profile"
           >
-            <Ionicons name="person" size={14} color="#D9D5FF" />
+            <Ionicons
+              name={user?.avatarIcon || 'person'}
+              size={13}
+              color="#FFFFFF"
+            />
           </Pressable>
         </View>
       </View>

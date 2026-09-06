@@ -128,9 +128,13 @@ export default function AccountChooserScreen({ navigation }) {
                     { backgroundColor: account.color || '#6B2638' },
                   ]}
                 >
-                  <Text style={styles.avatarInitials}>
-                    {account.initials || 'U'}
-                  </Text>
+                  {account.avatarIcon ? (
+                    <Ionicons name={account.avatarIcon} size={34} color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.avatarInitials}>
+                      {account.initials || 'U'}
+                    </Text>
+                  )}
                 </View>
 
                 {/* PROFILE NAME */}

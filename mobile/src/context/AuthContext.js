@@ -43,12 +43,14 @@ export const AuthProvider = ({ children }) => {
       let accounts = stored ? JSON.parse(stored) : [];
       const existingIdx = accounts.findIndex((a) => a.id === userData.id || a.email === userData.email);
 
+      const existing = existingIdx >= 0 ? accounts[existingIdx] : null;
       const updatedAccount = {
         id: userData.id,
         name: userData.name,
         email: userData.email,
         token: authToken,
-        color: existingIdx >= 0 && accounts[existingIdx].color ? accounts[existingIdx].color : getPaletteColor(accounts.length),
+        color: existing?.color || getPaletteColor(accounts.length),
+        avatarIcon: existing?.avatarIcon || null,
         initials: getInitials(userData.name),
         user: userData,
       };
@@ -63,6 +65,33 @@ export const AuthProvider = ({ children }) => {
       setSavedAccounts(accounts);
     } catch (e) {
       console.warn('Failed to update saved accounts:', e);
+    }
+  };
+
+  const updateProfileAvatar = async ({ avatarIcon, color }) => {
+    try {
+      if (!user) return;
+      const updatedUser = { ...user, avatarIcon, color };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+      const stored = await AsyncStorage.getItem('saved_accounts');
+      let accounts = stored ? JSON.parse(stored) : [];
+      accounts = accounts.map((a) => {
+        if (a.id === user.id || a.email === user.email) {
+          return {
+            ...a,
+            avatarIcon: avatarIcon !== undefined ? avatarIcon : a.avatarIcon,
+            color: color !== undefined ? color : a.color,
+            user: { ...a.user, avatarIcon, color },
+          };
+        }
+        return a;
+      });
+      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
+      setSavedAccounts(accounts);
+    } catch (e) {
+      console.warn('Failed to update profile avatar:', e);
     }
   };
 
@@ -229,6 +258,7 @@ export const AuthProvider = ({ children }) => {
         closeAccountChooser,
         switchAccount,
         removeSavedAccount,
+        updateProfileAvatar,
         login,
         register,
         logout,
