@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
@@ -16,7 +17,7 @@ import { userService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout } = useAuth();
+  const { user, logout, openAccountChooser, removeSavedAccount } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,18 +52,8 @@ export default function ProfileScreen({ navigation }) {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const handleSignOut = () => {
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Are you sure you want to sign out?');
-      if (confirmed) {
-        logout();
-      }
-    } else {
-      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: logout },
-      ]);
-    }
+  const handleSignOut = async () => {
+    await logout();
   };
 
   return (
@@ -89,18 +80,33 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.email}>{user?.email || 'kdramaaddict@email.com'}</Text>
         </View>
 
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.editButton,
-            hovered && styles.editButtonHovered,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => navigation.navigate('Settings')}
-          accessibilityRole="button"
-          accessibilityLabel="Edit profile"
-        >
-          <Ionicons name="create-outline" size={15} color={colors.text} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.headerActionBtn,
+              hovered && styles.headerActionBtnHovered,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={openAccountChooser}
+            accessibilityRole="button"
+            accessibilityLabel="Switch Profile"
+          >
+            <Ionicons name="people-outline" size={15} color={colors.text} />
+          </Pressable>
+
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.headerActionBtn,
+              hovered && styles.headerActionBtnHovered,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => navigation.navigate('Settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
+          >
+            <Ionicons name="create-outline" size={15} color={colors.text} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Profile Summary */}
@@ -179,7 +185,6 @@ export default function ProfileScreen({ navigation }) {
         <Pressable
           style={({ pressed, hovered }) => [
             styles.menuItem,
-            styles.menuItemLast,
             hovered && styles.menuItemHovered,
             pressed && styles.menuItemPressed,
           ]}
@@ -193,6 +198,28 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.menuText}>
             <Text style={styles.menuTitle}>Settings</Text>
             <Text style={styles.menuSubtitle}>Notifications, quality, account</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+        </Pressable>
+
+        {/* Switch Account */}
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.menuItem,
+            styles.menuItemLast,
+            hovered && styles.menuItemHovered,
+            pressed && styles.menuItemPressed,
+          ]}
+          onPress={openAccountChooser}
+          accessibilityRole="button"
+          accessibilityLabel="Switch Account"
+        >
+          <View style={styles.menuIcon}>
+            <Ionicons name="people-outline" size={15} color={colors.muted} />
+          </View>
+          <View style={styles.menuText}>
+            <Text style={styles.menuTitle}>Switch Account</Text>
+            <Text style={styles.menuSubtitle}>Who's tracking? · Change active profile</Text>
           </View>
           <Ionicons name="chevron-forward" size={13} color={colors.muted} />
         </Pressable>
@@ -258,17 +285,22 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     marginTop: 3,
   },
-  editButton: {
-    width: 27,
-    height: 27,
-    borderRadius: 6,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerActionBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  editButtonHovered: {
+  headerActionBtnHovered: {
     backgroundColor: colors.panel2,
     borderColor: colors.red,
   },
@@ -371,7 +403,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     color: colors.redBright,
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '800',
   },
 });

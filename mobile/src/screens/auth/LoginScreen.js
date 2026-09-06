@@ -15,13 +15,14 @@ import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function LoginScreen({ navigation }) {
-  const { login } = useAuth();
-  const [email, setEmail] = useState('');
+export default function LoginScreen({ navigation, route }) {
+  const { login, savedAccounts } = useAuth();
+  const [email, setEmail] = useState(route?.params?.email || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState(route?.params?.message || '');
   const [fieldErrors, setFieldErrors] = useState({});
 
   const handleLogin = async () => {
@@ -31,7 +32,7 @@ export default function LoginScreen({ navigation }) {
 
     try {
       // Backend handles validation (422)
-      await login(email, password);
+      await login(email, password, rememberMe);
     } catch (err) {
       if (err.response) {
         if (err.response.status === 422) {
@@ -57,6 +58,23 @@ export default function LoginScreen({ navigation }) {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        {savedAccounts && savedAccounts.length > 0 && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              if (navigation?.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation?.navigate('AccountChooser');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={16} color={colors.text} />
+            <Text style={styles.backButtonText}>Profiles</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Brand Header */}
         <View style={styles.header}>
           <Text style={styles.brand}>SARANGTV</Text>
@@ -128,6 +146,19 @@ export default function LoginScreen({ navigation }) {
             )}
           </View>
 
+          {/* Remember Profile Option */}
+          <Pressable
+            style={styles.rememberRow}
+            onPress={() => setRememberMe(!rememberMe)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: rememberMe }}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+            </View>
+            <Text style={styles.rememberText}>Save login as a profile</Text>
+          </Pressable>
+
           {/* Submit Button */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
@@ -172,6 +203,22 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 28,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  backButtonText: {
+    color: '#D7D4DC',
+    fontSize: 12,
+    fontWeight: '600',
   },
   brand: {
     color: '#EB5B78',
@@ -249,13 +296,40 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontWeight: '500',
   },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+    marginTop: 2,
+    alignSelf: 'flex-start',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#3D3C4E',
+    backgroundColor: '#12121A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#EB5B78',
+    borderColor: '#EB5B78',
+  },
+  rememberText: {
+    color: '#D7D4DC',
+    fontSize: 13,
+    fontWeight: '500',
+  },
   submitButton: {
     backgroundColor: '#EB5B78',
     borderRadius: 12,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
     shadowColor: '#EB5B78',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,

@@ -22,6 +22,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -33,7 +34,7 @@ export default function RegisterScreen({ navigation }) {
 
     try {
       // Backend handles validation rules
-      await register(name, email, password, passwordConfirmation);
+      await register(name, email, password, passwordConfirmation, rememberMe);
     } catch (err) {
       if (err.response) {
         if (err.response.status === 422) {
@@ -188,6 +189,19 @@ export default function RegisterScreen({ navigation }) {
             )}
           </View>
 
+          {/* Remember Profile Option */}
+          <Pressable
+            style={styles.rememberRow}
+            onPress={() => setRememberMe(!rememberMe)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: rememberMe }}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+            </View>
+            <Text style={styles.rememberText}>Save login as a profile</Text>
+          </Pressable>
+
           {/* Submit Button */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
@@ -321,13 +335,40 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontWeight: '500',
   },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+    marginTop: 2,
+    alignSelf: 'flex-start',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#3D3C4E',
+    backgroundColor: '#12121A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#EB5B78',
+    borderColor: '#EB5B78',
+  },
+  rememberText: {
+    color: '#D7D4DC',
+    fontSize: 13,
+    fontWeight: '500',
+  },
   submitButton: {
     backgroundColor: '#EB5B78',
     borderRadius: 12,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 4,
     shadowColor: '#EB5B78',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,

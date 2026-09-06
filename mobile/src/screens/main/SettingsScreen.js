@@ -15,7 +15,7 @@ export default function SettingsScreen({ navigation }) {
     episodeAlerts: true,
     progressReminders: true,
     autoMarkWatched: false,
-    hdStreaming: true,
+    highQualityPosters: true,
   });
 
   const toggle = (key) => {
@@ -75,8 +75,8 @@ export default function SettingsScreen({ navigation }) {
         <SettingToggleRow
           title="High Quality Posters"
           subtitle="Load HD banners and posters over WiFi"
-          value={values.hdStreaming}
-          onToggle={() => toggle('hdStreaming')}
+          value={values.highQualityPosters}
+          onToggle={() => toggle('highQualityPosters')}
           last
         />
       </View>
