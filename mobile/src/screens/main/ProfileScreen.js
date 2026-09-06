@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
@@ -43,97 +45,174 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const getInitials = (name) => {
-    if (!name) return 'KD';
+    if (!name) return 'KJ';
     const parts = name.trim().split(' ');
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
   };
 
+  const handleSignOut = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Are you sure you want to sign out?');
+      if (confirmed) {
+        logout();
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: logout },
+      ]);
+    }
+  };
+
   return (
-    <View style={styles.screen}>
-      <View style={styles.topBar}>
-        <Text style={styles.headerTitle}>Profile</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.redBright}
+        />
+      }
+    >
+      {/* Profile Header */}
+      <View style={styles.profileHeader}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
+        </View>
+
+        <View style={styles.profileInfo}>
+          <Text style={styles.name}>{user?.name || 'Kim Ji-young'}</Text>
+          <Text style={styles.email}>{user?.email || 'kdramaaddict@email.com'}</Text>
+        </View>
+
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.editButton,
+            hovered && styles.editButtonHovered,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => navigation.navigate('Settings')}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+        >
+          <Ionicons name="create-outline" size={15} color={colors.text} />
+        </Pressable>
       </View>
 
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.red} />
-        }
-      >
-        {/* Profile Card */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.name}>{user?.name || 'K-Drama Fan'}</Text>
-            <Text style={styles.email}>{user?.email || 'user@sarangtv.app'}</Text>
-          </View>
+      {/* Profile Summary */}
+      <View style={styles.stats}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{stats?.total_dramas ?? 4}</Text>
+          <Text style={styles.statLabel}>Dramas</Text>
         </View>
 
-        {/* Stats Row */}
-        <View style={styles.stats}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats?.total_dramas ?? 0}</Text>
-            <Text style={styles.statLabel}>Dramas</Text>
+        <View style={styles.divider} />
+
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{stats?.episodes_watched ?? 18}</Text>
+          <Text style={styles.statLabel}>Episodes</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.statItem}>
+          <Text style={[styles.statValue, styles.gold]}>
+            {Math.round(stats?.hours_watched ?? 17)}h
+          </Text>
+          <Text style={[styles.statLabel, styles.gold]}>Watched</Text>
+        </View>
+      </View>
+
+      {/* Profile Menu */}
+      <View style={styles.menu}>
+        {/* My Tracker */}
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.menuItem,
+            hovered && styles.menuItemHovered,
+            pressed && styles.menuItemPressed,
+          ]}
+          onPress={() => navigation.navigate('Tracker')}
+          accessibilityRole="button"
+          accessibilityLabel="My Tracker"
+        >
+          <View style={styles.menuIcon}>
+            <Ionicons name="clipboard-outline" size={15} color={colors.muted} />
           </View>
-          <View style={styles.divider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats?.episodes_watched ?? 0}</Text>
-            <Text style={styles.statLabel}>Episodes</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.gold }]}>
-              {Math.round(stats?.hours_watched ?? 0)}h
+          <View style={styles.menuText}>
+            <Text style={styles.menuTitle}>My Tracker</Text>
+            <Text style={styles.menuSubtitle}>
+              {stats?.total_dramas ?? 4} dramas tracked
             </Text>
-            <Text style={styles.statLabel}>Watched</Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+        </Pressable>
 
-        {/* Menu Section */}
-        <View style={styles.menu}>
-          <Pressable
-            style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-            onPress={() => navigation.navigate('Tracker')}
-          >
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="bookmark-outline" size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>My Watchlist</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-          </Pressable>
+        {/* Stats & History */}
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.menuItem,
+            hovered && styles.menuItemHovered,
+            pressed && styles.menuItemPressed,
+          ]}
+          onPress={() => navigation.navigate('Stats')}
+          accessibilityRole="button"
+          accessibilityLabel="Stats and History"
+        >
+          <View style={styles.menuIcon}>
+            <Ionicons name="bar-chart-outline" size={15} color={colors.muted} />
+          </View>
+          <View style={styles.menuText}>
+            <Text style={styles.menuTitle}>Stats & History</Text>
+            <Text style={styles.menuSubtitle}>
+              {stats?.episodes_watched ?? 18} episodes · {Math.round(stats?.hours_watched ?? 17)}h
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+        </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
-            onPress={() => navigation.navigate('Discover')}
-          >
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="compass-outline" size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Discover Dramas</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-          </Pressable>
+        {/* Settings */}
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.menuItem,
+            styles.menuItemLast,
+            hovered && styles.menuItemHovered,
+            pressed && styles.menuItemPressed,
+          ]}
+          onPress={() => navigation.navigate('Settings')}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <View style={styles.menuIcon}>
+            <Ionicons name="settings-outline" size={15} color={colors.muted} />
+          </View>
+          <View style={styles.menuText}>
+            <Text style={styles.menuTitle}>Settings</Text>
+            <Text style={styles.menuSubtitle}>Notifications, quality, account</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+        </Pressable>
+      </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.menuItem,
-              styles.logoutItem,
-              pressed && styles.menuItemPressed,
-            ]}
-            onPress={logout}
-          >
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-              <Text style={[styles.menuItemText, { color: colors.danger }]}>Sign Out</Text>
-            </View>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </View>
+      {/* Sign Out Button */}
+      <Pressable
+        style={({ pressed, hovered }) => [
+          styles.signOut,
+          hovered && styles.signOutHovered,
+          pressed && styles.signOutPressed,
+        ]}
+        onPress={handleSignOut}
+        accessibilityRole="button"
+        accessibilityLabel="Sign out"
+      >
+        <Ionicons name="log-out-outline" size={14} color={colors.redBright} />
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
@@ -142,118 +221,157 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  topBar: {
-    paddingHorizontal: 16,
-    paddingTop: 48,
-    paddingBottom: 12,
-    backgroundColor: colors.nav,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.text,
-  },
   content: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 19,
+    paddingTop: 48,
+    paddingBottom: 40,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.panel,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.line,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: colors.redBright,
-    justifyContent: 'center',
+    width: 47,
+    height: 47,
+    borderRadius: 24,
+    backgroundColor: colors.red,
     alignItems: 'center',
-    marginRight: 14,
+    justifyContent: 'center',
+    marginRight: 12,
   },
   avatarText: {
-    fontSize: 18,
+    color: '#fff',
+    fontSize: 15,
     fontWeight: '900',
-    color: colors.white,
   },
   profileInfo: {
     flex: 1,
   },
   name: {
+    color: colors.text,
     fontSize: 16,
     fontWeight: '900',
-    color: colors.text,
-    marginBottom: 2,
   },
   email: {
-    fontSize: 12,
     color: colors.muted,
+    fontSize: 8.5,
+    marginTop: 3,
+  },
+  editButton: {
+    width: 27,
+    height: 27,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonHovered: {
+    backgroundColor: colors.panel2,
+    borderColor: colors.red,
+  },
+  buttonPressed: {
+    opacity: 0.7,
   },
   stats: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.panel,
-    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
-    paddingVertical: 14,
-    marginBottom: 20,
+    borderRadius: 13,
+    paddingVertical: 13,
+    marginBottom: 18,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.muted,
-  },
   divider: {
     width: 1,
+    height: 45,
     backgroundColor: colors.line,
+  },
+  statValue: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  statLabel: {
+    color: colors.muted,
+    fontSize: 8,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  gold: {
+    color: colors.gold,
   },
   menu: {
     backgroundColor: colors.panel,
-    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
+    borderRadius: 13,
     overflow: 'hidden',
+    marginBottom: 18,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  menuItemPressed: {
+  menuItemLast: {
+    borderBottomWidth: 0,
+  },
+  menuItemHovered: {
     backgroundColor: colors.panel2,
   },
-  menuItemLeft: {
+  menuItemPressed: {
+    opacity: 0.7,
+  },
+  menuIcon: {
+    width: 24,
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  menuText: {
+    flex: 1,
+  },
+  menuTitle: {
+    color: colors.text,
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  menuSubtitle: {
+    color: colors.muted,
+    fontSize: 8,
+    marginTop: 1,
+  },
+  signOut: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    gap: 6,
+    height: 38,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(232,33,63,0.3)',
+    backgroundColor: 'rgba(232,33,63,0.06)',
   },
-  menuItemText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
+  signOutHovered: {
+    backgroundColor: 'rgba(232,33,63,0.12)',
+    borderColor: colors.redBright,
   },
-  logoutItem: {
-    borderBottomWidth: 0,
+  signOutPressed: {
+    opacity: 0.7,
+  },
+  signOutText: {
+    color: colors.redBright,
+    fontSize: 10.5,
+    fontWeight: '800',
   },
 });

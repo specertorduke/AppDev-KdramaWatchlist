@@ -25,6 +25,7 @@ export default function DramaCard({ drama, onPress }) {
     ? drama.genres.join(', ') 
     : drama.genre || 'Drama';
   const episodes = drama.total_episodes || drama.episodes;
+  const status = drama.watch_status || drama.status;
 
   return (
     <Pressable
@@ -48,19 +49,30 @@ export default function DramaCard({ drama, onPress }) {
               <View style={[styles.posterFallback, hovered && styles.posterFallbackHover]} />
             )}
 
-            {/* Status / Badge */}
-            {drama.watch_status || drama.status ? (
-              <View style={[styles.statusBadge, hovered && styles.statusBadgeHover]}>
-                <Text style={[styles.statusText, hovered && styles.statusTextHover]}>
-                  {String(drama.watch_status || drama.status).replace(/_/g, ' ').toUpperCase()}
+            {/* Top Left Badge if any */}
+            {drama.badge ? (
+              <View style={[styles.badge, hovered && styles.badgeHover]}>
+                <Text style={[styles.badgeText, hovered && styles.badgeTextHover]}>
+                  {drama.badge}
                 </Text>
               </View>
             ) : null}
 
-            {/* Rating */}
+            {/* Top Right Status Badge */}
+            {status ? (
+              <View style={[styles.statusBadge, hovered && styles.statusBadgeHover]}>
+                <Text style={[styles.statusText, hovered && styles.statusTextHover]}>
+                  {String(status).replace(/_/g, ' ').toUpperCase()}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Bottom Left Rating Badge */}
             {rating > 0 ? (
               <View style={[styles.ratingBadge, hovered && styles.ratingBadgeHover]}>
-                <Text style={styles.ratingText}>★ {rating.toFixed(1)}</Text>
+                <Text style={[styles.ratingText, hovered && styles.ratingTextHover]}>
+                  ★ {rating.toFixed(1)}
+                </Text>
               </View>
             ) : null}
 
@@ -84,6 +96,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     minWidth: 0,
+    marginBottom: 0,
     borderRadius: 12,
   },
   cardHover: {
@@ -129,6 +142,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(232,33,63,0.055)',
     borderRadius: 10,
   },
+  badge: {
+    position: 'absolute',
+    top: 7,
+    left: 7,
+    backgroundColor: 'rgba(7,7,14,0.88)',
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  badgeHover: {
+    backgroundColor: 'rgba(232,33,63,0.88)',
+    transform: [{ scale: 1.05 }],
+  },
+  badgeText: {
+    color: '#F0EEE8',
+    fontSize: 7,
+    lineHeight: 9,
+    fontWeight: '900',
+  },
+  badgeTextHover: {
+    color: '#FFFFFF',
+  },
   statusBadge: {
     position: 'absolute',
     top: 7,
@@ -137,7 +172,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 4,
-    maxWidth: '55%',
+    maxWidth: '48%',
   },
   statusBadgeHover: {
     backgroundColor: 'rgba(232,33,63,0.18)',
@@ -146,8 +181,8 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: '#BBA8FF',
-    fontSize: 8,
-    lineHeight: 10,
+    fontSize: 7,
+    lineHeight: 9,
     fontWeight: '800',
   },
   statusTextHover: {
@@ -168,15 +203,18 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     color: colors.gold,
-    fontSize: 9,
-    lineHeight: 11,
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '900',
+  },
+  ratingTextHover: {
     fontWeight: '900',
   },
   title: {
     width: '100%',
     color: colors.text,
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 10,
+    lineHeight: 13,
     fontWeight: '900',
     marginTop: 1,
   },
@@ -186,8 +224,8 @@ const styles = StyleSheet.create({
   meta: {
     width: '100%',
     color: colors.muted,
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 7.5,
+    lineHeight: 10,
     marginTop: 2,
   },
   metaHover: {

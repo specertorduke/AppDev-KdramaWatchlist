@@ -15,6 +15,12 @@ export const colors = {
   white: '#FFFFFF',
   black: '#000000',
   danger: '#EF4444',
+  border: 'rgba(255,255,255,0.08)',
+  surface: '#11111B',
+  surfaceAlt: '#151521',
+  primary: '#E8213F',
+  primaryDark: '#C8102E',
+  textMuted: '#8D8B98',
 };
 
 export const spacing = {

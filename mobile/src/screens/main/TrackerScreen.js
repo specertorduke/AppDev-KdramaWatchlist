@@ -9,31 +9,58 @@ import {
   RefreshControl,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { trackerService } from '../../services/api';
 
-const STATUS_TABS = [
-  { key: 'all', label: 'All' },
-  { key: 'watching', label: 'Watching' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'plan_to_watch', label: 'Plan to Watch' },
-  { key: 'dropped', label: 'Dropped' },
+const STATUS_OPTIONS = [
+  'Watching',
+  'Completed',
+  'Plan to Watch',
+  'On Hold',
+  'Dropped',
 ];
 
+const STATUS_COLORS = {
+  Watching: '#60A5FA',
+  Completed: '#10B981',
+  'Plan to Watch': '#FFD76A',
+  'On Hold': '#F59E0B',
+  Dropped: '#EF4444',
+};
+
+const getStatusColor = (status) => {
+  if (!status) return colors.muted;
+  const formatted = status.replace(/_/g, ' ').toLowerCase();
+  if (formatted.includes('watch') && !formatted.includes('plan')) return STATUS_COLORS.Watching;
+  if (formatted.includes('complete')) return STATUS_COLORS.Completed;
+  if (formatted.includes('plan')) return STATUS_COLORS['Plan to Watch'];
+  if (formatted.includes('hold')) return STATUS_COLORS['On Hold'];
+  if (formatted.includes('drop')) return STATUS_COLORS.Dropped;
+  return colors.muted;
+};
+
 export default function TrackerScreen({ navigation }) {
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('All');
   const [items, setItems] = useState([]);
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [incrementingId, setIncrementingId] = useState(null);
+
+  // Status Modal State
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('Plan to Watch');
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const fetchWatchlist = useCallback(async () => {
     try {
       const params = {};
-      if (activeTab !== 'all') params.status = activeTab;
+      if (activeTab !== 'All') {
+        params.status = activeTab.toLowerCase().replace(/ /g, '_');
+      }
 
       const res = await trackerService.getWatchlist(params);
       setItems(res.data.data || []);
@@ -58,189 +85,335 @@ export default function TrackerScreen({ navigation }) {
     fetchWatchlist();
   };
 
-  const handleIncrement = async (tmdbId) => {
-    setIncrementingId(tmdbId);
+  const handleOpenStatusEditor = (item) => {
+    setEditingItem(item);
+    const rawStatus = item.status || 'plan_to_watch';
+    const displayStatus = rawStatus.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    setSelectedStatus(STATUS_OPTIONS.includes(displayStatus) ? displayStatus : 'Plan to Watch');
+    setStatusModalVisible(true);
+  };
+
+  const handleCloseStatusEditor = () => {
+    setStatusModalVisible(false);
+    setEditingItem(null);
+  };
+
+  const handleSaveStatus = async () => {
+    if (!editingItem) return;
+    setSavingStatus(true);
     try {
-      const res = await trackerService.incrementEpisode(tmdbId);
-      // Update item in local list
+      const apiStatus = selectedStatus.toLowerCase().replace(/ /g, '_');
+      await trackerService.updateProgress(editingItem.tmdb_id, {
+        status: apiStatus,
+      });
       setItems((prev) =>
-        prev.map((item) =>
-          item.tmdb_id === tmdbId ? { ...item, ...res.data.data } : item
+        prev.map((i) =>
+          i.tmdb_id === editingItem.tmdb_id ? { ...i, status: apiStatus } : i
         )
       );
+      handleCloseStatusEditor();
+      fetchWatchlist();
     } catch (err) {
-      const msg = err.response?.data?.message || 'Could not increment episode.';
-      Alert.alert('Notice', msg);
+      Alert.alert('Error', 'Failed to update status.');
     } finally {
-      setIncrementingId(null);
+      setSavingStatus(false);
     }
   };
 
-  const handleDelete = (tmdbId, title) => {
-    Alert.alert('Remove Drama', `Remove "${title}" from your watchlist?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await trackerService.deleteDrama(tmdbId);
-            setItems((prev) => prev.filter((item) => item.tmdb_id !== tmdbId));
-          } catch (err) {
-            Alert.alert('Error', 'Failed to remove drama.');
-          }
-        },
-      },
-    ]);
-  };
+  const tabs = [
+    ['All', counts.all ?? items.length],
+    ['Watching', counts.watching ?? 0],
+    ['Completed', counts.completed ?? 0],
+    ['Plan to Watch', counts.plan_to_watch ?? 0],
+    ['On Hold', counts.on_hold ?? 0],
+    ['Dropped', counts.dropped ?? 0],
+  ];
 
   return (
     <View style={styles.screen}>
-      {/* Top Header */}
-      <View style={styles.topBar}>
-        <Text style={styles.headerTitle}>My Watchlist</Text>
-      </View>
-
-      {/* Tabs */}
+      {/* Tracker Scroll View */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabScroll}
-        contentContainerStyle={styles.tabList}
-      >
-        {STATUS_TABS.map((tab) => {
-          const isSelected = activeTab === tab.key;
-          const count = counts[tab.key] ?? null;
-          return (
-            <Pressable
-              key={tab.key}
-              style={[styles.tabButton, isSelected && styles.tabButtonActive]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text style={[styles.tabText, isSelected && styles.tabTextActive]}>
-                {tab.label} {count !== null ? `(${count})` : ''}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {/* Watchlist Items */}
-      <ScrollView
-        style={styles.screen}
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.red} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.redBright}
+          />
         }
       >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Pressable
+              style={({ pressed, hovered }) => [
+                styles.backButton,
+                hovered && styles.backButtonHover,
+                pressed && styles.backButtonPressed,
+              ]}
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Go back to Home"
+            >
+              <Ionicons name="arrow-back" size={18} color={colors.text} />
+            </Pressable>
+
+            <View style={styles.headerText}>
+              <Text style={styles.title}>My Tracker</Text>
+              <Text style={styles.subtitle}>Keep track of what you're watching.</Text>
+            </View>
+          </View>
+
+          {/* Add Drama Button */}
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.addButton,
+              hovered && styles.addButtonHover,
+              pressed && styles.addButtonPressed,
+            ]}
+            onPress={() => navigation.navigate('AddDrama')}
+            accessibilityRole="button"
+            accessibilityLabel="Add drama"
+            hitSlop={5}
+          >
+            <Ionicons name="add" size={15} color="#fff" />
+            <Text style={styles.addText}>Add Drama</Text>
+          </Pressable>
+        </View>
+
+        {/* Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabs}
+          keyboardShouldPersistTaps="handled"
+        >
+          {tabs.map(([name, count]) => {
+            const isActive = activeTab === name;
+            return (
+              <Pressable
+                key={name}
+                onPress={() => setActiveTab(name)}
+                style={[styles.tab, isActive && styles.tabActive]}
+              >
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {name} ({count})
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {/* Empty State */}
+        {!loading && items.length === 0 && (
+          <View style={styles.empty}>
+            <Ionicons name="film-outline" size={30} color={colors.muted} />
+            <Text style={styles.emptyTitle}>Nothing here yet</Text>
+            <Text style={styles.emptyText}>Add a drama to start building your list.</Text>
+          </View>
+        )}
+
+        {/* Drama List */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.red} />
-          </View>
-        ) : items.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="bookmark-outline" size={48} color={colors.muted} />
-            <Text style={styles.emptyTitle}>Your watchlist is empty</Text>
-            <Text style={styles.emptySubtitle}>Explore and add dramas to start tracking</Text>
-            <Pressable
-              style={styles.exploreBtn}
-              onPress={() => navigation.navigate('Discover')}
-            >
-              <Text style={styles.exploreBtnText}>Browse Dramas</Text>
-            </Pressable>
+            <ActivityIndicator size="large" color={colors.redBright} />
           </View>
         ) : (
-          <View style={styles.cardList}>
+          <View style={styles.list}>
             {items.map((item) => {
               const drama = item.drama || {};
-              const isIncrementing = incrementingId === item.tmdb_id;
-              const isMaxed =
-                item.total_episodes > 0 && item.current_episode >= item.total_episodes;
+              const episodeTotal = Number(item.total_episodes) || Number(drama.total_episodes) || 0;
+              const watched = Number(item.current_episode) || 0;
+              const progress = episodeTotal > 0 ? Math.round((watched / episodeTotal) * 100) : 0;
+              const displayStatus = String(item.status || 'plan_to_watch')
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (c) => c.toUpperCase());
+              const statusColor = getStatusColor(displayStatus);
+              const posterSource = drama.poster_url || drama.image || drama.poster || null;
 
               return (
-                <Pressable
-                  key={item.id || item.tmdb_id}
-                  style={styles.trackerCard}
-                  onPress={() =>
-                    navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })
-                  }
-                >
-                  <Image
-                    source={{
-                      uri:
-                        drama.poster_url ||
-                        'https://via.placeholder.com/300x450',
-                    }}
-                    style={styles.poster}
-                  />
-
-                  <View style={styles.cardContent}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.dramaTitle} numberOfLines={1}>
-                        {drama.title || 'Untitled'}
-                      </Text>
-                      <Pressable
-                        onPress={() => handleDelete(item.tmdb_id, drama.title)}
-                        hitSlop={8}
-                      >
-                        <Ionicons name="trash-outline" size={16} color={colors.muted} />
-                      </Pressable>
-                    </View>
-
-                    {/* Progress Info */}
-                    <Text style={styles.progressText}>
-                      Episode {item.current_episode} / {item.total_episodes || '?'}
-                    </Text>
-
-                    {/* Progress Bar */}
-                    <View style={styles.progressBg}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          {
-                            width: `${Math.min(
-                              100,
-                              item.progress_percentage ||
-                                (item.current_episode / (item.total_episodes || 1)) * 100
-                            )}%`,
-                          },
-                        ]}
+                <View key={item.id || item.tmdb_id} style={styles.card}>
+                  <Pressable
+                    style={styles.cardPressable}
+                    onPress={() =>
+                      navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })
+                    }
+                  >
+                    {posterSource ? (
+                      <Image
+                        source={{ uri: posterSource }}
+                        style={styles.poster}
+                        resizeMode="cover"
                       />
-                    </View>
+                    ) : (
+                      <View style={styles.posterPlaceholder}>
+                        <Ionicons name="film-outline" size={18} color={colors.muted} />
+                      </View>
+                    )}
 
-                    {/* Footer / Quick +1 Action */}
-                    <View style={styles.cardFooter}>
-                      <View style={styles.statusBadge}>
-                        <Text style={styles.statusBadgeText}>
-                          {String(item.status).replace(/_/g, ' ').toUpperCase()}
-                        </Text>
+                    <View style={styles.cardMain}>
+                      <Text style={styles.dramaTitle} numberOfLines={1}>
+                        {drama.title || 'Untitled Drama'}
+                      </Text>
+
+                      <Text style={styles.genre} numberOfLines={1}>
+                        {Array.isArray(drama.genres)
+                          ? drama.genres.join(', ')
+                          : drama.genre || 'Drama'}
+                      </Text>
+
+                      <Text style={styles.episodes}>
+                        {watched}/{episodeTotal || 0} eps
+                      </Text>
+
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${progress}%`, backgroundColor: statusColor },
+                          ]}
+                        />
                       </View>
 
-                      {!isMaxed && (
-                        <Pressable
+                      <View style={styles.bottomRow}>
+                        <Text
                           style={[
-                            styles.incrementButton,
-                            isIncrementing && styles.incrementButtonDisabled,
+                            styles.rating,
+                            { color: Number(item.rating) > 0 ? '#FBBF24' : statusColor },
                           ]}
-                          onPress={() => handleIncrement(item.tmdb_id)}
-                          disabled={isIncrementing}
                         >
-                          {isIncrementing ? (
-                            <ActivityIndicator size="small" color={colors.white} />
-                          ) : (
-                            <Text style={styles.incrementButtonText}>+1 Ep</Text>
-                          )}
-                        </Pressable>
-                      )}
+                          ★ {Number(item.rating || drama.rating || 0).toFixed(1)}
+                        </Text>
+                        {item.review_notes ? (
+                          <Text style={styles.comment} numberOfLines={1}>
+                            {item.review_notes}
+                          </Text>
+                        ) : null}
+                      </View>
                     </View>
-                  </View>
-                </Pressable>
+                  </Pressable>
+
+                  {/* Status Dropdown Button */}
+                  <Pressable
+                    onPress={() => handleOpenStatusEditor(item)}
+                    style={[
+                      styles.status,
+                      { borderColor: statusColor, backgroundColor: `${statusColor}18` },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.statusText, { color: statusColor }]}
+                      numberOfLines={1}
+                    >
+                      {displayStatus}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={9}
+                      color={statusColor}
+                      style={styles.statusChevron}
+                    />
+                  </Pressable>
+
+                  {/* Percent */}
+                  <Text style={[styles.percent, { color: statusColor }]}>
+                    {progress}%
+                  </Text>
+                </View>
               );
             })}
           </View>
         )}
+
+        <View style={styles.bottomSpace} />
       </ScrollView>
+
+      {/* Status Modal */}
+      <Modal
+        visible={statusModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseStatusEditor}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderText}>
+                <Text style={styles.modalTitle}>Update Status</Text>
+                <Text style={styles.modalSubtitle} numberOfLines={1}>
+                  {editingItem?.drama?.title || 'Drama'}
+                </Text>
+              </View>
+              <Pressable onPress={handleCloseStatusEditor} style={styles.closeButton}>
+                <Ionicons name="close" size={17} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <View style={styles.statusOptions}>
+              {STATUS_OPTIONS.map((status) => {
+                const isSelected = selectedStatus === status;
+                const optionColor = getStatusColor(status);
+
+                return (
+                  <Pressable
+                    key={status}
+                    onPress={() => setSelectedStatus(status)}
+                    style={[
+                      styles.statusOption,
+                      isSelected && {
+                        borderColor: optionColor,
+                        backgroundColor: `${optionColor}18`,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.statusDot, { backgroundColor: optionColor }]} />
+                    <Text
+                      style={[
+                        styles.statusOptionText,
+                        isSelected && { color: colors.text, fontWeight: '800' },
+                      ]}
+                    >
+                      {status}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color={optionColor}
+                        style={styles.statusCheck}
+                      />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.modalActions}>
+              <Pressable onPress={handleCloseStatusEditor} style={styles.cancelModalButton}>
+                <Text style={styles.cancelModalText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveStatus}
+                style={styles.saveModalButton}
+                disabled={savingStatus}
+              >
+                {savingStatus ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                    <Text style={styles.saveModalText}>Save Status</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -250,164 +423,338 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  topBar: {
-    paddingHorizontal: 16,
-    paddingTop: 48,
-    paddingBottom: 12,
-    backgroundColor: colors.nav,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  tabScroll: {
-    backgroundColor: colors.nav,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    maxHeight: 50,
-  },
-  tabList: {
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    gap: 8,
-  },
-  tabButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  tabButtonActive: {
-    backgroundColor: 'rgba(232,33,63,0.15)',
-    borderBottomWidth: 2,
-    borderBottomColor: colors.redBright,
-  },
-  tabText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.muted,
-  },
-  tabTextActive: {
-    color: colors.redBright,
+  scroll: {
+    flex: 1,
+    backgroundColor: colors.bg,
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 50,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    minHeight: 40,
+  },
+  headerLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 8,
+  },
+  headerText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  backButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  backButtonHover: {
+    backgroundColor: '#211F2D',
+    borderColor: '#5B526F',
+    transform: [{ scale: 1.04 }],
+  },
+  backButtonPressed: {
+    opacity: 0.7,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 24,
+  },
+  subtitle: {
+    color: colors.muted,
+    fontSize: 8.5,
+    marginTop: 2,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.redBright,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 34,
+    borderRadius: 999,
+  },
+  addButtonHover: {
+    backgroundColor: '#E01B43',
+    transform: [{ scale: 1.035 }],
+  },
+  addButtonPressed: {
+    opacity: 0.7,
+  },
+  addText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+    marginLeft: 4,
+  },
+  tabs: {
+    gap: 7,
+    paddingBottom: 14,
+    paddingRight: 10,
+  },
+  tab: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
+  },
+  tabActive: {
+    backgroundColor: 'rgba(200,16,46,0.15)',
+    borderColor: colors.red,
+  },
+  tabText: {
+    color: '#8F8B97',
+    fontSize: 8.5,
+    fontWeight: '600',
+  },
+  tabTextActive: {
+    color: '#fff',
+    fontWeight: '800',
+  },
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+  },
+  emptyTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 10,
+  },
+  emptyText: {
+    color: colors.muted,
+    fontSize: 10,
+    marginTop: 4,
+  },
+  list: {
+    gap: 10,
+  },
+  card: {
+    minHeight: 97,
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 13,
+    padding: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  cardPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+    minHeight: 75,
+    paddingRight: 4,
+  },
+  poster: {
+    width: 42,
+    height: 60,
+    borderRadius: 7,
+    backgroundColor: colors.bg,
+  },
+  posterPlaceholder: {
+    width: 42,
+    height: 60,
+    borderRadius: 7,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardMain: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 8,
+  },
+  dramaTitle: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  genre: {
+    color: colors.muted,
+    fontSize: 7.5,
+    marginTop: 2,
+  },
+  episodes: {
+    color: '#777582',
+    fontSize: 7.5,
+    marginTop: 7,
+    marginBottom: 4,
+  },
+  progressTrack: {
+    height: 4,
+    width: '100%',
+    backgroundColor: '#292833',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginTop: 5,
+  },
+  rating: {
+    fontSize: 7.5,
+    fontWeight: '800',
+  },
+  comment: {
+    color: '#777580',
+    fontSize: 7.5,
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  status: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 7.5,
+    fontWeight: '800',
+  },
+  statusChevron: {
+    marginLeft: 3,
+  },
+  percent: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    fontSize: 8.5,
+    fontWeight: '800',
   },
   loadingContainer: {
     paddingVertical: 60,
     alignItems: 'center',
   },
-  emptyContainer: {
-    paddingVertical: 60,
+  bottomSpace: {
+    height: 40,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    padding: 20,
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: 8,
-  },
-  emptySubtitle: {
-    fontSize: 12,
-    color: colors.muted,
-  },
-  exploreBtn: {
-    marginTop: 16,
-    backgroundColor: colors.redBright,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  exploreBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.white,
-  },
-  cardList: {
-    gap: 12,
-  },
-  trackerCard: {
-    flexDirection: 'row',
+  modalCard: {
+    width: '100%',
+    maxWidth: 340,
     backgroundColor: colors.panel,
-    borderRadius: 12,
-    overflow: 'hidden',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 10,
-    gap: 12,
+    padding: 18,
   },
-  poster: {
-    width: 65,
-    height: 90,
-    borderRadius: 8,
-  },
-  cardContent: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  cardHeader: {
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  dramaTitle: {
-    fontSize: 14,
-    fontWeight: '900',
+  modalHeaderText: {
+    flex: 1,
+  },
+  modalTitle: {
     color: colors.text,
-    flex: 1,
-    marginRight: 8,
+    fontSize: 16,
+    fontWeight: '900',
   },
-  progressText: {
-    fontSize: 11,
+  modalSubtitle: {
     color: colors.muted,
+    fontSize: 11,
     marginTop: 2,
   },
-  progressBg: {
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 2,
-    marginVertical: 6,
-    overflow: 'hidden',
+  closeButton: {
+    padding: 4,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.redBright,
+  statusOptions: {
+    gap: 8,
+    marginBottom: 20,
   },
-  cardFooter: {
+  statusOption: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 2,
-  },
-  statusBadge: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  statusBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: colors.gold,
-  },
-  incrementButton: {
-    backgroundColor: colors.redBright,
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 6,
-    minWidth: 54,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.panel2,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  statusOptionText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  statusCheck: {
+    marginLeft: 8,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  cancelModalButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  cancelModalText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  saveModalButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.redBright,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
   },
-  incrementButtonDisabled: {
-    opacity: 0.6,
-  },
-  incrementButtonText: {
+  saveModalText: {
+    color: '#fff',
     fontSize: 11,
     fontWeight: '800',
-    color: colors.white,
   },
 });
