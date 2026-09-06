@@ -22,10 +22,19 @@ class DiscoverController extends Controller
      */
     public function index(DiscoverRequest $request): JsonResponse
     {
-        $result = $this->discoverService->discover(
-            $request->validated(),
-            $request->user()
-        );
+        if ($request->filled('query') || $request->filled('search')) {
+            $query = (string) ($request->input('query') ?: $request->input('search'));
+            $result = $this->discoverService->search(
+                $query,
+                (int) $request->input('page', 1),
+                $request->user()
+            );
+        } else {
+            $result = $this->discoverService->discover(
+                $request->validated(),
+                $request->user()
+            );
+        }
 
         return response()->json([
             'data'       => DramaCardResource::collection($result['data']),
@@ -50,8 +59,10 @@ class DiscoverController extends Controller
      */
     public function search(SearchRequest $request): JsonResponse
     {
+        $query = (string) ($request->input('query') ?: $request->input('search'));
+
         $result = $this->discoverService->search(
-            $request->validated('query'),
+            $query,
             (int) $request->input('page', 1),
             $request->user()
         );

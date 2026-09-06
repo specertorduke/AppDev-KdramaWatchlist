@@ -4,8 +4,11 @@ namespace App\Modules\Discover\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class SearchRequest extends FormRequest
+class AskChatbotRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
         return true;
@@ -19,9 +22,7 @@ class SearchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'query'  => ['required_without:search', 'nullable', 'string', 'min:1', 'max:255'],
-            'search' => ['required_without:query', 'nullable', 'string', 'min:1', 'max:255'],
-            'page'   => ['nullable', 'integer', 'min:1', 'max:500'],
+            'message' => ['required', 'string', 'min:2', 'max:500'],
         ];
     }
 }

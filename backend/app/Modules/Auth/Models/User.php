@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'terms_privacy_accepted', 'terms_privacy_accepted_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -28,11 +28,21 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'terms_privacy_accepted' => 'boolean',
+            'terms_privacy_accepted_at' => 'datetime',
         ];
     }
 
     protected static function newFactory(): UserFactory
     {
         return UserFactory::new();
+    }
+
+    /**
+     * Get the trackers for the user.
+     */
+    public function trackers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Modules\Tracker\Models\Tracker::class);
     }
 }

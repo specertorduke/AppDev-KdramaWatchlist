@@ -4,10 +4,12 @@ namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Requests\ChangePasswordRequest;
+use App\Modules\Auth\Requests\DeleteAccountRequest;
 use App\Modules\Auth\Requests\ForgotPasswordRequest;
 use App\Modules\Auth\Requests\LoginRequest;
 use App\Modules\Auth\Requests\RegisterRequest;
 use App\Modules\Auth\Requests\ResetPasswordRequest;
+use App\Modules\Auth\Requests\UpdatePasswordRequest;
 use App\Modules\Auth\Resources\UserResource;
 use App\Modules\Auth\Services\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +46,28 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json(new UserResource($request->user()));
+    }
+
+    public function profile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $stats = $this->authService->getUserStats($user);
+
+        return response()->json([
+            'user'  => new UserResource($user),
+            'stats' => $stats,
+        ]);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $stats = $this->authService->getUserStats($user);
+
+        return response()->json([
+            'user'  => new UserResource($user),
+            'stats' => $stats,
+        ]);
     }
 
     public function logout(Request $request): JsonResponse
@@ -90,6 +114,24 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Password changed successfully',
+        ]);
+    }
+
+    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
+    {
+        $this->authService->updatePassword($request->user(), $request->password);
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
+        ]);
+    }
+
+    public function deleteAccount(DeleteAccountRequest $request): JsonResponse
+    {
+        $this->authService->deleteAccount($request->user());
+
+        return response()->json([
+            'message' => 'Account deleted successfully.',
         ]);
     }
 }

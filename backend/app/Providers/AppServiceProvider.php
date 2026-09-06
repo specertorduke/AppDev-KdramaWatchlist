@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,8 +31,13 @@ class AppServiceProvider extends ServiceProvider
                 : Password::min(8);
         });
 
+        // Configure api rate limiter
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
         // List of all active modules
-        $modules = ['Auth', 'Discover', 'Watchlist'];
+        $modules = ['Auth', 'Discover', 'Tracker'];
 
         // Automatically register api.php from each module
         foreach ($modules as $module) {

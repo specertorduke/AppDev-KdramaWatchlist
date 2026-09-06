@@ -3,6 +3,7 @@
 namespace App\Modules\Auth\Services;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Tracker\Models\Tracker;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -20,9 +21,11 @@ class AuthService
     public function register(array $data): array
     {
         $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => $data['password'],
+            'name'                       => $data['name'],
+            'email'                      => $data['email'],
+            'password'                   => $data['password'],
+            'terms_privacy_accepted'    => true,
+            'terms_privacy_accepted_at' => now(),
         ]);
 
         $deviceName = $data['device_name'] ?? 'auth_token';
@@ -140,5 +143,62 @@ class AuthService
         $user->update([
             'password' => $newPassword,
         ]);
+    }
+
+    /**
+     * Update the authenticated user's password.
+     */
+    public function updatePassword(User $user, string $newPassword): void
+    {
+        $user->update([
+            'password' => $newPassword,
+        ]);
+    }
+
+    /**
+     * Delete the authenticated user's account and revoke tokens.
+     */
+    public function deleteAccount(User $user): void
+    {
+        $user->tokens()->delete();
+        $user->delete();
+    }
+
+    /**
+     * Get aggregated tracker stats for the authenticated user.
+     *
+     * @return array<string, mixed>
+     */
+    public function getUserStats(User $user): array
+    {
+        $totalDramas = Tracker::where('user_id', $user->id)->count();
+        $episodesWatched = (int) Tracker::where('user_id', $user->id)->sum('current_episode');
+        $hoursWatched = round((float) $episodesWatched, 1);
+
+        $avgRating = Tracker::where('user_id', $user->id)
+            ->whereNotNull('rating')
+            ->avg('rating');
+
+        $averageRating = $avgRating !== null ? round((float) $avgRating, 1) : null;
+
+        $statuses = ['watching', 'completed', 'plan_to_watch', 'on_hold', 'dropped'];
+        $statusCounts = Tracker::where('user_id', $user->id)
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        $statusBreakdown = [];
+        foreach ($statuses as $status) {
+            $statusBreakdown[$status] = (int) ($statusCounts[$status] ?? 0);
+        }
+
+        return [
+            'total_dramas'     => $totalDramas,
+            'episodes_watched' => $episodesWatched,
+            'hours_watched'    => $hoursWatched,
+            'average_rating'   => $averageRating,
+            'status_breakdown' => $statusBreakdown,
+        ];
     }
 }

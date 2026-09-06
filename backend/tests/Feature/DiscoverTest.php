@@ -116,6 +116,7 @@ class DiscoverTest extends TestCase
                         'rating',
                         'rank',
                         'genres',
+                        'total_episodes',
                         'watch_status',
                     ],
                 ],
@@ -325,6 +326,7 @@ class DiscoverTest extends TestCase
                         'rating',
                         'rank',
                         'genres',
+                        'total_episodes',
                         'watch_status',
                     ],
                 ],
@@ -435,6 +437,80 @@ class DiscoverTest extends TestCase
         $this->assertEquals('The Glory', $response->json('data.0.title'));
     }
 
+    public function test_search_kdramas_with_search_param(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response([
+                'genres' => [
+                    ['id' => 18, 'name' => 'Drama'],
+                ],
+            ], 200),
+            '*/search/tv*' => Http::response([
+                'page' => 1,
+                'total_pages' => 1,
+                'results' => [
+                    [
+                        'id' => 12345,
+                        'name' => 'Queen of Tears',
+                        'poster_path' => '/poster1.jpg',
+                        'first_air_date' => '2024-03-09',
+                        'vote_average' => 8.8,
+                        'genre_ids' => [18],
+                        'origin_country' => ['KR'],
+                        'original_language' => 'ko',
+                        'popularity' => 150.5,
+                    ],
+                ],
+            ], 200),
+            '*/search/person*' => Http::response(['results' => []], 200),
+            '*/search/keyword*' => Http::response(['results' => []], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/discover/search?search=queen');
+
+        $response->assertStatus(200);
+        $this->assertEquals('Queen of Tears', $response->json('data.0.title'));
+    }
+
+    public function test_discover_index_with_search_param_delegates_to_search(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response([
+                'genres' => [
+                    ['id' => 18, 'name' => 'Drama'],
+                ],
+            ], 200),
+            '*/search/tv*' => Http::response([
+                'page' => 1,
+                'total_pages' => 1,
+                'results' => [
+                    [
+                        'id' => 12345,
+                        'name' => 'Queen of Tears',
+                        'poster_path' => '/poster1.jpg',
+                        'first_air_date' => '2024-03-09',
+                        'vote_average' => 8.8,
+                        'genre_ids' => [18],
+                        'origin_country' => ['KR'],
+                        'original_language' => 'ko',
+                        'popularity' => 150.5,
+                    ],
+                ],
+            ], 200),
+            '*/search/person*' => Http::response(['results' => []], 200),
+            '*/search/keyword*' => Http::response(['results' => []], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/discover?search=queen');
+
+        $response->assertStatus(200);
+        $this->assertEquals('Queen of Tears', $response->json('data.0.title'));
+    }
+
     public function test_search_kdramas_requires_query(): void
     {
         Sanctum::actingAs($this->user);
@@ -442,7 +518,7 @@ class DiscoverTest extends TestCase
         $response = $this->getJson('/api/v1/discover/search');
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['query']);
+            ->assertJsonValidationErrors(['query', 'search']);
     }
 
     // ==========================================
