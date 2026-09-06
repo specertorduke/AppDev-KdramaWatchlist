@@ -300,7 +300,10 @@ function DashboardHeader({ activeTab, onOpenAddDrama }) {
 
   return (
     <header className="dashboard-header">
-      <Link className="dashboard-brand" to="/">SarangTV</Link>
+      <Link className="dashboard-brand" to="/dashboard" aria-label="SarangTV home">
+        <img src="/logo.png" alt="SarangTV logo" className="brand-logo-img" />
+        <span>Sarang<span className="brand-tv-accent">TV</span></span>
+      </Link>
       <nav className="dashboard-nav" aria-label="Dashboard navigation">
         <Link className={activeTab === 'home' ? 'active' : ''} to="/dashboard">Home</Link>
         <Link className={activeTab === 'discover' ? 'active' : ''} to="/discover">Discover</Link>
@@ -351,10 +354,14 @@ function StatCard({ stat }) {
   const Icon = statIcons[stat.icon]
   return (
     <article className={`dashboard-stat stat-${stat.tone}`}>
-      <Icon className="stat-icon" size={16} />
-      <strong>{stat.value}</strong>
-      <span>{stat.label}</span>
-      <small>{stat.detail}</small>
+      <div className="dashboard-stat-top">
+        <strong>{stat.value}</strong>
+        <Icon className="stat-icon" size={18} />
+      </div>
+      <div className="dashboard-stat-bottom">
+        <span>{stat.label}</span>
+        <small>{stat.detail}</small>
+      </div>
     </article>
   )
 }
@@ -454,6 +461,7 @@ function CurrentDrama({ onDetailsClick }) {
   return (
     <article className="current-drama">
       <div className="current-drama-image" style={{ backgroundImage: `url(${backdropImg})` }} />
+      <div className="current-drama-overlay" aria-hidden="true" />
       <div className="current-drama-content">
         <div className="watching-label"><i /> Watching progress</div>
         <div className="current-show-row">

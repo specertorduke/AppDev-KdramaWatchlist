@@ -883,59 +883,86 @@
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  gap: 16px;
 }
 
 .dashboard-stat {
   position: relative;
-  min-height: 120px;
-  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 144px;
+  padding: 22px 22px 20px;
   border: 1px solid #20202d;
-  border-radius: 15px;
+  border-radius: 16px;
   background: #11111b;
   overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.dashboard-stat:hover {
+  transform: translateY(-2px);
+  border-color: #312e44;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
 }
 
 .dashboard-stat::after {
   content: '';
   position: absolute;
   inset: auto 0 0;
-  height: 2px;
+  height: 2.5px;
   background: currentColor;
-  opacity: 0.45;
+  opacity: 0.5;
+}
+
+.dashboard-stat-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .dashboard-stat .stat-icon {
-  position: absolute;
-  top: 15px;
-  right: 17px;
   color: currentColor;
-}
-
-.dashboard-stat strong,
-.dashboard-stat span,
-.dashboard-stat small {
-  display: block;
+  opacity: 0.9;
+  flex-shrink: 0;
+  margin-top: 3px;
 }
 
 .dashboard-stat strong {
-  margin-bottom: 2px;
+  display: block;
+  margin: 0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 35px;
+  font-size: 38px;
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.dashboard-stat-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
 }
 
 .dashboard-stat span {
-  color: #d9d6dc;
-  font-size: 13px;
+  display: block;
+  color: #dedbe3;
+  font-size: 13.5px;
   font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
 }
 
 .dashboard-stat small {
-  margin-top: 4px;
+  display: block;
   color: currentColor;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
+  line-height: 1.2;
+  opacity: 0.85;
 }
 
 .stat-purple { color: #9d8ade; }
@@ -945,7 +972,10 @@
 
 .current-drama {
   position: relative;
-  min-height: 249px;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
   border: 1px solid #292632;
   border-radius: 17px;
   overflow: hidden;
@@ -957,19 +987,31 @@
   inset: 0;
   background-position: center;
   background-size: cover;
-  opacity: 0.2;
+  opacity: 0.28;
   filter: saturate(0.65);
+}
+
+.current-drama-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(11, 11, 19, 0.97) 0%, rgba(11, 11, 19, 0.85) 45%, rgba(11, 11, 19, 0.5) 100%),
+    linear-gradient(0deg, rgba(11, 11, 19, 0.98) 0%, rgba(11, 11, 19, 0.3) 45%, rgba(11, 11, 19, 0.7) 100%);
 }
 
 .current-drama-content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 249px;
-  padding: 30px;
-  background: linear-gradient(90deg, rgba(7, 7, 13, 0.94), rgba(7, 7, 13, 0.72));
+  flex: 1;
+  height: 100%;
+  min-height: 100%;
+  padding: 28px 30px;
+  box-sizing: border-box;
 }
 
 .watching-label,
@@ -1382,7 +1424,20 @@
 
   .dashboard-overview {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 16px;
+  }
+
+  .stats-grid {
+    gap: 12px;
+  }
+
+  .dashboard-stat {
+    min-height: 130px;
+    padding: 18px 18px 16px;
+  }
+
+  .dashboard-stat strong {
+    font-size: 32px;
   }
 
   .current-drama-content {
