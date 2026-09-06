@@ -38,6 +38,7 @@ import {
   quickAccess,
 } from '../data/dashboardData.js'
 import EditProfileModal from './EditProfileModal.jsx'
+import Chatbot from './Chatbot.jsx'
 
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
 const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Send }
@@ -1460,7 +1461,7 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
     <main className="dashboard-page">
       <DashboardHeader activeTab={activeTab} onOpenAddDrama={onOpenAddDrama} />
       <div className="dashboard-content dashboard-subpage">{children}</div>
-      <button className="help-button" type="button" aria-label="Help">?</button>
+      <Chatbot />
     </main>
   )
 }
@@ -1593,10 +1594,10 @@ function Dashboard() {
         onClose={() => setIsAddDramaOpen(false)}
       />
 
-      <button className="help-button" type="button" aria-label="Help">?</button>
+      <Chatbot />
     </main>
   )
 }
 
-export { DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, ProfilePage, TrackerPage }
+export { Chatbot, DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, ProfilePage, TrackerPage }
 export default Dashboard

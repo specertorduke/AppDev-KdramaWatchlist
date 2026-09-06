@@ -10,6 +10,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useWatchlist } from '../context/WatchlistContext.jsx'
 import { DashboardHeader, DramaDetailView } from './Dashboard.jsx'
+import Chatbot from './Chatbot.jsx'
 
 export default function StatsHistoryPage() {
   const navigate = useNavigate()
@@ -211,7 +212,7 @@ export default function StatsHistoryPage() {
           </div>
         )}
       </div>
-      <button className="help-button" type="button" aria-label="Help">?</button>
+      <Chatbot />
     </main>
   )
 }
