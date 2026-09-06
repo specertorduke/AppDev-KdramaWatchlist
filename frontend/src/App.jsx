@@ -1,33 +1,10 @@
 import { useState } from 'react'
-import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, FileText, Loader2, ShieldCheck, X } from 'lucide-react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
 import './App.css'
-
-const features = [
-  {
-    icon: '📖',
-    title: 'Your personal diary',
-    description: 'Log what you watched, write a quick note about how it made you feel.',
-  },
-  {
-    icon: '⭐',
-    title: 'Rate & remember',
-    description: 'Give each drama a star rating so you can look back on the ones that wrecked you.',
-  },
-  {
-    icon: '📋',
-    title: 'Simple lists',
-    description: 'Watching, plan to watch, dropped, completed — four clean statuses.',
-  },
-  {
-    icon: '🎬',
-    title: 'Episode tracking',
-    description: "Mark which episode you're on so you never forget where you left off.",
-  },
-]
 
 function LandingPage() {
   const { isAuthenticated } = useAuth()
@@ -37,59 +14,36 @@ function LandingPage() {
       <header className="site-header">
         <Link className="brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
         <nav className="header-nav" aria-label="Account navigation">
-          {isAuthenticated && (
-            <Link className="login-link" to="/dashboard">Dashboard</Link>
+          {isAuthenticated ? (
+            <Link className="button button-primary button-small" to="/dashboard">Dashboard</Link>
+          ) : (
+            <>
+              <Link className="login-link" to="/login">Log In</Link>
+              <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
+            </>
           )}
-          <Link className="login-link" to="/login">Log In</Link>
-          <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
         </nav>
       </header>
 
       <section className="hero-section">
         <div className="hero-content">
           <h1>Your K-drama <em>diary.</em></h1>
-          <p>Track what you watch, rate the ones that hit different, and keep<br className="desktop-break" /> a simple record of your drama life — no fuss.</p>
+          <p>
+            Track what you watch, rate the ones that hit different, and keep
+            <br className="desktop-break" /> a simple record of your drama life — no fuss.
+          </p>
           <div className="hero-actions">
-            <Link className="button button-primary" to="/signup">Sign Up</Link>
-            <Link className="button button-outline" to="/login">Log In</Link>
-            {isAuthenticated && (
-              <Link className="button button-primary" to="/dashboard">Open Dashboard</Link>
+            {isAuthenticated ? (
+              <Link className="button button-primary" to="/dashboard">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link className="button button-primary" to="/signup">Sign Up</Link>
+                <Link className="button button-outline" to="/login">Log In</Link>
+              </>
             )}
           </div>
         </div>
       </section>
-
-      <section className="features-section" aria-labelledby="features-heading">
-        <h2 id="features-heading">Simple by design</h2>
-        <div className="feature-grid">
-          {features.map((feature) => (
-            <article className="feature-card" key={feature.title}>
-              <span className="feature-icon" aria-hidden="true">{feature.icon}</span>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="cta-section">
-        <p>Your dramas, your list, your pace.</p>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link className="button button-primary" to="/signup">
-            Create your watchlist
-          </Link>
-          <Link className="button button-outline" to="/login">
-            Log In
-          </Link>
-        </div>
-      </section>
-
-      <footer className="site-footer">
-        <Link className="brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
-        <p>© 2026 SarangTV — made for K-drama fans.</p>
-      </footer>
-
-      <button className="help-button" type="button" aria-label="Help">?</button>
     </main>
   )
 }
@@ -105,6 +59,8 @@ function AuthPage({ mode }) {
     password: '',
     password_confirmation: '',
   })
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [policyModal, setPolicyModal] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -123,6 +79,16 @@ function AuthPage({ mode }) {
     event.preventDefault()
     setErrorMessage('')
     setFieldErrors({})
+
+    // Client verification: user must agree to Terms and Privacy Policy before proceeding
+    if (isSignup && !termsAccepted) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        terms_privacy_accepted: ['You must agree to the Terms and Data Privacy Policy to create an account.'],
+      }))
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -132,6 +98,7 @@ function AuthPage({ mode }) {
           email: formData.email,
           password: formData.password,
           password_confirmation: formData.password_confirmation,
+          terms_privacy_accepted: true,
         })
       } else {
         await login({
@@ -266,6 +233,55 @@ function AuthPage({ mode }) {
 
           {!isSignup && <Link className="forgot-link" to="/login">Forgot password?</Link>}
 
+          {/* Terms & Data Privacy Policy agreement checkbox (registration only) */}
+          {isSignup && (
+            <div className="auth-terms-group">
+              <label className="auth-terms-label" htmlFor="terms_privacy_accepted">
+                <input
+                  type="checkbox"
+                  name="terms_privacy_accepted"
+                  id="terms_privacy_accepted"
+                  checked={termsAccepted}
+                  onChange={(e) => {
+                    setTermsAccepted(e.target.checked)
+                    if (fieldErrors.terms_privacy_accepted) {
+                      setFieldErrors((prev) => {
+                        const updated = { ...prev }
+                        delete updated.terms_privacy_accepted
+                        return updated
+                      })
+                    }
+                  }}
+                  disabled={isSubmitting}
+                  className="auth-terms-checkbox"
+                />
+                <span className="auth-terms-text">
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    className="auth-terms-link"
+                    onClick={() => setPolicyModal('terms')}
+                  >
+                    Terms
+                  </button>{' '}
+                  and{' '}
+                  <button
+                    type="button"
+                    className="auth-terms-link"
+                    onClick={() => setPolicyModal('privacy')}
+                  >
+                    Data Privacy Policy
+                  </button>
+                </span>
+              </label>
+              {fieldErrors.terms_privacy_accepted && (
+                <span className="field-error-text terms-error-text">
+                  {fieldErrors.terms_privacy_accepted[0]}
+                </span>
+              )}
+            </div>
+          )}
+
           <button className="auth-submit" type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <span className="submit-loading">
@@ -283,6 +299,156 @@ function AuthPage({ mode }) {
           </p>
         </form>
       </div>
+
+      {/* Terms & Data Privacy Policy Modal */}
+      {policyModal && (
+        <div
+          className="policy-modal-overlay"
+          onClick={() => setPolicyModal(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="policy-dialog-title"
+        >
+          <div className="policy-modal-card" onClick={(e) => e.stopPropagation()}>
+            <header className="policy-modal-header">
+              <div className="policy-modal-title-group">
+                {policyModal === 'terms' ? (
+                  <FileText size={20} className="policy-icon" />
+                ) : (
+                  <ShieldCheck size={20} className="policy-icon" />
+                )}
+                <h2 id="policy-dialog-title">
+                  {policyModal === 'terms' ? 'Terms of Service' : 'Data Privacy Policy'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="policy-modal-close"
+                onClick={() => setPolicyModal(null)}
+                aria-label="Close modal"
+              >
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="policy-modal-body">
+              {policyModal === 'terms' ? (
+                <>
+                  <p className="policy-updated">Effective: September 2026</p>
+                  <section className="policy-section">
+                    <h3>1. Agreement to Terms</h3>
+                    <p>
+                      By creating a SarangTV account, you agree to these Terms of Service. SarangTV
+                      is a platform for tracking, discovering, and logging your personal Korean Drama
+                      viewing journey.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>2. User Account and Security</h3>
+                    <p>
+                      You are responsible for safeguarding your login credentials. Each account is
+                      intended for individual use to maintain personalized watchlist data, ratings,
+                      and private notes.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>3. Personal Tracking & Content</h3>
+                    <p>
+                      Your watchlist, watching statuses, ratings, and episode progress are stored
+                      for personal non-commercial entertainment management. Automated scraping or
+                      abuse of SarangTV services is strictly prohibited.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>4. Third-Party Metadata</h3>
+                    <p>
+                      K-Drama metadata, titles, images, and cast information are provided via The
+                      Movie Database (TMDB) API and remain the intellectual property of their respective
+                      creators and broadcasters.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>5. Account Termination</h3>
+                    <p>
+                      You may terminate your account at any time. Upon termination, all personal
+                      watchlist entries and account records can be permanently deleted.
+                    </p>
+                  </section>
+                </>
+              ) : (
+                <>
+                  <p className="policy-updated">Effective: September 2026</p>
+                  <section className="policy-section">
+                    <h3>1. Information We Collect</h3>
+                    <p>
+                      We collect your name, email address, and encrypted password during registration.
+                      As you use the application, we store your personal watchlist items, episode
+                      progress, star ratings, and personal notes.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>2. How We Use Your Information</h3>
+                    <p>
+                      Your information is used solely to provide and synchronize your watchlist across
+                      sessions and devices. We never sell, rent, or monetize your personal data to
+                      third parties or advertisers.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>3. Third-Party Integrations</h3>
+                    <p>
+                      SarangTV queries TMDB for drama catalog information and poster assets. No user
+                      identifying details or personal data are shared with TMDB or external services.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>4. Data Security</h3>
+                    <p>
+                      We use industry-standard encryption, password hashing, and token-based
+                      authentication (Laravel Sanctum) to ensure your account and watchlist data
+                      remain safe and private.
+                    </p>
+                  </section>
+                  <section className="policy-section">
+                    <h3>5. Your Privacy Rights</h3>
+                    <p>
+                      You retain full control over your data. You may review, update, or permanently
+                      delete your account and tracking history at any time.
+                    </p>
+                  </section>
+                </>
+              )}
+            </div>
+
+            <footer className="policy-modal-footer">
+              <button
+                type="button"
+                className="policy-modal-accept-btn"
+                onClick={() => {
+                  setTermsAccepted(true)
+                  if (fieldErrors.terms_privacy_accepted) {
+                    setFieldErrors((prev) => {
+                      const updated = { ...prev }
+                      delete updated.terms_privacy_accepted
+                      return updated
+                    })
+                  }
+                  setPolicyModal(null)
+                }}
+              >
+                Agree & Close
+              </button>
+              <button
+                type="button"
+                className="policy-modal-close-btn"
+                onClick={() => setPolicyModal(null)}
+              >
+                Close
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
 
       <button className="help-button" type="button" aria-label="Help">?</button>
     </main>
