@@ -1,6 +1,7 @@
 import {
   Bookmark,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -21,8 +22,9 @@ import {
   CheckCircle2,
   Heart,
   Loader2,
+  Trash2,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useWatchlist } from '../context/WatchlistContext.jsx'
@@ -575,12 +577,13 @@ function DramaCard({ drama }) {
 }
 
 function DramaDetailView({ drama, onBack }) {
-  const { getWatchlistItem, updateWatchlist, addToWatchlist } = useWatchlist()
+  const { getWatchlistItem, updateWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist()
   const dramaId = drama.tmdb_id || drama.id
   const savedItem = getWatchlistItem(dramaId)
+  const isTracked = Boolean(savedItem) || isInWatchlist(dramaId)
 
-  const [status, setStatus] = useState(savedItem?.status || drama.status || 'Watching')
-  const [myRating, setMyRating] = useState(savedItem?.rating || drama.myRating || 9)
+  const [status, setStatus] = useState(savedItem?.status || (isTracked ? (drama.status || 'Plan to Watch') : null))
+  const [myRating, setMyRating] = useState(savedItem?.rating || drama.myRating || 0)
   const [hoverRating, setHoverRating] = useState(0)
   const [isFavorite, setIsFavorite] = useState(savedItem?.is_favorite || false)
   const [myNotes, setMyNotes] = useState(savedItem?.notes || drama.myNotes || '')
@@ -599,9 +602,14 @@ function DramaDetailView({ drama, onBack }) {
   const totalEpisodes = drama.episodes || episodesList.length || 16
   const progressPct = totalEpisodes > 0 ? Math.round((watchedCount / totalEpisodes) * 100) : 0
 
+  const handleAddToWatchlist = (initialStatus = 'Plan to Watch') => {
+    addToWatchlist(drama, initialStatus)
+    setStatus(initialStatus)
+  }
+
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus)
-    if (savedItem) {
+    if (savedItem || isTracked) {
       updateWatchlist(dramaId, { status: newStatus })
     } else {
       addToWatchlist(drama, newStatus)
@@ -610,10 +618,11 @@ function DramaDetailView({ drama, onBack }) {
 
   const handleRatingChange = (newRating) => {
     setMyRating(newRating)
-    if (savedItem) {
+    if (savedItem || isTracked) {
       updateWatchlist(dramaId, { rating: newRating })
     } else {
-      addToWatchlist({ ...drama, myRating: newRating }, status)
+      addToWatchlist({ ...drama, myRating: newRating }, status || 'Plan to Watch')
+      if (!status) setStatus('Plan to Watch')
     }
   }
 
@@ -621,10 +630,10 @@ function DramaDetailView({ drama, onBack }) {
     setEpisodesList((prev) => {
       const updated = prev.map((ep) => (ep.number === epNum ? { ...ep, watched: !ep.watched } : ep))
       const newWatchedCount = updated.filter((ep) => ep.watched).length
-      const newStatus = newWatchedCount === totalEpisodes ? 'Completed' : (newWatchedCount > 0 ? 'Watching' : status)
+      const newStatus = newWatchedCount === totalEpisodes ? 'Completed' : (newWatchedCount > 0 ? 'Watching' : (status || 'Plan to Watch'))
       setStatus(newStatus)
 
-      if (savedItem) {
+      if (savedItem || isTracked) {
         updateWatchlist(dramaId, {
           watchedCount: newWatchedCount,
           current_episode: newWatchedCount,
@@ -639,10 +648,11 @@ function DramaDetailView({ drama, onBack }) {
 
   const handleSaveNotes = () => {
     setNoteSaved(true)
-    if (savedItem) {
+    if (savedItem || isTracked) {
       updateWatchlist(dramaId, { notes: myNotes })
     } else {
-      addToWatchlist({ ...drama, myNotes }, status)
+      addToWatchlist({ ...drama, myNotes }, status || 'Plan to Watch')
+      if (!status) setStatus('Plan to Watch')
     }
     setTimeout(() => setNoteSaved(false), 2200)
   }
@@ -650,10 +660,11 @@ function DramaDetailView({ drama, onBack }) {
   const handleToggleFavorite = () => {
     const nextFav = !isFavorite
     setIsFavorite(nextFav)
-    if (savedItem) {
+    if (savedItem || isTracked) {
       updateWatchlist(dramaId, { is_favorite: nextFav })
     } else {
-      addToWatchlist({ ...drama, is_favorite: nextFav }, status)
+      addToWatchlist({ ...drama, is_favorite: nextFav }, status || 'Plan to Watch')
+      if (!status) setStatus('Plan to Watch')
     }
   }
 
@@ -673,7 +684,7 @@ function DramaDetailView({ drama, onBack }) {
         <div className="detail-poster-wrapper">
           <img
             className="detail-poster-img"
-            src={drama.poster || drama.image}
+            src={drama.poster || drama.image || savedItem?.poster || savedItem?.image || DEFAULT_POSTER_IMAGE}
             alt={drama.title}
           />
         </div>
@@ -681,11 +692,15 @@ function DramaDetailView({ drama, onBack }) {
         <div className="detail-header-info">
           <div className="detail-badges-row">
             <span className="detail-badge-rank">{drama.rankBadge || `TOP ${drama.rank || 1}`}</span>
-            <span className="detail-badge-status">{status}</span>
+            <span className={`detail-badge-status ${!isTracked ? 'status-catalog' : ''}`}>
+              {isTracked ? (status || 'In Watchlist') : 'Not in Watchlist'}
+            </span>
           </div>
 
           <h1 className="detail-main-title">{drama.title}</h1>
-          {drama.nativeTitle && <p className="detail-native-title">{drama.nativeTitle}</p>}
+          {(drama.nativeTitle || savedItem?.nativeTitle) && (
+            <p className="detail-native-title">{drama.nativeTitle || savedItem?.nativeTitle}</p>
+          )}
 
           <div className="detail-meta-line">
             <span>{drama.year}</span>
@@ -700,18 +715,49 @@ function DramaDetailView({ drama, onBack }) {
           <p className="detail-available-on">Available on {drama.availableOn || drama.network}</p>
 
           <div className="detail-header-actions">
-            <button
-              className="detail-update-status-button"
-              type="button"
-              onClick={() => handleStatusChange(status === 'Watching' ? 'Completed' : 'Watching')}
-            >
-              <Plus size={16} /> {status === 'Watching' ? 'Mark Completed' : 'Set as Watching'}
-            </button>
+            {!isTracked ? (
+              <button
+                className="detail-update-status-button detail-add-button"
+                type="button"
+                onClick={() => handleAddToWatchlist('Plan to Watch')}
+              >
+                <Plus size={16} /> Add to Watchlist
+              </button>
+            ) : (
+              <>
+                <button
+                  className="detail-update-status-button"
+                  type="button"
+                  onClick={() => handleStatusChange(status === 'Completed' ? 'Watching' : 'Completed')}
+                >
+                  {status === 'Completed' ? (
+                    <>
+                      <Play size={15} /> Set as Watching
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} /> Mark Completed
+                    </>
+                  )}
+                </button>
+                <button
+                  className="detail-remove-button"
+                  type="button"
+                  onClick={() => {
+                    removeFromWatchlist(dramaId)
+                    setStatus(null)
+                  }}
+                  title="Remove from Watchlist"
+                >
+                  <Trash2 size={16} /> Remove
+                </button>
+              </>
+            )}
             <button
               className={`detail-heart-button ${isFavorite ? 'active' : ''}`}
               type="button"
               onClick={handleToggleFavorite}
-              aria-label="Add to favorites"
+              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             >
               <Heart size={18} fill={isFavorite ? '#eb5b78' : 'none'} color={isFavorite ? '#eb5b78' : '#8e889b'} />
             </button>
@@ -891,18 +937,60 @@ function DramaDetailView({ drama, onBack }) {
   )
 }
 
+const DISCOVER_GENRES = [
+  { id: null, name: 'All Genres' },
+  { id: 10749, name: 'Romance' },
+  { id: 18, name: 'Drama' },
+  { id: 35, name: 'Comedy' },
+  { id: 10759, name: 'Action' },
+  { id: 9648, name: 'Mystery' },
+  { id: 10765, name: 'Fantasy' },
+  { id: 36, name: 'Historical' },
+  { id: 27, name: 'Horror' },
+  { id: 53, name: 'Thriller' },
+  { id: 80, name: 'Crime' },
+  { id: 10751, name: 'Family' },
+  { id: 16, name: 'Animation' },
+]
+
 function DiscoverPage() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
-  const [selectedGenre, setSelectedGenre] = useState('All')
-  const [genreList, setGenreList] = useState(['All', 'Romance', 'Comedy', 'Drama', 'Action', 'Mystery', 'Fantasy', 'Thriller'])
-  const [genreIdMap, setGenreIdMap] = useState({})
+  const [selectedGenre, setSelectedGenre] = useState('All Genres')
+  const [genreList, setGenreList] = useState(DISCOVER_GENRES)
   const [gridDramas, setGridDramas] = useState([])
   const [top5List, setTop5List] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
 
   const topDrama = top5List[currentSlide] || top5List[0] || null
+
+  // Close dropdown on outside click or Escape key
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleKeyDown)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isDropdownOpen])
 
   useEffect(() => {
     async function loadData() {
@@ -920,10 +1008,11 @@ function DiscoverPage() {
         }
 
         if (genRes?.data && genRes.data.length > 0) {
-          const names = ['All', ...genRes.data.map((g) => g.name)]
-          const idMap = genRes.data.reduce((acc, g) => ({ ...acc, [g.name.toLowerCase()]: g.id }), {})
-          setGenreList(names)
-          setGenreIdMap(idMap)
+          const knownNames = new Set(DISCOVER_GENRES.map((g) => g.name.toLowerCase()))
+          const extra = genRes.data
+            .filter((g) => !knownNames.has(g.name.toLowerCase()))
+            .map((g) => ({ id: g.id, name: g.name }))
+          setGenreList([...DISCOVER_GENRES, ...extra])
         }
       } catch {
         // API offline
@@ -945,12 +1034,12 @@ function DiscoverPage() {
     setCurrentSlide((prev) => (prev + 1) % top5List.length)
   }
 
-  const handleGenreSelect = async (genre) => {
-    setSelectedGenre(genre)
-    const genreId = genre === 'All' ? null : genreIdMap[genre.toLowerCase()]
+  const handleGenreSelect = async (genreObj) => {
+    setSelectedGenre(genreObj.name)
+    setIsDropdownOpen(false)
     setIsLoading(true)
     try {
-      const res = await discoverService.getDiscover({ page: 1, genre_id: genreId })
+      const res = await discoverService.getDiscover({ page: 1, genre_id: genreObj.id || null })
       if (res?.data && res.data.length > 0) {
         const mapped = res.data.map((d, index) => mapDramaCard(d, index))
         setGridDramas(mapped)
@@ -1029,18 +1118,62 @@ function DiscoverPage() {
             </section>
           ) : null}
 
-          {/* Genre Filters */}
-          <div className="genre-list" role="tablist">
-            {genreList.map((genre) => (
+          {/* Clean Genre Dropdown Filter */}
+          <div className="discover-filter-bar">
+            <div className="genre-dropdown-container" ref={dropdownRef}>
+              <span className="genre-filter-label" id="genre-filter-label">Genre:</span>
+              <div className="genre-dropdown">
+                <button
+                  id="genre-dropdown-trigger"
+                  className={`genre-dropdown-trigger ${isDropdownOpen ? 'open' : ''} ${selectedGenre !== 'All Genres' ? 'active-filter' : ''}`}
+                  type="button"
+                  onClick={() => setIsDropdownOpen((prev) => !prev)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isDropdownOpen}
+                  aria-labelledby="genre-filter-label genre-dropdown-trigger"
+                >
+                  <span className="genre-dropdown-text">{selectedGenre}</span>
+                  <ChevronDown
+                    size={15}
+                    className={`genre-chevron-icon ${isDropdownOpen ? 'rotate' : ''}`}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="genre-dropdown-menu" role="listbox" aria-labelledby="genre-filter-label">
+                    {genreList.map((g) => {
+                      const isSelected = selectedGenre === g.name
+                      return (
+                        <button
+                          key={g.name}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          className={`genre-dropdown-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleGenreSelect(g)}
+                        >
+                          <span>{g.name}</span>
+                          {isSelected && <Check size={14} className="genre-item-check" aria-hidden="true" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {selectedGenre !== 'All Genres' && (
               <button
-                className={selectedGenre === genre ? 'selected' : ''}
                 type="button"
-                key={genre}
-                onClick={() => handleGenreSelect(genre)}
+                className="genre-clear-btn"
+                onClick={() => handleGenreSelect({ id: null, name: 'All Genres' })}
+                aria-label="Reset genre filter to All Genres"
               >
-                {genre}
+                <X size={13} aria-hidden="true" />
+                Reset to All
               </button>
-            ))}
+            )}
           </div>
 
           {/* Discover Grid */}
@@ -1067,7 +1200,15 @@ function DiscoverPage() {
               <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
                 <Film size={36} />
                 <h3>No K-Dramas available</h3>
-                <p>Try selecting another genre or refresh the page.</p>
+                <p>No dramas found for "{selectedGenre}". Try selecting another genre.</p>
+                <button
+                  type="button"
+                  className="genre-clear-btn"
+                  onClick={() => handleGenreSelect({ id: null, name: 'All Genres' })}
+                  style={{ marginTop: '12px', padding: '8px 16px', fontSize: '13px' }}
+                >
+                  Show All Genres
+                </button>
               </div>
             )}
           </section>
@@ -1114,7 +1255,7 @@ const FILTER_TO_SLUG = {
 
 function TrackerPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { watchlist, stats } = useWatchlist()
+  const { watchlist, stats, updateWatchlist } = useWatchlist()
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [selectedDrama, setSelectedDrama] = useState(null)
 
@@ -1142,9 +1283,54 @@ function TrackerPage() {
     }
   }
 
-  const handleDramaClick = (drama) => {
-    setSelectedDrama(mapDramaDetail(drama))
+  const handleDramaClick = async (drama) => {
+    const tmdbId = drama.tmdb_id || drama.id
+
+    // Immediately render the detail view with the tracked item data and correct poster
+    const initialDetail = mapDramaDetail(drama)
+    setSelectedDrama(initialDetail)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    // If we have a TMDB ID, fetch full metadata (official TMDB HD poster, backdrop, synopsis, native title, cast)
+    if (tmdbId) {
+      try {
+        const res = await discoverService.getDramaDetails(tmdbId)
+        if (res?.data) {
+          const fullDetail = mapDramaDetail(res.data)
+          setSelectedDrama((prev) => {
+            if (!prev) return prev
+            const currentSelectedId = prev.tmdb_id || prev.id
+            if (String(currentSelectedId) !== String(tmdbId)) return prev
+
+            return {
+              ...fullDetail,
+              status: drama.status || prev.status,
+              myRating: drama.myRating || drama.rating || prev.myRating,
+              myNotes: drama.notes || drama.myNotes || prev.myNotes,
+              is_favorite: drama.is_favorite ?? prev.is_favorite,
+              current_episode: drama.current_episode ?? prev.current_episode,
+              watchedCount: drama.watchedCount ?? prev.watchedCount,
+            }
+          })
+
+          // If the tracked drama was missing its poster or had the fallback, update it in the watchlist
+          if (
+            (!drama.poster || drama.poster === DEFAULT_POSTER_IMAGE) &&
+            res.data.poster_url
+          ) {
+            updateWatchlist(tmdbId, {
+              poster: res.data.poster_url,
+              poster_url: res.data.poster_url,
+              image: res.data.poster_url,
+              backdrop: res.data.backdrop_url || res.data.poster_url,
+              backdrop_url: res.data.backdrop_url || res.data.poster_url,
+            })
+          }
+        }
+      } catch {
+        // Fallback already displayed
+      }
+    }
   }
 
   // Filter tabs with dynamic live counts from user's personal watchlist
@@ -1339,21 +1525,36 @@ function Dashboard() {
   }, [])
 
   const handleDramaClick = async (drama) => {
-    try {
-      const tmdbId = drama.tmdb_id || drama.id
-      if (tmdbId) {
+    const tmdbId = drama.tmdb_id || drama.id
+    const initialDetail = mapDramaDetail(drama)
+    setSelectedDrama(initialDetail)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    if (tmdbId) {
+      try {
         const res = await discoverService.getDramaDetails(tmdbId)
         if (res?.data) {
-          setSelectedDrama(mapDramaDetail(res.data))
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-          return
+          const fullDetail = mapDramaDetail(res.data)
+          setSelectedDrama((prev) => {
+            if (!prev) return prev
+            const currentSelectedId = prev.tmdb_id || prev.id
+            if (String(currentSelectedId) !== String(tmdbId)) return prev
+
+            return {
+              ...fullDetail,
+              status: drama.status || prev.status,
+              myRating: drama.myRating || drama.rating || prev.myRating,
+              myNotes: drama.notes || drama.myNotes || prev.myNotes,
+              is_favorite: drama.is_favorite ?? prev.is_favorite,
+              current_episode: drama.current_episode ?? prev.current_episode,
+              watchedCount: drama.watchedCount ?? prev.watchedCount,
+            }
+          })
         }
+      } catch {
+        // Fallback already displayed
       }
-    } catch {
-      // API detail fetch failed
     }
-    setSelectedDrama(mapDramaDetail(drama))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // Dynamic user-specific stats

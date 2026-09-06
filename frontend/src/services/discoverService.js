@@ -59,10 +59,13 @@ export function mapDramaDetail(item) {
 
   // Generate dynamic episode checklist items matching total episodes count (up to 32)
   const epCount = Math.min(Math.max(totalEps, 1), 32)
+  const isCurrentlyWatching = item.watch_status === 'Watching'
+  const isCompleted = item.watch_status === 'Completed'
+  const watchedCount = isCompleted ? epCount : (isCurrentlyWatching ? 1 : 0)
   const episodeList = Array.from({ length: epCount }, (_, i) => ({
     number: i + 1,
     title: `Episode ${i + 1}`,
-    watched: i === 0, // Default first episode watched
+    watched: i < watchedCount,
   }))
 
   return {
@@ -77,12 +80,12 @@ export function mapDramaDetail(item) {
     episodes: totalEps,
     duration: '60–70 min / ep',
     rating,
-    myRating: 9,
-    status: item.watch_status || 'Watching',
-    progress: Math.round((1 / epCount) * 100),
-    watchedCount: 1,
-    addedDate: 'Aug 2025',
-    remainingTime: `~${Math.max(1, epCount - 1)}h remaining`,
+    myRating: item.myRating || null,
+    status: item.watch_status || null,
+    progress: epCount > 0 ? Math.round((watchedCount / epCount) * 100) : 0,
+    watchedCount,
+    addedDate: 'Recently',
+    remainingTime: `~${Math.max(0, epCount - watchedCount)}h remaining`,
     tone: 'pink',
     image,
     poster,
@@ -92,7 +95,7 @@ export function mapDramaDetail(item) {
     synopsis:
       item.overview ||
       'An acclaimed Korean drama series featuring compelling storytelling, memorable characters, and emotional twists.',
-    myNotes: 'Added from K-Drama catalog!',
+    myNotes: item.notes || '',
     cast: [
       {
         name: 'Lead Actor',
