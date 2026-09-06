@@ -135,13 +135,15 @@ function AuthPage({ mode }) {
 
   return (
     <main className="auth-page">
-      <div className="auth-container">
-        <Link className="back-link" to="/">
-          <ArrowLeft size={14} strokeWidth={1.8} aria-hidden="true" />
-          Back
-        </Link>
-
-        <Link className="auth-brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
+      <div className={`auth-container ${isSignup ? 'signup-container' : 'login-container'}`}>
+        <div className="auth-nav-bar">
+          <Link className="back-link" to="/" aria-label="Back to home">
+            <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
+            Back
+          </Link>
+          <Link className="auth-brand" to="/" aria-label="SarangTV home">SARANGTV</Link>
+          <div className="auth-nav-spacer" aria-hidden="true" />
+        </div>
 
         <div className="auth-heading">
           <h1>{isSignup ? 'Start your watchlist' : 'Welcome back'}</h1>
@@ -155,80 +157,122 @@ function AuthPage({ mode }) {
         )}
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          {isSignup && (
-            <label className="auth-field">
-              <span>Name</span>
-              <input
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="DramaFan2026"
-                disabled={isSubmitting}
-              />
-              {fieldErrors.name && (
-                <span className="field-error-text">{fieldErrors.name[0]}</span>
-              )}
-            </label>
-          )}
-
-          <label className="auth-field">
-            <span>Email</span>
-            <input
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="you@example.com"
-              disabled={isSubmitting}
-            />
-            {fieldErrors.email && (
-              <span className="field-error-text">{fieldErrors.email[0]}</span>
-            )}
-          </label>
-
-          <label className="auth-field">
-            <span>Password</span>
-            <span className="password-input">
-              <input
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={handleChange}
-                placeholder={isSignup ? 'Min. 8 characters' : '••••••••'}
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword((visible) => !visible)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
-            </span>
-            {fieldErrors.password && (
-              <span className="field-error-text">{fieldErrors.password[0]}</span>
-            )}
-          </label>
-
-          {isSignup && (
-            <label className="auth-field">
-              <span>Confirm Password</span>
-              <span className="password-input">
+          {isSignup ? (
+            <div className="auth-fields-grid">
+              <label className="auth-field">
+                <span>Name</span>
                 <input
-                  name="password_confirmation"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password_confirmation}
+                  name="name"
+                  type="text"
+                  value={formData.name}
                   onChange={handleChange}
-                  placeholder="Repeat your password"
+                  placeholder="DramaFan2026"
                   disabled={isSubmitting}
                 />
-              </span>
-              {fieldErrors.password_confirmation && (
-                <span className="field-error-text">{fieldErrors.password_confirmation[0]}</span>
-              )}
-            </label>
+                {fieldErrors.name && (
+                  <span className="field-error-text">{fieldErrors.name[0]}</span>
+                )}
+              </label>
+
+              <label className="auth-field">
+                <span>Email</span>
+                <input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  disabled={isSubmitting}
+                />
+                {fieldErrors.email && (
+                  <span className="field-error-text">{fieldErrors.email[0]}</span>
+                )}
+              </label>
+
+              <label className="auth-field">
+                <span>Password</span>
+                <span className="password-input">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Min. 8 characters"
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <Eye size={17} /> : <EyeOff size={17} />}
+                  </button>
+                </span>
+                {fieldErrors.password && (
+                  <span className="field-error-text">{fieldErrors.password[0]}</span>
+                )}
+              </label>
+
+              <label className="auth-field">
+                <span>Confirm Password</span>
+                <span className="password-input">
+                  <input
+                    name="password_confirmation"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password_confirmation}
+                    onChange={handleChange}
+                    placeholder="Repeat your password"
+                    disabled={isSubmitting}
+                  />
+                </span>
+                {fieldErrors.password_confirmation && (
+                  <span className="field-error-text">{fieldErrors.password_confirmation[0]}</span>
+                )}
+              </label>
+            </div>
+          ) : (
+            <div className="auth-fields-stack">
+              <label className="auth-field">
+                <span>Email</span>
+                <input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  disabled={isSubmitting}
+                />
+                {fieldErrors.email && (
+                  <span className="field-error-text">{fieldErrors.email[0]}</span>
+                )}
+              </label>
+
+              <label className="auth-field">
+                <span>Password</span>
+                <span className="password-input">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <Eye size={17} /> : <EyeOff size={17} />}
+                  </button>
+                </span>
+                {fieldErrors.password && (
+                  <span className="field-error-text">{fieldErrors.password[0]}</span>
+                )}
+              </label>
+            </div>
           )}
 
           {!isSignup && <Link className="forgot-link" to="/login">Forgot password?</Link>}
