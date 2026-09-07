@@ -6,6 +6,7 @@ import HomeScreen from '../screens/main/HomeScreen';
 import DiscoverScreen from '../screens/main/DiscoverScreen';
 import TrackerScreen from '../screens/main/TrackerScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
+import ChatbotModal, { ChatbotFloatingTrigger } from '../components/ChatbotModal';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -93,20 +94,26 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 export default function TabNavigator() {
   return (
-    <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      {items.map((item) => (
-        <Tab.Screen
-          key={item.name}
-          name={item.name}
-          component={item.component}
-        />
-      ))}
-    </Tab.Navigator>
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        {items.map((item) => (
+          <Tab.Screen
+            key={item.name}
+            name={item.name}
+            component={item.component}
+          />
+        ))}
+      </Tab.Navigator>
+
+      {/* Floating AI Chatbot Trigger & Sheet */}
+      <ChatbotFloatingTrigger />
+      <ChatbotModal />
+    </View>
   );
 }
 

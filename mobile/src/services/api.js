@@ -92,4 +92,9 @@ export const trackerService = {
   deleteDrama: (tmdbId) => api.delete(`/tracker/${tmdbId}`),
 };
 
+// Chatbot AI
+export const chatbotService = {
+  sendMessage: (message) => api.post('/discover/chatbot', { message }),
+};
+
 export default api;
