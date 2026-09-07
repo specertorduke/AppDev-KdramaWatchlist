@@ -13,8 +13,38 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Keyboard } from 'react-native';
 import { useChatbot, QUICK_PROMPTS } from '../context/ChatbotContext';
 import { colors } from '../theme';
+
+// Simple markdown formatter for React Native (bold **text** and bullets)
+const renderFormattedAiText = (text, defaultStyle, boldStyle) => {
+  if (!text) return null;
+
+  const lines = text.split('\n');
+  return lines.map((line, lineIdx) => {
+    const isBullet = line.trim().startsWith('- ') || line.trim().startsWith('* ');
+    const cleanedLine = isBullet ? '• ' + line.trim().substring(2) : line;
+
+    // Parse **bold** parts
+    const parts = cleanedLine.split(/(\*\*.*?\*\*)/g);
+
+    return (
+      <Text key={lineIdx} style={[defaultStyle, isBullet && { paddingLeft: 4, marginVertical: 2 }]}>
+        {parts.map((part, partIdx) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return (
+              <Text key={partIdx} style={boldStyle}>
+                {part.slice(2, -2)}
+              </Text>
+            );
+          }
+          return part;
+        })}
+      </Text>
+    );
+  });
+};
 
 export default function ChatbotModal() {
   const {
@@ -42,6 +72,7 @@ export default function ChatbotModal() {
   const handleSend = (textToSend) => {
     const query = (textToSend || input).trim();
     if (!query || loading) return;
+    Keyboard.dismiss();
     sendMessage(query);
     setInput('');
   };
@@ -138,15 +169,23 @@ export default function ChatbotModal() {
                       msg.isError && styles.bubbleError,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.bubbleText,
-                        isUser ? styles.bubbleTextUser : styles.bubbleTextAi,
-                        msg.isError && styles.bubbleTextError,
-                      ]}
-                    >
-                      {msg.text}
-                    </Text>
+                    {isUser || msg.isError ? (
+                      <Text
+                        style={[
+                          styles.bubbleText,
+                          isUser ? styles.bubbleTextUser : styles.bubbleTextAi,
+                          msg.isError && styles.bubbleTextError,
+                        ]}
+                      >
+                        {msg.text}
+                      </Text>
+                    ) : (
+                      renderFormattedAiText(
+                        msg.text,
+                        [styles.bubbleText, styles.bubbleTextAi],
+                        styles.bubbleTextBold
+                      )
+                    )}
 
                     {msg.isError && msg.originalPrompt && (
                       <Pressable
@@ -430,6 +469,10 @@ const styles = StyleSheet.create({
   bubbleTextAi: {
     color: '#F0EEE8',
     fontWeight: '400',
+  },
+  bubbleTextBold: {
+    color: '#F5A9C4',
+    fontWeight: '700',
   },
   bubbleTextError: {
     color: '#F87171',
