@@ -21,9 +21,11 @@ class AuthService
     public function register(array $data): array
     {
         $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => $data['password'],
+            'name'                       => $data['name'],
+            'email'                      => $data['email'],
+            'password'                   => $data['password'],
+            'terms_privacy_accepted'    => true,
+            'terms_privacy_accepted_at' => now(),
         ]);
 
         $deviceName = $data['device_name'] ?? 'auth_token';
