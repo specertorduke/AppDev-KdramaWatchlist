@@ -316,10 +316,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.72)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    width: '100%',
   },
   container: {
     width: '100%',
-    maxWidth: 500,
+    maxWidth: 460,
     alignSelf: 'center',
     height: '82%',
     backgroundColor: '#0F0E1A',
@@ -408,32 +410,35 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     flex: 1,
+    width: '100%',
   },
   messagesContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     gap: 14,
+    flexGrow: 1,
   },
   msgRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    maxWidth: '85%',
+    width: '100%',
   },
   msgRowUser: {
-    alignSelf: 'flex-end',
     justifyContent: 'flex-end',
   },
   msgRowAi: {
-    alignSelf: 'flex-start',
+    justifyContent: 'flex-start',
   },
   aiAvatar: {
-    width: 26,
-    height: 26,
+    width: 28,
+    height: 28,
     borderRadius: 8,
     backgroundColor: 'rgba(245, 169, 196, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
+    flexShrink: 0,
   },
   aiAvatarImg: {
     width: 20,
@@ -443,6 +448,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
+    maxWidth: '82%',
+    flexShrink: 1,
   },
   bubbleUser: {
     backgroundColor: '#F5A9C4',
@@ -453,6 +460,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2D2945',
     borderBottomLeftRadius: 4,
+    flexShrink: 1,
   },
   bubbleError: {
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
@@ -461,6 +469,7 @@ const styles = StyleSheet.create({
   bubbleText: {
     fontSize: 13.5,
     lineHeight: 19,
+    flexWrap: 'wrap',
   },
   bubbleTextUser: {
     color: '#07070E',
