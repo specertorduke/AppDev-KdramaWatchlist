@@ -330,7 +330,7 @@ function ProfileMenu({ onClose }) {
   const handleLogout = async () => {
     onClose?.()
     await logout()
-    navigate('/login')
+    navigate('/')
   }
 
   return (
@@ -1427,7 +1427,7 @@ function ProfilePage() {
 
   const handleLogout = async () => {
     await logout()
-    navigate('/login')
+    navigate('/')
   }
 
   return (
