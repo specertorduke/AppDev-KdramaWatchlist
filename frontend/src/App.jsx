@@ -486,8 +486,6 @@ function AuthPage({ mode }) {
           </div>
         </div>
       )}
-
-      <button className="help-button" type="button" aria-label="Help">?</button>
     </main>
   )
 }
