@@ -228,10 +228,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #080808;
+  background: #080808 radial-gradient(circle at 50% 18%, #1f1217 0%, #0d090b 60%, #080808 100%);
   color: #f7f0f0;
   padding: 20px;
   box-sizing: border-box;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .auth-container {
@@ -262,6 +264,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
   color: #a05b6b;
   font-size: 13.5px;
   font-weight: 600;
@@ -311,7 +318,7 @@
   border: 1px solid #2a1f24;
   border-radius: 20px;
   background: #111111;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6), 0 0 24px rgba(235, 91, 120, 0.08), 0 0 0 1px rgba(235, 91, 120, 0.08);
   box-sizing: border-box;
 }
 
@@ -4103,13 +4110,14 @@
 }
 
 /* ==========================================================================
-   ACCOUNT SWITCHER (NETFLIX-STYLE PROFILE SELECTION ON LOGIN)
+   ACCOUNT SWITCHER (SARANGTV THEMED PROFILE SELECTION)
    ========================================================================== */
 
 .account-switcher-page {
   min-height: 100vh;
-  background: radial-gradient(circle at 50% 15%, #141324 0%, #08070e 65%, #05040a 100%);
-  color: #f1edf7;
+  min-height: 100dvh;
+  background: #080808 radial-gradient(circle at 50% 18%, #1f1217 0%, #0d090b 60%, #080808 100%);
+  color: #f7f0f0;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -4117,7 +4125,7 @@
 }
 
 .account-switcher-header {
-  padding: 24px 36px;
+  padding: 24px 5%;
   position: absolute;
   top: 0;
   left: 0;
@@ -4128,23 +4136,24 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(25, 23, 38, 0.6);
-  border: 1px solid #29253c;
-  color: #a49cb5;
-  padding: 8px 16px;
-  border-radius: 10px;
+  background: rgba(22, 17, 19, 0.85);
+  border: 1px solid #3d262f;
+  color: #a05b6b;
+  padding: 8px 18px;
+  border-radius: 24px;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
   transition: all 180ms ease;
 }
 
 .switcher-back-link:hover {
-  background: #232036;
-  color: #ffffff;
-  border-color: #3f395b;
+  background: #25161b;
+  color: #eb5b78;
+  border-color: #eb5b78;
   transform: translateX(-2px);
+  box-shadow: 0 4px 14px rgba(235, 91, 120, 0.2);
 }
 
 .account-switcher-container {
@@ -4165,41 +4174,47 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .switcher-logo-img {
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 12px rgba(232, 93, 117, 0.3));
+  filter: drop-shadow(0 4px 16px rgba(235, 91, 120, 0.35));
+  transition: transform 0.2s ease;
+}
+
+.account-switcher-brand:hover .switcher-logo-img {
+  transform: scale(1.08) rotate(-3deg);
 }
 
 .switcher-brand-title {
   margin: 0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
-  color: #f09ab0;
-  letter-spacing: -0.6px;
+  color: #ed8ea4;
+  letter-spacing: -0.8px;
 }
 
 .account-switcher-headings {
-  margin-bottom: 36px;
+  margin-bottom: 40px;
 }
 
 .account-switcher-headings h1 {
-  margin: 0 0 8px;
-  font-size: 32px;
+  margin: 0 0 10px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(28px, 4vw, 36px);
   font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.6px;
+  color: #f7f0f0;
+  letter-spacing: -0.8px;
 }
 
 .account-switcher-headings p {
   margin: 0;
-  font-size: 15px;
-  color: #9d96aa;
+  font-size: 15.5px;
+  color: #aa6b7d;
   font-weight: 500;
 }
 
@@ -4208,10 +4223,10 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: center;
-  gap: 28px;
+  gap: 30px;
   width: 100%;
   max-width: 680px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .account-card {
@@ -4233,32 +4248,32 @@
 }
 
 .account-card:focus-visible .account-avatar-tile {
-  outline: 2px solid #E85D75;
+  outline: 2px solid #eb5b78;
   outline-offset: 4px;
 }
 
 .account-avatar-tile {
   width: 114px;
   height: 114px;
-  border-radius: 20px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(235, 91, 120, 0.1);
   border: 2px solid transparent;
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
 
 .account-card:hover .account-avatar-tile {
-  border-color: #ffffff;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.65);
+  border-color: #eb5b78;
+  box-shadow: 0 14px 36px rgba(235, 91, 120, 0.4);
 }
 
 .account-card.is-active-account .account-avatar-tile {
-  border-color: #E85D75;
-  box-shadow: 0 0 20px rgba(232, 93, 117, 0.4);
+  border-color: #eb5b78;
+  box-shadow: 0 0 24px rgba(235, 91, 120, 0.5);
 }
 
 .account-avatar-photo {
@@ -4269,23 +4284,23 @@
 }
 
 .account-theme-icon {
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
 .account-active-badge {
   position: absolute;
   top: 7px;
   right: 7px;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #E85D75;
+  background: #eb5b78;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-  border: 2px solid #141324;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border: 2px solid #140e11;
 }
 
 .account-remove-btn {
@@ -4297,7 +4312,7 @@
   border-radius: 50%;
   background: #e53e3e;
   color: #ffffff;
-  border: 2px solid #141324;
+  border: 2px solid #140e11;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4312,10 +4327,10 @@
 }
 
 .account-name-label {
-  margin-top: 13px;
+  margin-top: 14px;
   font-size: 14.5px;
-  font-weight: 700;
-  color: #d1cbdc;
+  font-weight: 600;
+  color: #ed8ea4;
   text-align: center;
   max-width: 114px;
   overflow: hidden;
@@ -4329,19 +4344,20 @@
 }
 
 .account-card.is-active-account .account-name-label {
-  color: #f5b0c2;
+  color: #f7a4b8;
+  font-weight: 700;
 }
 
 .add-account-tile {
-  background: #13121f;
-  border: 1.5px solid #272439;
-  color: #7b758b;
+  background: #120e10;
+  border: 2px dashed #482a32;
+  color: #a05b6b;
   transition: all 200ms ease;
 }
 
 .add-account-card:hover .add-account-tile {
-  background: #1a182b;
-  border-color: #8c85a2;
+  background: #1d1317;
+  border-color: #eb5b78;
   color: #ffffff;
 }
 
@@ -4359,64 +4375,67 @@
 }
 
 .account-switcher-actions {
-  margin-top: 36px;
+  margin-top: 38px;
   width: 100%;
   display: flex;
   justify-content: center;
 }
 
-.switch-signin-btn {
+.switch-signin-btn,
+.switch-signup-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 13px 28px;
-  border-radius: 12px;
-  border: 1.5px solid #2b283d;
-  background: #13121f;
-  color: #e5e0ee;
+  min-height: 50px;
+  padding: 13px 32px;
+  border-radius: 30px;
+  border: 1px solid #482a32;
+  background: #140f12;
+  color: #ed8ea4;
   font-size: 14.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 180ms ease;
   width: 100%;
-  max-width: 340px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  max-width: 350px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
-.switch-signin-btn:hover {
-  border-color: #474261;
-  background: #1c1a2c;
+.switch-signin-btn:hover,
+.switch-signup-btn:hover {
+  border-color: #eb5b78;
+  background: #201317;
   color: #ffffff;
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(235, 91, 120, 0.3);
 }
 
 .account-switcher-footer {
-  margin-top: 24px;
+  margin-top: 26px;
 }
 
 .manage-accounts-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: #7d778d;
+  color: #a05b6b;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.2px;
   cursor: pointer;
-  padding: 8px 18px;
-  border-radius: 10px;
+  padding: 8px 20px;
+  border-radius: 20px;
   transition: all 180ms ease;
 }
 
 .manage-accounts-btn:hover {
-  color: #ded8e8;
+  color: #eb5b78;
 }
 
 .manage-accounts-btn.active {
-  color: #E85D75;
-  border-color: #E85D75;
-  background: rgba(232, 93, 117, 0.1);
+  color: #eb5b78;
+  border-color: #eb5b78;
+  background: rgba(235, 91, 120, 0.12);
 }
 
 @media (max-width: 600px) {
@@ -4447,7 +4466,7 @@
   .account-avatar-tile {
     width: 96px;
     height: 96px;
-    border-radius: 16px;
+    border-radius: 18px;
   }
 
   .account-name-label {
@@ -4455,7 +4474,8 @@
     max-width: 96px;
   }
 
-  .switch-signin-btn {
+  .switch-signin-btn,
+  .switch-signup-btn {
     max-width: 290px;
     font-size: 13.5px;
     padding: 12px 20px;

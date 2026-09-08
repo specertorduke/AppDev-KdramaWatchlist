@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ChevronLeft,
+  ArrowLeft,
   Heart,
   PawPrint,
   Plus,
@@ -15,11 +15,11 @@ import {
 import { useAuth } from '../context/AuthContext.jsx'
 
 const TILE_THEMES = [
-  { bg: '#f497aa', color: '#ffffff', Icon: Heart },
-  { bg: '#5b2333', color: '#ffffff', Icon: PawPrint },
-  { bg: '#3d4b68', color: '#ffffff', Icon: Sparkles },
-  { bg: '#2e5b4b', color: '#ffffff', Icon: Star },
-  { bg: '#5a3d75', color: '#ffffff', Icon: Tv },
+  { bg: '#eb5b78', color: '#ffffff', Icon: Heart },
+  { bg: '#5a222f', color: '#ffffff', Icon: PawPrint },
+  { bg: '#45202c', color: '#ffffff', Icon: Sparkles },
+  { bg: '#b85b73', color: '#ffffff', Icon: Star },
+  { bg: '#702d3e', color: '#ffffff', Icon: Tv },
 ]
 
 export default function AccountSwitcher({ onAddAccount }) {
@@ -84,7 +84,7 @@ export default function AccountSwitcher({ onAddAccount }) {
           onClick={() => navigate('/')}
           aria-label="Back to home"
         >
-          <ChevronLeft size={16} />
+          <ArrowLeft size={14} strokeWidth={2} />
           <span>Back to Home</span>
         </button>
       </header>
@@ -191,15 +191,16 @@ export default function AccountSwitcher({ onAddAccount }) {
           )}
         </div>
 
-        {/* Secondary Action: Sign in with another account */}
+        {/* Secondary Action: Sign Up */}
         <div className="account-switcher-actions">
           <button
             type="button"
-            className="switch-signin-btn"
-            onClick={handleAddClick}
+            className="switch-signup-btn"
+            onClick={() => navigate('/signup')}
+            aria-label="Sign up for a new account"
           >
             <UserPlus size={18} />
-            <span>Sign in with another account</span>
+            <span>Sign Up</span>
           </button>
         </div>
 
