@@ -11,6 +11,43 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('sarangtv_token'))
   const [isLoading, setIsLoading] = useState(true)
 
+  // Helper to read remembered accounts
+  const getStoredAccounts = () => {
+    try {
+      const stored = localStorage.getItem('sarangtv_accounts')
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  }
+
+  const [savedAccounts, setSavedAccounts] = useState(getStoredAccounts)
+
+  // Save/update an account in remembered list
+  const recordAccount = (accountUser, accountToken) => {
+    if (!accountUser || !accountToken) return
+    const accountKey = accountUser.id || accountUser.email
+    if (!accountKey) return
+
+    setSavedAccounts((prev) => {
+      const existing = Array.isArray(prev) ? prev : []
+      const filtered = existing.filter((a) => (a.id || a.email) !== accountKey)
+      const entry = {
+        id: accountUser.id,
+        email: accountUser.email,
+        name: accountUser.name || accountUser.email?.split('@')[0] || 'User',
+        avatar: accountUser.avatar || accountUser.avatar_url || '',
+        avatar_url: accountUser.avatar || accountUser.avatar_url || '',
+        token: accountToken,
+        user: accountUser,
+        lastActive: Date.now(),
+      }
+      const updated = [entry, ...filtered]
+      localStorage.setItem('sarangtv_accounts', JSON.stringify(updated))
+      return updated
+    })
+  }
+
   useEffect(() => {
     async function loadUser() {
       if (token) {
@@ -29,6 +66,7 @@ export function AuthProvider({ children }) {
           const merged = { ...userData, ...customFields }
           setUser(merged)
           localStorage.setItem('sarangtv_user', JSON.stringify(merged))
+          recordAccount(merged, token)
         } catch {
           // Token invalid or expired
           setToken(null)
@@ -42,6 +80,13 @@ export function AuthProvider({ children }) {
 
     loadUser()
   }, [token])
+
+  // If initial load had user & token from storage, ensure recorded
+  useEffect(() => {
+    if (user && token) {
+      recordAccount(user, token)
+    }
+  }, [])
 
   const updateProfile = async ({ name, avatar }) => {
     let apiResult = null
@@ -70,6 +115,9 @@ export function AuthProvider({ children }) {
           })
         )
       }
+      if (token) {
+        recordAccount(updated, token)
+      }
       return updated
     })
 
@@ -83,6 +131,7 @@ export function AuthProvider({ children }) {
       setUser(data.user)
       localStorage.setItem('sarangtv_token', data.token)
       localStorage.setItem('sarangtv_user', JSON.stringify(data.user))
+      recordAccount(data.user, data.token)
     }
     return data
   }
@@ -94,8 +143,63 @@ export function AuthProvider({ children }) {
       setUser(data.user)
       localStorage.setItem('sarangtv_token', data.token)
       localStorage.setItem('sarangtv_user', JSON.stringify(data.user))
+      recordAccount(data.user, data.token)
     }
     return data
+  }
+
+  const switchAccount = async (targetIdOrEmail) => {
+    const accounts = getStoredAccounts()
+    const target = accounts.find(
+      (a) =>
+        (a.id !== undefined && a.id !== null && String(a.id) === String(targetIdOrEmail)) ||
+        (a.email && a.email.toLowerCase() === String(targetIdOrEmail).toLowerCase())
+    )
+
+    if (!target || !target.token) {
+      return false
+    }
+
+    // 1. Clear session chat history of previous user
+    try {
+      sessionStorage.removeItem('sarangtv_chat_history')
+      sessionStorage.removeItem('sarangtv_chat_open')
+    } catch {
+      // Ignore
+    }
+
+    // 2. Set new active token & user
+    const targetUser = target.user || {
+      id: target.id,
+      email: target.email,
+      name: target.name,
+      avatar: target.avatar,
+      avatar_url: target.avatar,
+    }
+
+    localStorage.setItem('sarangtv_token', target.token)
+    localStorage.setItem('sarangtv_user', JSON.stringify(targetUser))
+
+    setToken(target.token)
+    setUser(targetUser)
+
+    // 3. Mark last active timestamp
+    recordAccount(targetUser, target.token)
+
+    return true
+  }
+
+  const removeSavedAccount = (targetIdOrEmail) => {
+    setSavedAccounts((prev) => {
+      const existing = Array.isArray(prev) ? prev : []
+      const updated = existing.filter(
+        (a) =>
+          String(a.id) !== String(targetIdOrEmail) &&
+          (!a.email || a.email.toLowerCase() !== String(targetIdOrEmail).toLowerCase())
+      )
+      localStorage.setItem('sarangtv_accounts', JSON.stringify(updated))
+      return updated
+    })
   }
 
   const logout = async () => {
@@ -113,6 +217,14 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const setSession = (newToken, newUser) => {
+    setToken(newToken)
+    setUser(newUser)
+    localStorage.setItem('sarangtv_token', newToken)
+    localStorage.setItem('sarangtv_user', JSON.stringify(newUser))
+    recordAccount(newUser, newToken)
+  }
+
   const value = {
     user,
     token,
@@ -122,6 +234,11 @@ export function AuthProvider({ children }) {
     register,
     logout,
     updateProfile,
+    savedAccounts,
+    switchAccount,
+    removeSavedAccount,
+    recordAccount,
+    setSession,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

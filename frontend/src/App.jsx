@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
 import StatsHistoryPage from './components/StatsHistoryPage.jsx'
+import AccountSwitcher from './components/AccountSwitcher.jsx'
 import './App.css'
 
 function LandingPage() {
@@ -41,7 +42,8 @@ function LandingPage() {
 function AuthPage({ mode }) {
   const isSignup = mode === 'signup'
   const navigate = useNavigate()
-  const { login, register } = useAuth()
+  const { login, register, savedAccounts, setSession } = useAuth()
+  const [showLoginForm, setShowLoginForm] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +57,10 @@ function AuthPage({ mode }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
+
+  if (!isSignup && !showLoginForm) {
+    return <AccountSwitcher onAddAccount={() => setShowLoginForm(true)} />
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -114,8 +120,12 @@ function AuthPage({ mode }) {
           email: formData.email || 'user@sarangtv.app',
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=96&q=80',
         }
-        localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
-        localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
+        if (setSession) {
+          setSession('mock_dev_token_2026', demoUser)
+        } else {
+          localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
+          localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
+        }
         navigate('/dashboard')
       }
     } finally {
@@ -127,10 +137,21 @@ function AuthPage({ mode }) {
     <main className="auth-page">
       <div className={`auth-container ${isSignup ? 'signup-container' : 'login-container'}`}>
         <div className="auth-nav-bar">
-          <Link className="back-link" to="/" aria-label="Back to home">
+          <button
+            type="button"
+            className="back-link"
+            onClick={() => {
+              if (!isSignup) {
+                setShowLoginForm(false)
+              } else {
+                navigate('/')
+              }
+            }}
+            aria-label="Back"
+          >
             <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
             Back
-          </Link>
+          </button>
           <Link className="auth-brand" to="/" aria-label="SarangTV home">
             <img src="/logo.png" alt="SarangTV logo" className="brand-logo-img" />
             <span>Sarang<span className="brand-tv-accent">TV</span></span>
@@ -332,11 +353,11 @@ function AuthPage({ mode }) {
 
           <p className="auth-switch">
             {isSignup ? 'Already have an account?' : 'No account?'}{' '}
-            <Link to={isSignup ? '/login' : '/signup'}>{isSignup ? 'Log in' : 'Sign up'}</Link>
+            <Link to={isSignup ? '/login' : '/signup'}>{isSignup ? 'Log in' : 'Sign up'} </Link>
           </p>
         </form>
       </div>
-
+ 
       {/* Terms & Data Privacy Policy Modal */}
       {policyModal && (
         <div
@@ -517,6 +538,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/signup" element={<AuthPage mode="signup" />} />
+            <Route path="/switch-account" element={<AuthPage mode="login" />} />
             <Route
               path="/dashboard"
               element={
