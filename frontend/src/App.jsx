@@ -8,24 +8,16 @@ import StatsHistoryPage from './components/StatsHistoryPage.jsx'
 import './App.css'
 
 function LandingPage() {
-  const { isAuthenticated } = useAuth()
-
   return (
     <main className="landing-page">
       <header className="site-header">
-        <Link className="brand" to={isAuthenticated ? '/dashboard' : '/'} aria-label="SarangTV home">
+        <Link className="brand" to="/" aria-label="SarangTV home">
           <img src="/logo.png" alt="SarangTV logo" className="brand-logo-img" />
           <span>Sarang<span className="brand-tv-accent">TV</span></span>
         </Link>
         <nav className="header-nav" aria-label="Account navigation">
-          {isAuthenticated ? (
-            <Link className="button button-primary button-small" to="/dashboard">Dashboard</Link>
-          ) : (
-            <>
-              <Link className="login-link" to="/login">Log In</Link>
-              <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
-            </>
-          )}
+          <Link className="login-link" to="/login">Log In</Link>
+          <Link className="button button-primary button-small" to="/signup">Sign Up</Link>
         </nav>
       </header>
 
@@ -37,14 +29,8 @@ function LandingPage() {
             <br className="desktop-break" /> a simple record of your drama life — no fuss.
           </p>
           <div className="hero-actions">
-            {isAuthenticated ? (
-              <Link className="button button-primary" to="/dashboard">Go to Dashboard</Link>
-            ) : (
-              <>
-                <Link className="button button-primary" to="/signup">Sign Up</Link>
-                <Link className="button button-outline" to="/login">Log In</Link>
-              </>
-            )}
+            <Link className="button button-primary" to="/signup">Sign Up</Link>
+            <Link className="button button-outline" to="/login">Log In</Link>
           </div>
         </div>
       </section>
@@ -519,6 +505,7 @@ function ProtectedRoute({ children }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+    return <Navigate to="/" replace />
   }
 
   return children
