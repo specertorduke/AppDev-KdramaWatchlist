@@ -557,6 +557,24 @@ class DiscoverTest extends TestCase
                         ],
                     ],
                 ],
+                'credits' => [
+                    'cast' => [
+                        [
+                            'id' => 991,
+                            'name' => 'Kim Soo-hyun',
+                            'character' => 'Baek Hyun-woo',
+                            'profile_path' => '/ksh.jpg',
+                            'order' => 0,
+                        ],
+                        [
+                            'id' => 992,
+                            'name' => 'Kim Ji-won',
+                            'character' => 'Hong Hae-in',
+                            'profile_path' => '/kjw.jpg',
+                            'order' => 1,
+                        ],
+                    ],
+                ],
             ], 200),
         ]);
 
@@ -580,6 +598,18 @@ class DiscoverTest extends TestCase
                         'key'  => 'dQw4w9WgXcQ',
                         'site' => 'YouTube',
                         'url'  => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                    ],
+                    'cast'               => [
+                        [
+                            'id'   => 991,
+                            'name' => 'Kim Soo-hyun',
+                            'role' => 'Baek Hyun-woo',
+                        ],
+                        [
+                            'id'   => 992,
+                            'name' => 'Kim Ji-won',
+                            'role' => 'Hong Hae-in',
+                        ],
                     ],
                     'watch_status'       => null,
                 ],

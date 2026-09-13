@@ -776,17 +776,25 @@ function DramaDetailView({ drama, onBack }) {
             </div>
           </article>
 
-          {/* Main Cast */}
+          {/* Full Cast */}
           <article className="detail-card">
-            <h3 className="detail-card-heading">MAIN CAST</h3>
+            <h3 className="detail-card-heading">FULL CAST</h3>
             <div className="detail-cast-list">
               {drama.cast && drama.cast.length > 0 ? (
-                drama.cast.map((actor) => (
-                  <div className="cast-row" key={actor.name}>
-                    <img className="cast-avatar" src={actor.avatar} alt={actor.name} />
+                drama.cast.map((actor, idx) => (
+                  <div className="cast-row" key={actor.id || actor.name || idx}>
+                    <img
+                      className="cast-avatar"
+                      src={actor.avatar}
+                      alt={actor.name}
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(actor.name || 'Cast')}&background=1f1f23&color=e4e4e7`
+                      }}
+                    />
                     <div className="cast-text">
                       <strong>{actor.name}</strong>
-                      <span>as {actor.role}</span>
+                      <span>{actor.role ? `as ${actor.role}` : ''}</span>
                     </div>
                   </div>
                 ))
@@ -1274,6 +1282,7 @@ function TrackerPage() {
 
             return {
               ...fullDetail,
+              cast: (fullDetail.cast && fullDetail.cast.length > 0) ? fullDetail.cast : prev.cast,
               status: drama.status || prev.status,
               myRating: drama.myRating || drama.rating || prev.myRating,
               myNotes: drama.notes || drama.myNotes || prev.myNotes,
@@ -1519,6 +1528,7 @@ function Dashboard() {
 
             return {
               ...fullDetail,
+              cast: (fullDetail.cast && fullDetail.cast.length > 0) ? fullDetail.cast : prev.cast,
               status: drama.status || prev.status,
               myRating: drama.myRating || drama.rating || prev.myRating,
               myNotes: drama.notes || drama.myNotes || prev.myNotes,

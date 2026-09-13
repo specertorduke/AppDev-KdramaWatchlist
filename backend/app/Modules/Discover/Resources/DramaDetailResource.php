@@ -139,6 +139,55 @@ class DramaDetailResource extends JsonResource
             }
         }
 
+        // Handle cast extraction from credits.cast or cast
+        $castList = $this->resource['credits']['cast']
+            ?? $this->resource['cast']
+            ?? $this->resource['aggregate_credits']['cast']
+            ?? [];
+
+        $cast = [];
+        if (is_array($castList)) {
+            foreach ($castList as $member) {
+                if (!is_array($member)) {
+                    continue;
+                }
+
+                $name = trim((string) ($member['name'] ?? $member['original_name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $role = (string) ($member['character'] ?? $member['role'] ?? '');
+                if ($role === '' && !empty($member['roles']) && is_array($member['roles'])) {
+                    $role = (string) ($member['roles'][0]['character'] ?? '');
+                }
+                if ($role === '') {
+                    $role = 'Cast';
+                }
+
+                $profilePath = $member['profile_path'] ?? null;
+                $avatarUrl = null;
+                if (!empty($profilePath)) {
+                    $avatarUrl = str_starts_with($profilePath, 'http')
+                        ? $profilePath
+                        : "https://image.tmdb.org/t/p/w185{$profilePath}";
+                } elseif (!empty($member['avatar'])) {
+                    $avatarUrl = (string) $member['avatar'];
+                } else {
+                    $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&background=1f1f23&color=e4e4e7';
+                }
+
+                $cast[] = [
+                    'id'        => (int) ($member['id'] ?? 0),
+                    'name'      => $name,
+                    'role'      => $role,
+                    'character' => $role,
+                    'avatar'    => $avatarUrl,
+                    'order'     => (int) ($member['order'] ?? 0),
+                ];
+            }
+        }
+
         // Handle rating
         $rating = isset($this->resource['vote_average']) ? round((float) $this->resource['vote_average'], 1) : 0.0;
 
@@ -159,6 +208,7 @@ class DramaDetailResource extends JsonResource
             'seasons'            => $seasons,
             'episodes'           => $episodes,
             'trailer'            => $trailer,
+            'cast'               => $cast,
             'watch_status'       => $this->resource['watch_status'] ?? null,
         ];
     }
