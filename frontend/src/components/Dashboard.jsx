@@ -940,35 +940,25 @@ function DiscoverPage() {
   const [gridDramas, setGridDramas] = useState([])
   const [top5List, setTop5List] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const dropdownRef = useRef(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+  const pillsRef = useRef(null)
 
   const topDrama = top5List[currentSlide] || top5List[0] || null
 
-  // Close dropdown on outside click or Escape key
+  const checkScroll = () => {
+    if (!pillsRef.current) return
+    const { scrollLeft, scrollWidth, clientWidth } = pillsRef.current
+    setCanScrollLeft(scrollLeft > 4)
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 4)
+  }
+
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false)
-      }
-    }
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setIsDropdownOpen(false)
-      }
-    }
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      document.addEventListener('keydown', handleKeyDown)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isDropdownOpen])
+    checkScroll()
+    const handleResize = () => checkScroll()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [genreList])
 
   useEffect(() => {
     async function loadData() {
@@ -1012,9 +1002,14 @@ function DiscoverPage() {
     setCurrentSlide((prev) => (prev + 1) % top5List.length)
   }
 
+  const handleScroll = (direction) => {
+    if (!pillsRef.current) return
+    const offset = direction === 'left' ? -260 : 260
+    pillsRef.current.scrollBy({ left: offset, behavior: 'smooth' })
+  }
+
   const handleGenreSelect = async (genreObj) => {
     setSelectedGenre(genreObj.name)
-    setIsDropdownOpen(false)
     setIsLoading(true)
     try {
       const res = await discoverService.getDiscover({ page: 1, genre_id: genreObj.id || null })
@@ -1096,60 +1091,51 @@ function DiscoverPage() {
             </section>
           ) : null}
 
-          {/* Clean Genre Dropdown Filter */}
-          <div className="discover-filter-bar">
-            <div className="genre-dropdown-container" ref={dropdownRef}>
-              <span className="genre-filter-label" id="genre-filter-label">Genre:</span>
-              <div className="genre-dropdown">
-                <button
-                  id="genre-dropdown-trigger"
-                  className={`genre-dropdown-trigger ${isDropdownOpen ? 'open' : ''} ${selectedGenre !== 'All Genres' ? 'active-filter' : ''}`}
-                  type="button"
-                  onClick={() => setIsDropdownOpen((prev) => !prev)}
-                  aria-haspopup="listbox"
-                  aria-expanded={isDropdownOpen}
-                  aria-labelledby="genre-filter-label genre-dropdown-trigger"
-                >
-                  <span className="genre-dropdown-text">{selectedGenre}</span>
-                  <ChevronDown
-                    size={15}
-                    className={`genre-chevron-icon ${isDropdownOpen ? 'rotate' : ''}`}
-                    aria-hidden="true"
-                  />
-                </button>
-
-                {isDropdownOpen && (
-                  <div className="genre-dropdown-menu" role="listbox" aria-labelledby="genre-filter-label">
-                    {genreList.map((g) => {
-                      const isSelected = selectedGenre === g.name
-                      return (
-                        <button
-                          key={g.name}
-                          type="button"
-                          role="option"
-                          aria-selected={isSelected}
-                          className={`genre-dropdown-item ${isSelected ? 'selected' : ''}`}
-                          onClick={() => handleGenreSelect(g)}
-                        >
-                          <span>{g.name}</span>
-                          {isSelected && <Check size={14} className="genre-item-check" aria-hidden="true" />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {selectedGenre !== 'All Genres' && (
+          {/* Horizontal Genre Pills (Chips) */}
+          <div className="genre-chips-wrapper">
+            {canScrollLeft && (
               <button
                 type="button"
-                className="genre-clear-btn"
-                onClick={() => handleGenreSelect({ id: null, name: 'All Genres' })}
-                aria-label="Reset genre filter to All Genres"
+                className="genre-scroll-btn genre-scroll-btn-left"
+                onClick={() => handleScroll('left')}
+                aria-label="Scroll genres left"
               >
-                <X size={13} aria-hidden="true" />
-                Reset to All
+                <ChevronLeft size={16} />
+              </button>
+            )}
+
+            <div
+              className="genre-chips-track"
+              ref={pillsRef}
+              onScroll={checkScroll}
+              role="tablist"
+              aria-label="Filter dramas by genre"
+            >
+              {genreList.map((g) => {
+                const isSelected = selectedGenre === g.name
+                return (
+                  <button
+                    key={g.id ?? g.name}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    className={`genre-chip ${isSelected ? 'active' : ''}`}
+                    onClick={() => handleGenreSelect(g)}
+                  >
+                    {g.name}
+                  </button>
+                )
+              })}
+            </div>
+
+            {canScrollRight && (
+              <button
+                type="button"
+                className="genre-scroll-btn genre-scroll-btn-right"
+                onClick={() => handleScroll('right')}
+                aria-label="Scroll genres right"
+              >
+                <ChevronRight size={16} />
               </button>
             )}
           </div>
