@@ -59,7 +59,16 @@ function AuthPage({ mode }) {
   const [fieldErrors, setFieldErrors] = useState({})
 
   if (!isSignup && !showLoginForm) {
-    return <AccountSwitcher onAddAccount={() => setShowLoginForm(true)} />
+    return (
+      <AccountSwitcher
+        onAddAccount={(acc) => {
+          if (acc?.email) {
+            setFormData((prev) => ({ ...prev, email: acc.email, password: '' }))
+          }
+          setShowLoginForm(true)
+        }}
+      />
+    )
   }
 
   const handleChange = (e) => {

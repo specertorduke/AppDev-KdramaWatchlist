@@ -56,7 +56,7 @@ export default function AccountSwitcher({ onAddAccount }) {
     if (success) {
       navigate('/dashboard')
     } else if (onAddAccount) {
-      onAddAccount()
+      onAddAccount(acc)
     }
   }
 

@@ -67,12 +67,23 @@ export function AuthProvider({ children }) {
           setUser(merged)
           localStorage.setItem('sarangtv_user', JSON.stringify(merged))
           recordAccount(merged, token)
-        } catch {
-          // Token invalid or expired
-          setToken(null)
-          setUser(null)
-          localStorage.removeItem('sarangtv_token')
-          localStorage.removeItem('sarangtv_user')
+        } catch (err) {
+          // Invalidate token only if explicitly 401 Unauthorized
+          if (err?.response?.status === 401) {
+            setToken(null)
+            setUser(null)
+            localStorage.removeItem('sarangtv_token')
+            localStorage.removeItem('sarangtv_user')
+
+            setSavedAccounts((prev) => {
+              const existing = Array.isArray(prev) ? prev : []
+              const updated = existing.map((acc) =>
+                acc.token === token ? { ...acc, token: null } : acc
+              )
+              localStorage.setItem('sarangtv_accounts', JSON.stringify(updated))
+              return updated
+            })
+          }
         }
       }
       setIsLoading(false)
@@ -168,25 +179,70 @@ export function AuthProvider({ children }) {
       // Ignore
     }
 
-    // 2. Set new active token & user
-    const targetUser = target.user || {
-      id: target.id,
-      email: target.email,
-      name: target.name,
-      avatar: target.avatar,
-      avatar_url: target.avatar,
+    // 2. Validate token with backend before updating active session
+    try {
+      localStorage.setItem('sarangtv_token', target.token)
+      const userData = await authService.getMe()
+
+      const userKey = userData?.id || userData?.email
+      let customFields = {}
+      if (userKey) {
+        try {
+          const savedCustom = localStorage.getItem(`sarangtv_profile_${userKey}`)
+          if (savedCustom) customFields = JSON.parse(savedCustom)
+        } catch {
+          // Ignore
+        }
+      }
+
+      const merged = { ...userData, ...customFields }
+      setToken(target.token)
+      setUser(merged)
+      localStorage.setItem('sarangtv_user', JSON.stringify(merged))
+      recordAccount(merged, target.token)
+      return true
+    } catch (err) {
+      // Offline fallback for mock token
+      if (!err?.response && target.token === 'mock_dev_token_2026') {
+        const targetUser = target.user || {
+          id: target.id,
+          email: target.email,
+          name: target.name,
+          avatar: target.avatar,
+          avatar_url: target.avatar,
+        }
+        localStorage.setItem('sarangtv_token', target.token)
+        localStorage.setItem('sarangtv_user', JSON.stringify(targetUser))
+        setToken(target.token)
+        setUser(targetUser)
+        recordAccount(targetUser, target.token)
+        return true
+      }
+
+      // Token invalid or revoked (e.g. 401)
+      const targetKey = target.id || target.email
+      setSavedAccounts((prev) => {
+        const existing = Array.isArray(prev) ? prev : []
+        const updated = existing.map((acc) => {
+          if (
+            (acc.id !== undefined && acc.id !== null && String(acc.id) === String(targetKey)) ||
+            (acc.email && acc.email.toLowerCase() === String(targetKey).toLowerCase())
+          ) {
+            return { ...acc, token: null }
+          }
+          return acc
+        })
+        localStorage.setItem('sarangtv_accounts', JSON.stringify(updated))
+        return updated
+      })
+
+      localStorage.removeItem('sarangtv_token')
+      localStorage.removeItem('sarangtv_user')
+      setToken(null)
+      setUser(null)
+
+      return false
     }
-
-    localStorage.setItem('sarangtv_token', target.token)
-    localStorage.setItem('sarangtv_user', JSON.stringify(targetUser))
-
-    setToken(target.token)
-    setUser(targetUser)
-
-    // 3. Mark last active timestamp
-    recordAccount(targetUser, target.token)
-
-    return true
   }
 
   const removeSavedAccount = (targetIdOrEmail) => {
@@ -203,6 +259,7 @@ export function AuthProvider({ children }) {
   }
 
   const logout = async () => {
+    const currentKey = user?.id || user?.email
     try {
       if (token) {
         await authService.logout()
@@ -210,6 +267,22 @@ export function AuthProvider({ children }) {
     } catch {
       // Ignore network errors on logout
     } finally {
+      if (currentKey) {
+        setSavedAccounts((prev) => {
+          const existing = Array.isArray(prev) ? prev : []
+          const updated = existing.map((acc) => {
+            if (
+              (acc.id !== undefined && acc.id !== null && String(acc.id) === String(currentKey)) ||
+              (acc.email && acc.email.toLowerCase() === String(currentKey).toLowerCase())
+            ) {
+              return { ...acc, token: null }
+            }
+            return acc
+          })
+          localStorage.setItem('sarangtv_accounts', JSON.stringify(updated))
+          return updated
+        })
+      }
       setToken(null)
       setUser(null)
       localStorage.removeItem('sarangtv_token')
