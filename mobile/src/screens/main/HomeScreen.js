@@ -75,13 +75,16 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const watchingEp = currentlyWatching?.current_episode || 4;
-  const watchingTotal = currentlyWatching?.total_episodes || 16;
-  const watchingProgress = Math.min(
-    100,
-    currentlyWatching?.progress_percentage ||
-      Math.round((watchingEp / (watchingTotal || 1)) * 100)
-  );
+  const watchingEp = currentlyWatching ? Number(currentlyWatching.current_episode || 0) : 0;
+  const watchingTotal = currentlyWatching ? Number(currentlyWatching.total_episodes || 0) : 0;
+  const nextEpToLog = currentlyWatching?.next_episode || (watchingTotal > 0 && watchingEp < watchingTotal ? watchingEp + 1 : watchingEp + 1);
+  const watchingProgress = currentlyWatching
+    ? Math.min(
+        100,
+        currentlyWatching.progress_percentage ??
+          (watchingTotal > 0 ? Math.round((watchingEp / watchingTotal) * 100) : 0)
+      )
+    : 0;
 
   return (
     <View style={styles.screen}>
@@ -282,7 +285,11 @@ export default function HomeScreen({ navigation }) {
                       ) : (
                         <>
                           <Ionicons name="checkmark" size={12} color="#07100D" />
-                          <Text style={styles.logButtonText}>Log Ep {watchingEp}</Text>
+                          <Text style={styles.logButtonText}>
+                            {watchingTotal > 0 && watchingEp >= watchingTotal
+                              ? 'Completed'
+                              : `Log Ep ${nextEpToLog}`}
+                          </Text>
                         </>
                       )}
                     </Pressable>
