@@ -35,35 +35,54 @@ export const spacing = {
   xxl: 32,
 };
 
+export const fonts = {
+  thin: 'Poppins_100Thin',
+  extraLight: 'Poppins_200ExtraLight',
+  light: 'Poppins_300Light',
+  regular: 'Poppins_400Regular',
+  medium: 'Poppins_500Medium',
+  semiBold: 'Poppins_600SemiBold',
+  bold: 'Poppins_700Bold',
+  extraBold: 'Poppins_800ExtraBold',
+  black: 'Poppins_900Black',
+};
+
 export const typography = {
   h1: {
+    fontFamily: fonts.extraBold,
     fontSize: 26,
     fontWeight: '800',
     color: colors.text,
   },
   h2: {
+    fontFamily: fonts.bold,
     fontSize: 20,
     fontWeight: '700',
     color: colors.text,
   },
   h3: {
+    fontFamily: fonts.bold,
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
   body: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: colors.text,
   },
   bodySmall: {
+    fontFamily: fonts.regular,
     fontSize: 13,
     color: colors.muted,
   },
   caption: {
+    fontFamily: fonts.medium,
     fontSize: 12,
     color: colors.muted,
   },
   micro: {
+    fontFamily: fonts.medium,
     fontSize: 11,
     color: colors.muted,
   },
