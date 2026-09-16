@@ -67,10 +67,10 @@ export default function AddDramaScreen({ navigation }) {
     setAddingId(tmdbId);
     try {
       await trackerService.addDrama({
-        tmdb_id: tmdbId,
+        tmdb_id: parseInt(tmdbId, 10),
         status: 'plan_to_watch',
         current_episode: 0,
-        rating: 0,
+        rating: null,
       });
       setAddedIds((prev) => new Set([...prev, tmdbId]));
       Alert.alert('Success', `"${drama.title || drama.name}" added to your watchlist!`);

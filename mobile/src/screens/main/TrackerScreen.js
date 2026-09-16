@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -42,12 +43,19 @@ const getStatusColor = (status) => {
   return colors.muted;
 };
 
-export default function TrackerScreen({ navigation }) {
-  const [activeTab, setActiveTab] = useState('All');
+export default function TrackerScreen({ navigation, route }) {
+  const [activeTab, setActiveTab] = useState(route?.params?.initialTab || 'All');
   const [items, setItems] = useState([]);
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Sync tab if navigation passes route params (e.g. from Quick Access or Home Stats)
+  useEffect(() => {
+    if (route?.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route?.params?.initialTab]);
 
   // Status Modal State
   const [statusModalVisible, setStatusModalVisible] = useState(false);
@@ -75,10 +83,11 @@ export default function TrackerScreen({ navigation }) {
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    setLoading(true);
-    fetchWatchlist();
-  }, [fetchWatchlist]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchWatchlist();
+    }, [fetchWatchlist])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

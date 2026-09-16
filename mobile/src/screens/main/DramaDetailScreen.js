@@ -57,6 +57,7 @@ export default function DramaDetailScreen({ route, navigation }) {
           setWatchedEpisodes(Number(t.current_episode || 0));
           setSelectedRating(Number(t.rating || 0));
           setNotes(t.review_notes || '');
+          setIsFavorite(Boolean(t.is_favorite));
         }
       } catch (e) {
         setTracker(null);
@@ -73,33 +74,64 @@ export default function DramaDetailScreen({ route, navigation }) {
     fetchDramaDetails();
   }, [tmdbId]);
 
-  const saveTrackerChanges = async (overrideStatus, overrideEpisodes, overrideRating, overrideNotes) => {
+  const episodesTotal = Number(drama?.number_of_episodes || drama?.episodes || 16);
+
+  const saveTrackerChanges = async (
+    overrideStatus,
+    overrideEpisodes,
+    overrideRating,
+    overrideNotes,
+    overrideFavorite
+  ) => {
     setSavingStatus(true);
     setSaveMessage('');
     const statusToSave = (overrideStatus || selectedStatus).toLowerCase().replace(/ /g, '_');
     const epToSave = overrideEpisodes !== undefined ? overrideEpisodes : watchedEpisodes;
-    const ratingToSave = overrideRating !== undefined ? overrideRating : selectedRating;
+    const rawRating = overrideRating !== undefined ? overrideRating : selectedRating;
+    const ratingToSave = Number(rawRating) >= 1 && Number(rawRating) <= 10 ? Math.round(Number(rawRating)) : null;
     const notesToSave = overrideNotes !== undefined ? overrideNotes : notes;
+    const favToSave = overrideFavorite !== undefined ? overrideFavorite : isFavorite;
+
+    // Immediately update local state for instant real-time feedback
+    if (overrideStatus) setSelectedStatus(overrideStatus);
+    if (overrideEpisodes !== undefined) setWatchedEpisodes(epToSave);
+    if (overrideRating !== undefined) setSelectedRating(rawRating || 0);
+    if (overrideNotes !== undefined) setNotes(notesToSave);
+    if (overrideFavorite !== undefined) setIsFavorite(favToSave);
 
     const payload = {
-      tmdb_id: tmdbId,
+      tmdb_id: parseInt(tmdbId, 10),
       status: statusToSave,
-      current_episode: epToSave,
+      current_episode: Math.max(0, parseInt(epToSave, 10) || 0),
+      total_episodes: episodesTotal > 0 ? episodesTotal : null,
       rating: ratingToSave,
-      review_notes: notesToSave,
+      review_notes: notesToSave || null,
+      is_favorite: favToSave,
     };
 
     try {
       if (tracker) {
         const res = await trackerService.updateProgress(tmdbId, payload);
-        setTracker(res.data.data);
+        const data = res.data?.data;
+        if (data) {
+          setTracker(data);
+          setIsFavorite(Boolean(data.is_favorite));
+        }
       } else {
         const res = await trackerService.addDrama(payload);
-        setTracker(res.data.data);
+        const data = res.data?.data;
+        if (data) {
+          setTracker(data);
+          setIsFavorite(Boolean(data.is_favorite));
+        }
       }
       setSaveMessage('Saved successfully');
     } catch (err) {
-      const msg = err.response?.data?.message || 'Could not save changes.';
+      const msg =
+        err.response?.data?.message ||
+        (err.response?.data?.errors
+          ? Object.values(err.response.data.errors).flat().join(', ')
+          : 'Could not save changes.');
       setSaveMessage('Save failed');
       Alert.alert('Notice', msg);
     } finally {
@@ -107,17 +139,24 @@ export default function DramaDetailScreen({ route, navigation }) {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    const nextFav = !isFavorite;
+    setIsFavorite(nextFav);
+    await saveTrackerChanges(undefined, undefined, undefined, undefined, nextFav);
+  };
+
   const handleToggleList = async () => {
     if (tracker) {
       try {
         await trackerService.deleteDrama(tmdbId);
         setTracker(null);
-        Alert.alert('Removed', 'Drama removed from tracker.');
+        setIsFavorite(false);
+        Alert.alert('Removed', 'Drama removed from watchlist.');
       } catch (e) {
-        Alert.alert('Error', 'Could not remove from tracker.');
+        Alert.alert('Error', 'Could not remove from watchlist.');
       }
     } else {
-      await saveTrackerChanges('Plan to Watch', 0, 0, '');
+      await saveTrackerChanges('Plan to Watch', 0, null, '', isFavorite);
       Alert.alert('Added', 'Drama added to your watchlist.');
     }
   };
@@ -138,7 +177,6 @@ export default function DramaDetailScreen({ route, navigation }) {
     );
   }
 
-  const episodesTotal = Number(drama.number_of_episodes || drama.episodes || 16);
   const progress =
     episodesTotal > 0 ? Math.min(100, Math.round((watchedEpisodes / episodesTotal) * 100)) : 0;
   const remainingEpisodes = Math.max(0, episodesTotal - watchedEpisodes);
@@ -229,90 +267,76 @@ export default function DramaDetailScreen({ route, navigation }) {
       {/* Action Row */}
       <View style={styles.actionRow}>
         <Pressable
-          style={styles.updateButton}
-          onPress={() => saveTrackerChanges()}
+          style={[styles.watchlistButton, tracker && styles.watchlistButtonActive]}
+          onPress={handleToggleList}
           disabled={savingStatus}
+          accessibilityRole="button"
+          accessibilityLabel={tracker ? 'Remove from Watchlist' : 'Add to Watchlist'}
         >
-          <Ionicons name="options-outline" size={13} color="#FFFFFF" />
-          <Text style={styles.updateButtonText}>
-            {savingStatus ? 'Saving...' : 'Update Status'}
+          <Ionicons
+            name={tracker ? 'checkmark-circle' : 'add'}
+            size={20}
+            color={tracker ? '#FFFFFF' : '#07070E'}
+          />
+          <Text style={[styles.watchlistButtonText, tracker && styles.watchlistButtonTextActive]}>
+            {tracker ? 'In Watchlist' : 'Add to Watchlist'}
           </Text>
         </Pressable>
 
         <Pressable
           style={[styles.favoriteButton, isFavorite && styles.favoriteButtonActive]}
-          onPress={() => setIsFavorite((prev) => !prev)}
+          onPress={handleToggleFavorite}
           accessibilityRole="button"
           accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
-            size={20}
-            color={colors.redBright}
-          />
-        </Pressable>
-
-        <Pressable
-          style={[styles.listButton, tracker && styles.listButtonActive]}
-          onPress={handleToggleList}
-          accessibilityRole="button"
-          accessibilityLabel={tracker ? 'Remove from tracker' : 'Add to tracker'}
-        >
-          <Ionicons
-            name={tracker ? 'checkmark' : 'bookmark-outline'}
-            size={16}
-            color={tracker ? '#FFFFFF' : colors.text}
+            size={22}
+            color={isFavorite ? '#FF4655' : colors.text}
           />
         </Pressable>
       </View>
 
       <View style={styles.divider} />
 
-      {/* Two Columns Container */}
-      <View style={[styles.columns, !isWide && styles.columnsStacked]}>
-        {/* Left Column */}
-        <View style={styles.leftColumn}>
-          {/* SYNOPSIS */}
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>SYNOPSIS</Text>
-            <Text style={styles.synopsis}>
-              {drama.overview ||
-                'A cold detective and a runaway heiress are bound together by a decade-old secret buried beneath the city’s glittering surface. Love was never part of the plan.'}
-            </Text>
-          </View>
+      {/* Content Cards */}
+      <View style={styles.card}>
+        <Text style={styles.sectionLabel}>SYNOPSIS</Text>
+        <Text style={styles.synopsis}>
+          {drama.overview ||
+            'A cold detective and a runaway heiress are bound together by a decade-old secret buried beneath the city’s glittering surface. Love was never part of the plan.'}
+        </Text>
+      </View>
 
-          {/* DETAILS */}
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>DETAILS</Text>
-            <DetailRow label="Native Title" value={drama.original_title || '—'} />
-            <DetailRow
-              label="Genres"
-              value={Array.isArray(drama.genres) ? drama.genres.join(', ') : drama.genre || 'Drama'}
-            />
-            <DetailRow label="Director" value={drama.director || 'Park Ji-young'} />
-            <DetailRow label="Aired" value={String(drama.release_year || '2025')} />
-            <DetailRow label="Duration" value={drama.duration || '62 min / ep'} />
-            <DetailRow label="Network" value="tvN · Netflix" last />
-          </View>
+      {/* DETAILS */}
+      <View style={styles.card}>
+        <Text style={styles.sectionLabel}>DETAILS</Text>
+        <DetailRow label="Native Title" value={drama.original_title || '—'} />
+        <DetailRow
+          label="Genres"
+          value={Array.isArray(drama.genres) ? drama.genres.join(', ') : drama.genre || 'Drama'}
+        />
+        <DetailRow label="Director" value={drama.director || 'Park Ji-young'} />
+        <DetailRow label="Aired" value={String(drama.release_year || '2025')} />
+        <DetailRow label="Duration" value={drama.duration || '62 min / ep'} />
+        <DetailRow label="Network" value="tvN · Netflix" last />
+      </View>
 
-          {/* MAIN CAST */}
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>MAIN CAST</Text>
-            <View style={styles.castRow}>
-              <View style={styles.castAvatar}>
-                <Ionicons name="person" size={17} color={colors.muted} />
-              </View>
-              <View style={styles.castInfo}>
-                <Text style={styles.castName} numberOfLines={1}>Main Cast</Text>
-                <Text style={styles.castRole}>Cast information</Text>
-              </View>
-            </View>
+      {/* MAIN CAST */}
+      <View style={styles.card}>
+        <Text style={styles.sectionLabel}>MAIN CAST</Text>
+        <View style={styles.castRow}>
+          <View style={styles.castAvatar}>
+            <Ionicons name="person" size={17} color={colors.muted} />
+          </View>
+          <View style={styles.castInfo}>
+            <Text style={styles.castName} numberOfLines={1}>Main Cast</Text>
+            <Text style={styles.castRole}>Cast information</Text>
           </View>
         </View>
+      </View>
 
-        {/* Right Column */}
-        <View style={styles.rightColumn}>
-          {/* PROGRESS */}
+      {/* PROGRESS */}
           <View style={styles.card}>
             <View style={styles.progressHeader}>
               <Text style={styles.sectionLabel}>PROGRESS</Text>
@@ -487,8 +511,6 @@ export default function DramaDetailScreen({ route, navigation }) {
               })}
             </View>
           </View>
-        </View>
-      </View>
 
       <View style={styles.bottomSpace} />
     </ScrollView>
@@ -708,6 +730,7 @@ const styles = StyleSheet.create({
   },
   columnsStacked: {
     flexDirection: 'column',
+    gap: 0,
   },
   leftColumn: {
     flex: 1,
@@ -715,7 +738,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   rightColumn: {
-    flex: 0.62,
+    flex: 1,
     minWidth: 0,
     width: '100%',
   },
@@ -1013,50 +1036,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 18,
-    gap: 10,
+    gap: 12,
   },
-  updateButton: {
-    height: 42,
+  watchlistButton: {
+    flex: 1,
+    height: 46,
     paddingHorizontal: 16,
-    borderRadius: 10,
-    backgroundColor: colors.redBright,
+    borderRadius: 12,
+    backgroundColor: '#F5A9C4',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#F5A9C4',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  updateButtonText: {
+  watchlistButtonActive: {
+    backgroundColor: '#1E1C2B',
+    borderWidth: 1.5,
+    borderColor: '#4E4968',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  watchlistButtonText: {
     color: '#07070E',
-    fontSize: 13,
-    fontWeight: '900',
-    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  watchlistButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   favoriteButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(245,169,196,0.3)',
-    backgroundColor: 'rgba(245,169,196,0.06)',
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#161424',
     alignItems: 'center',
     justifyContent: 'center',
   },
   favoriteButtonActive: {
-    backgroundColor: 'rgba(245,169,196,0.18)',
-    borderColor: colors.redBright,
-  },
-  listButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listButtonActive: {
-    backgroundColor: colors.redBright,
-    borderColor: colors.redBright,
+    backgroundColor: 'rgba(255,70,85,0.15)',
+    borderColor: '#FF4655',
   },
   bottomSpace: {
     height: 40,

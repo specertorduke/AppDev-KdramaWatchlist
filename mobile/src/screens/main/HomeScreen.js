@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
   Pressable,
@@ -45,9 +46,11 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboard();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -164,7 +167,7 @@ export default function HomeScreen({ navigation }) {
                 sublabel="in your list"
                 icon="bookmark-outline"
                 iconColor="#7C6DAA"
-                onPress={() => navigation.navigate('Tracker')}
+                onPress={() => navigation.navigate('Tracker', { initialTab: 'All' })}
               />
               <StatCard
                 value={stats.watching ?? 0}
@@ -172,7 +175,7 @@ export default function HomeScreen({ navigation }) {
                 sublabel="airing now"
                 icon="play-outline"
                 iconColor="#6C85B4"
-                onPress={() => navigation.navigate('Tracker')}
+                onPress={() => navigation.navigate('Tracker', { initialTab: 'Watching' })}
               />
               <StatCard
                 value={stats.completed ?? 0}
@@ -180,7 +183,7 @@ export default function HomeScreen({ navigation }) {
                 sublabel="finished"
                 icon="checkmark-outline"
                 iconColor="#4FA477"
-                onPress={() => navigation.navigate('Tracker')}
+                onPress={() => navigation.navigate('Tracker', { initialTab: 'Completed' })}
               />
               <StatCard
                 value={Math.round(stats.hours_watched ?? 0)}
@@ -303,7 +306,7 @@ export default function HomeScreen({ navigation }) {
                 icon="reader-outline"
                 iconBackground="#252441"
                 title="My Tracker"
-                onPress={() => navigation.navigate('Tracker')}
+                onPress={() => navigation.navigate('Tracker', { initialTab: 'All' })}
               />
               <QuickAccess
                 icon="add"
@@ -315,13 +318,13 @@ export default function HomeScreen({ navigation }) {
                 icon="pause"
                 iconBackground="#322A3C"
                 title="On Hold"
-                onPress={() => navigation.navigate('Tracker')}
+                onPress={() => navigation.navigate('Tracker', { initialTab: 'On Hold' })}
               />
               <QuickAccess
                 icon="ticket-outline"
                 iconBackground="#252A43"
                 title="Plan to Watch"
-                onPress={() => navigation.navigate('Tracker')}
+                onPress={() => navigation.navigate('Tracker', { initialTab: 'Plan to Watch' })}
               />
             </View>
 

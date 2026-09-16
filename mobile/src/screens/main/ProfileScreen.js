@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -77,9 +78,11 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    fetchProfileStats();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfileStats();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
