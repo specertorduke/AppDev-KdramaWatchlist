@@ -56,12 +56,15 @@ export const typography = {
     color: colors.text,
   },
   bodySmall: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.muted,
   },
   caption: {
+    fontSize: 12,
+    color: colors.muted,
+  },
+  micro: {
     fontSize: 11,
     color: colors.muted,
   },
 };
-

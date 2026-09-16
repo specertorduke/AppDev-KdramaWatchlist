@@ -71,26 +71,20 @@ export default function AccountChooserScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.container}>
-        {/* TOP STATUS BAR */}
+        {/* TOP BAR */}
         <View style={styles.topBar}>
-          <Text style={styles.time}>9:41</Text>
-          <View style={styles.topBarRight}>
-            {user && isChoosingAccount && (
-              <Pressable
-                style={styles.closeBtn}
-                onPress={handleBackToApp}
-                accessibilityRole="button"
-                accessibilityLabel="Back to App"
-              >
-                <Ionicons name="close" size={16} color="#fff" />
-              </Pressable>
-            )}
-            <View style={styles.statusIcons}>
-              <Ionicons name="cellular" size={12} color="#fff" />
-              <Ionicons name="wifi" size={12} color="#fff" />
-              <Ionicons name="battery-full" size={15} color="#fff" />
-            </View>
-          </View>
+          {user && isChoosingAccount ? (
+            <Pressable
+              style={styles.closeBtn}
+              onPress={handleBackToApp}
+              accessibilityRole="button"
+              accessibilityLabel="Back to App"
+            >
+              <Ionicons name="close" size={20} color="#fff" />
+            </Pressable>
+          ) : (
+            <View style={{ width: 36 }} />
+          )}
         </View>
 
         {/* LOGO */}
@@ -260,49 +254,51 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 28,
+    marginTop: 36,
   },
   logoImage: {
-    width: 72,
-    height: 72,
-    marginBottom: 8,
+    width: 80,
+    height: 80,
+    marginBottom: 10,
   },
   logo: {
     color: '#F5A9C4',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
     letterSpacing: -0.4,
   },
   title: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '800',
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 18,
   },
   subtitle: {
     color: '#8E8B98',
-    fontSize: 12,
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: '500',
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: 8,
+    paddingHorizontal: 16,
   },
   profileGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginTop: 28,
-    columnGap: 18,
-    rowGap: 24,
+    marginTop: 36,
+    columnGap: 24,
+    rowGap: 28,
   },
   profileWrapper: {
     position: 'relative',
   },
   profileItem: {
-    width: 76,
+    width: 90,
     alignItems: 'center',
-    borderRadius: 9,
-    paddingVertical: 2,
+    borderRadius: 12,
+    paddingVertical: 4,
   },
   profileHovered: {
     opacity: 0.85,
@@ -313,67 +309,68 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
   avatar: {
-    width: 74,
-    height: 74,
-    borderRadius: 8,
+    width: 84,
+    height: 84,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   avatarInitials: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '900',
     opacity: 0.95,
   },
   profileName: {
     color: '#E9E6ED',
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     textAlign: 'center',
-    marginTop: 8,
-    maxWidth: 76,
+    marginTop: 10,
+    maxWidth: 90,
   },
   removeBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#E8213F',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#07070E',
     zIndex: 10,
   },
   addProfileCircle: {
-    width: 74,
-    height: 74,
-    borderRadius: 8,
-    borderWidth: 1,
+    width: 84,
+    height: 84,
+    borderRadius: 16,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#11111B',
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   signInButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    height: 44,
-    borderRadius: 8,
+    gap: 10,
+    minHeight: 50,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    marginTop: 40,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginTop: 44,
     width: '100%',
-    maxWidth: 280,
+    maxWidth: 320,
     alignSelf: 'center',
+    paddingHorizontal: 16,
   },
   signInHovered: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -383,16 +380,16 @@ const styles = StyleSheet.create({
   },
   signInText: {
     color: colors.text,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
   manageButton: {
-    height: 38,
+    minHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
     alignSelf: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   manageHovered: {
     opacity: 0.8,
@@ -402,7 +399,7 @@ const styles = StyleSheet.create({
   },
   manageText: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.2,
   },
@@ -414,17 +411,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bottomLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 1,
+    width: 44,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 2,
     marginBottom: 8,
   },
   bottomText: {
-    color: 'rgba(255,255,255,0.25)',
-    fontSize: 10,
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
 });

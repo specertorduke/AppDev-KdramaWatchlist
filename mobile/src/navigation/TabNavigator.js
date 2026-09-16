@@ -120,12 +120,13 @@ export default function TabNavigator() {
 const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
-    height: 76,
-    backgroundColor: colors.bg,
+    height: 82,
+    backgroundColor: '#0B0B13',
     borderTopWidth: 1,
-    borderTopColor: colors.line,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
     zIndex: 100,
     elevation: 20,
+    paddingBottom: 6,
   },
   nav: {
     flex: 1,
@@ -137,11 +138,11 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
-    height: 64,
+    height: 68,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    marginHorizontal: 3,
+    borderRadius: 12,
+    marginHorizontal: 2,
   },
   itemActive: {
     backgroundColor: 'rgba(245, 169, 196, 0.12)',
@@ -151,25 +152,25 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
   iconContainer: {
-    width: 34,
-    height: 31,
+    width: 36,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    marginBottom: 2,
+    marginBottom: 3,
   },
   iconContainerActive: {
-    backgroundColor: 'rgba(245, 169, 196, 0.16)',
+    backgroundColor: 'rgba(245, 169, 196, 0.18)',
   },
   label: {
-    color: colors.muted,
-    fontSize: 10,
+    color: '#8D8B98',
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
-    lineHeight: 13,
+    lineHeight: 15,
   },
   labelActive: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
 });

@@ -147,8 +147,8 @@ const styles = StyleSheet.create({
     top: 7,
     left: 7,
     backgroundColor: 'rgba(7,7,14,0.88)',
-    borderRadius: 5,
-    paddingHorizontal: 6,
+    borderRadius: 6,
+    paddingHorizontal: 7,
     paddingVertical: 4,
   },
   badgeHover: {
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#F0EEE8',
-    fontSize: 7,
-    lineHeight: 9,
+    fontSize: 10,
+    lineHeight: 12,
     fontWeight: '900',
   },
   badgeTextHover: {
@@ -168,11 +168,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 7,
     right: 7,
-    backgroundColor: 'rgba(20,20,30,0.88)',
-    borderRadius: 5,
-    paddingHorizontal: 6,
+    backgroundColor: 'rgba(20,20,30,0.92)',
+    borderRadius: 6,
+    paddingHorizontal: 7,
     paddingVertical: 4,
-    maxWidth: '48%',
+    maxWidth: '52%',
   },
   statusBadgeHover: {
     backgroundColor: 'rgba(232,33,63,0.18)',
@@ -181,8 +181,8 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: '#BBA8FF',
-    fontSize: 7,
-    lineHeight: 9,
+    fontSize: 10,
+    lineHeight: 12,
     fontWeight: '800',
   },
   statusTextHover: {
@@ -192,9 +192,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 7,
     bottom: 7,
-    backgroundColor: 'rgba(7,7,14,0.82)',
-    borderRadius: 5,
-    paddingHorizontal: 6,
+    backgroundColor: 'rgba(7,7,14,0.88)',
+    borderRadius: 6,
+    paddingHorizontal: 7,
     paddingVertical: 4,
   },
   ratingBadgeHover: {
@@ -203,8 +203,8 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     color: colors.gold,
-    fontSize: 8,
-    lineHeight: 10,
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: '900',
   },
   ratingTextHover: {
@@ -213,10 +213,10 @@ const styles = StyleSheet.create({
   title: {
     width: '100%',
     color: colors.text,
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '900',
-    marginTop: 1,
+    marginTop: 4,
   },
   titleHover: {
     color: colors.redBright,
@@ -224,8 +224,8 @@ const styles = StyleSheet.create({
   meta: {
     width: '100%',
     color: colors.muted,
-    fontSize: 7.5,
-    lineHeight: 10,
+    fontSize: 12,
+    lineHeight: 15,
     marginTop: 2,
   },
   metaHover: {
