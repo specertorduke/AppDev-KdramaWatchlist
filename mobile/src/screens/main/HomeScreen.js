@@ -318,8 +318,51 @@ export default function HomeScreen({ navigation }) {
               />
             </View>
 
-            {/* Recommended */}
-            <SectionTitle text="RECOMMENDED" />
+            {/* Trending Top 10 - Streaming Style Carousel */}
+            {recommended.length > 0 && (
+              <View style={styles.trendingSection}>
+                <View style={styles.sectionHeaderRow}>
+                  <View style={styles.sectionTitleGroup}>
+                    <Ionicons name="flame" size={18} color="#FF5A79" />
+                    <Text style={styles.sectionTitleStream}>Top 10 Trending Today</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => navigation.navigate('Discover')}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.seeAllText}>See All</Text>
+                  </Pressable>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.trendingScrollContent}
+                >
+                  {recommended.slice(0, 10).map((drama, index) => (
+                    <TrendingCard
+                      key={String(drama.tmdb_id || drama.id || index)}
+                      drama={drama}
+                      rank={index + 1}
+                      onPress={() =>
+                        navigation.navigate('DramaDetail', { tmdbId: drama.tmdb_id || drama.id })
+                      }
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Recommended For You */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitleStream}>Recommended For You</Text>
+              <Pressable
+                onPress={() => navigation.navigate('Discover')}
+                hitSlop={8}
+              >
+                <Text style={styles.seeAllText}>Explore</Text>
+              </Pressable>
+            </View>
 
             <View style={styles.recommendedGrid}>
               {recommended.slice(0, 4).map((drama, index) => (
@@ -388,6 +431,52 @@ function QuickAccess({ icon, iconBackground, title, onPress }) {
         {title}
       </Text>
       <Ionicons name="chevron-forward" size={12} color={colors.muted} />
+    </Pressable>
+  );
+}
+
+function TrendingCard({ drama, rank, onPress }) {
+  const rating = Number(drama?.rating) || 0;
+  const image =
+    drama?.poster_url ||
+    drama?.image ||
+    drama?.poster ||
+    drama?.backdrop_url ||
+    'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400';
+
+  return (
+    <Pressable
+      style={({ pressed, hovered }) => [
+        styles.trendingCard,
+        hovered && styles.trendingCardHovered,
+        pressed && styles.trendingCardPressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Top ${rank}: ${drama.title || drama.name}`}
+    >
+      <View style={styles.trendingCardInner}>
+        {/* Streaming giant style bold ranking index */}
+        <View style={styles.trendingRankBox}>
+          <Text style={styles.trendingRankNumber}>{rank}</Text>
+        </View>
+
+        {/* Poster with subtle border and elevation */}
+        <View style={styles.trendingPosterWrapper}>
+          <Image source={{ uri: image }} style={styles.trendingPosterImage} resizeMode="cover" />
+          <View style={styles.trendingRatingBadge}>
+            <Ionicons name="star" size={10} color="#FFD76A" />
+            <Text style={styles.trendingRatingText}>{rating.toFixed(1)}</Text>
+          </View>
+        </View>
+      </View>
+
+      <Text style={styles.trendingTitle} numberOfLines={1}>
+        {drama.title || drama.name}
+      </Text>
+      <Text style={styles.trendingMeta} numberOfLines={1}>
+        {Array.isArray(drama.genres) ? drama.genres.join(' · ') : drama.genre || 'K-Drama'}
+      </Text>
     </Pressable>
   );
 }
@@ -866,17 +955,119 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
   },
-  recommendedTitle: {
-    color: '#E6E1E3',
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '800',
+  /* STREAMING TRENDING SECTION STYLES */
+  trendingSection: {
+    marginBottom: 26,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
     marginTop: 6,
   },
-  recommendedMeta: {
+  sectionTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionTitleStream: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  seeAllText: {
+    color: '#F5A9C4',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  trendingScrollContent: {
+    paddingRight: 12,
+    paddingVertical: 4,
+    gap: 12,
+  },
+  trendingCard: {
+    width: 145,
+  },
+  trendingCardHovered: {
+    transform: [{ translateY: -3 }],
+  },
+  trendingCardPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.98 }],
+  },
+  trendingCardInner: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 172,
+    marginBottom: 8,
+    position: 'relative',
+  },
+  trendingRankBox: {
+    width: 38,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 2,
+    zIndex: 2,
+    marginRight: -10, // Overlaps into poster slightly like Netflix/streaming services
+  },
+  trendingRankNumber: {
+    fontSize: 60,
+    fontWeight: '900',
+    lineHeight: 64,
+    color: '#151422',
+    textShadowColor: '#F5A9C4',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: -4,
+  },
+  trendingPosterWrapper: {
+    flex: 1,
+    height: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#161524',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  trendingPosterImage: {
+    width: '100%',
+    height: '100%',
+  },
+  trendingRatingBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(7, 7, 14, 0.85)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  trendingRatingText: {
+    color: '#FFD76A',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  trendingTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  trendingMeta: {
     color: '#8D8B98',
-    fontSize: 10,
-    marginTop: 3,
+    fontSize: 11,
+    marginTop: 2,
   },
   bottomSpace: {
     height: 40,
