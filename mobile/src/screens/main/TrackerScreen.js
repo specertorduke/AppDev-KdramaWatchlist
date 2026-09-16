@@ -138,6 +138,43 @@ export default function TrackerScreen({ navigation, route }) {
     ['Dropped', counts.dropped ?? 0],
   ];
 
+  // View Mode: 'list' | 'grid'
+  const [viewMode, setViewMode] = useState('list');
+  const [loggingId, setLoggingId] = useState(null);
+
+  const handleQuickIncrement = async (item, e) => {
+    e?.stopPropagation?.();
+    if (loggingId === item.tmdb_id) return;
+    setLoggingId(item.tmdb_id);
+
+    const nextEp = (Number(item.current_episode) || 0) + 1;
+    const total = Number(item.total_episodes) || 0;
+    const newStatus = total > 0 && nextEp >= total ? 'completed' : item.status;
+
+    // Optimistic UI update
+    setItems((prev) =>
+      prev.map((i) =>
+        i.tmdb_id === item.tmdb_id
+          ? {
+              ...i,
+              current_episode: nextEp,
+              status: newStatus,
+              progress_percentage: total > 0 ? Math.min(100, Math.round((nextEp / total) * 100)) : 0,
+            }
+          : i
+      )
+    );
+
+    try {
+      await trackerService.incrementEpisode(item.tmdb_id);
+    } catch (err) {
+      // rollback if failed
+      fetchWatchlist();
+    } finally {
+      setLoggingId(null);
+    }
+  };
+
   return (
     <View style={styles.screen}>
       {/* Tracker Scroll View */}
@@ -173,25 +210,43 @@ export default function TrackerScreen({ navigation, route }) {
 
             <View style={styles.headerText}>
               <Text style={styles.title}>My Tracker</Text>
-              <Text style={styles.subtitle}>Keep track of what you're watching.</Text>
+              <Text style={styles.subtitle}>
+                {counts.all ? `${counts.all} dramas in collection` : 'Track your K-drama journey'}
+              </Text>
             </View>
           </View>
 
-          {/* Add Drama Button */}
-          <Pressable
-            style={({ pressed, hovered }) => [
-              styles.addButton,
-              hovered && styles.addButtonHover,
-              pressed && styles.addButtonPressed,
-            ]}
-            onPress={() => navigation.navigate('AddDrama')}
-            accessibilityRole="button"
-            accessibilityLabel="Add drama"
-            hitSlop={5}
-          >
-            <Ionicons name="add" size={15} color="#fff" />
-            <Text style={styles.addText}>Add Drama</Text>
-          </Pressable>
+          {/* Action Row */}
+          <View style={styles.headerRightActions}>
+            {/* View Mode Toggle Button */}
+            <Pressable
+              style={styles.viewToggleBtn}
+              onPress={() => setViewMode((v) => (v === 'list' ? 'grid' : 'list'))}
+              hitSlop={6}
+            >
+              <Ionicons
+                name={viewMode === 'list' ? 'grid-outline' : 'list-outline'}
+                size={17}
+                color={colors.text}
+              />
+            </Pressable>
+
+            {/* Add Drama Button */}
+            <Pressable
+              style={({ pressed, hovered }) => [
+                styles.addButton,
+                hovered && styles.addButtonHover,
+                pressed && styles.addButtonPressed,
+              ]}
+              onPress={() => navigation.navigate('AddDrama')}
+              accessibilityRole="button"
+              accessibilityLabel="Add drama"
+              hitSlop={5}
+            >
+              <Ionicons name="add" size={16} color="#07070E" />
+              <Text style={styles.addText}>Add</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Tabs */}
@@ -220,19 +275,31 @@ export default function TrackerScreen({ navigation, route }) {
         {/* Empty State */}
         {!loading && items.length === 0 && (
           <View style={styles.empty}>
-            <Ionicons name="film-outline" size={30} color={colors.muted} />
-            <Text style={styles.emptyTitle}>Nothing here yet</Text>
-            <Text style={styles.emptyText}>Add a drama to start building your list.</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="sparkles" size={30} color={colors.redBright} />
+            </View>
+            <Text style={styles.emptyTitle}>Your watchlist is empty</Text>
+            <Text style={styles.emptyText}>
+              Discover trending K-dramas and start tracking your binge journey!
+            </Text>
+            <Pressable
+              style={styles.emptyAddBtn}
+              onPress={() => navigation.navigate('AddDrama')}
+            >
+              <Ionicons name="add-circle" size={16} color="#07070E" />
+              <Text style={styles.emptyAddBtnText}>Explore & Add Drama</Text>
+            </Pressable>
           </View>
         )}
 
-        {/* Drama List */}
+        {/* Drama List / Grid */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.redBright} />
           </View>
-        ) : (
-          <View style={styles.list}>
+        ) : viewMode === 'grid' ? (
+          /* POSTER GRID VIEW (Clean Netflix/IMDb style without dark shadow overlay or overlapping buttons) */
+          <View style={styles.gridContainer}>
             {items.map((item) => {
               const drama = item.drama || {};
               const episodeTotal = Number(item.total_episodes) || Number(drama.total_episodes) || 0;
@@ -245,6 +312,111 @@ export default function TrackerScreen({ navigation, route }) {
               const posterSource = drama.poster_url || drama.image || drama.poster || null;
 
               return (
+                <Pressable
+                  key={item.id || item.tmdb_id}
+                  style={styles.gridCard}
+                  onPress={() => navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })}
+                >
+                  {/* Clean Poster - Pure artwork with NO dark overlay */}
+                  <View style={styles.gridPosterWrap}>
+                    {posterSource ? (
+                      <Image source={{ uri: posterSource }} style={styles.gridPoster} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.gridPosterPlaceholder}>
+                        <Ionicons name="film-outline" size={24} color={colors.muted} />
+                      </View>
+                    )}
+
+                    {/* Clean bottom progress line */}
+                    <View style={styles.gridProgressTrack}>
+                      <View
+                        style={[
+                          styles.gridProgressFill,
+                          { width: `${progress}%`, backgroundColor: statusColor },
+                        ]}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Information Row Underneath Poster (Clean, Non-overlapping) */}
+                  <View style={styles.gridInfoBox}>
+                    <Text style={styles.gridTitle} numberOfLines={1}>
+                      {drama.title || 'Untitled'}
+                    </Text>
+
+                    {/* Status & Quick Add Row */}
+                    <View style={styles.gridActionRow}>
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleOpenStatusEditor(item);
+                        }}
+                        style={[
+                          styles.gridStatusPillClean,
+                          { borderColor: `${statusColor}60`, backgroundColor: `${statusColor}18` },
+                        ]}
+                      >
+                        <View style={[styles.statusDotSmall, { backgroundColor: statusColor }]} />
+                        <Text style={[styles.gridStatusTextClean, { color: statusColor }]} numberOfLines={1}>
+                          {displayStatus}
+                        </Text>
+                      </Pressable>
+
+                      {item.status === 'watching' && (
+                        <Pressable
+                          onPress={(e) => handleQuickIncrement(item, e)}
+                          style={styles.gridQuickAddClean}
+                          hitSlop={5}
+                        >
+                          <Text style={styles.gridQuickAddTextClean}>+1</Text>
+                        </Pressable>
+                      )}
+                    </View>
+
+                    {/* Episodes & Progress */}
+                    <View style={styles.gridMetaRow}>
+                      <Text style={styles.gridEpisodesText}>
+                        {watched}/{episodeTotal || '?'} eps
+                      </Text>
+                      {Number(item.rating) > 0 ? (
+                        <View style={styles.gridRatingBadge}>
+                          <Ionicons name="star" size={10} color="#FFD76A" />
+                          <Text style={styles.gridRatingText}>{Number(item.rating).toFixed(0)}</Text>
+                        </View>
+                      ) : (
+                        <Text style={[styles.gridPercentText, { color: statusColor }]}>{progress}%</Text>
+                      )}
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          /* RICH LIST VIEW */
+          <View style={styles.list}>
+            {items.map((item) => {
+              const drama = item.drama || {};
+              const episodeTotal = Number(item.total_episodes) || Number(drama.total_episodes) || 0;
+              const watched = Number(item.current_episode) || 0;
+              const progress = episodeTotal > 0 ? Math.round((watched / episodeTotal) * 100) : 0;
+              const displayStatus = String(item.status || 'plan_to_watch')
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (c) => c.toUpperCase());
+              const statusColor = getStatusColor(displayStatus);
+              const posterSource = drama.poster_url || drama.image || drama.poster || null;
+
+              // Genre formatting: clean strings, filter out raw objects
+              const genreText = Array.isArray(drama.genres)
+                ? drama.genres
+                    .map((g) => (typeof g === 'string' ? g : g?.name || ''))
+                    .filter(Boolean)
+                    .join(' · ')
+                : typeof drama.genre === 'string'
+                ? drama.genre
+                : 'K-Drama';
+
+              return (
                 <View key={item.id || item.tmdb_id} style={styles.card}>
                   <Pressable
                     style={styles.cardPressable}
@@ -252,33 +424,81 @@ export default function TrackerScreen({ navigation, route }) {
                       navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })
                     }
                   >
-                    {posterSource ? (
-                      <Image
-                        source={{ uri: posterSource }}
-                        style={styles.poster}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={styles.posterPlaceholder}>
-                        <Ionicons name="film-outline" size={18} color={colors.muted} />
-                      </View>
-                    )}
+                    {/* Poster with clean Status Accent border */}
+                    <View style={styles.posterContainer}>
+                      {posterSource ? (
+                        <Image
+                          source={{ uri: posterSource }}
+                          style={styles.poster}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.posterPlaceholder}>
+                          <Ionicons name="film-outline" size={20} color={colors.muted} />
+                        </View>
+                      )}
+                      <View style={[styles.posterStatusStripe, { backgroundColor: statusColor }]} />
+                    </View>
 
                     <View style={styles.cardMain}>
-                      <Text style={styles.dramaTitle} numberOfLines={1}>
-                        {drama.title || 'Untitled Drama'}
-                      </Text>
+                      {/* Title & Status Pill in clean top row */}
+                      <View style={styles.cardHeaderRow}>
+                        <Text style={styles.dramaTitle} numberOfLines={1}>
+                          {drama.title || 'Untitled Drama'}
+                        </Text>
+                        <Pressable
+                          onPress={() => handleOpenStatusEditor(item)}
+                          style={[
+                            styles.status,
+                            { borderColor: `${statusColor}55`, backgroundColor: `${statusColor}18` },
+                          ]}
+                          hitSlop={4}
+                        >
+                          <View style={[styles.statusDotSmall, { backgroundColor: statusColor }]} />
+                          <Text
+                            style={[styles.statusText, { color: statusColor }]}
+                            numberOfLines={1}
+                          >
+                            {displayStatus}
+                          </Text>
+                          <Ionicons
+                            name="chevron-down"
+                            size={10}
+                            color={statusColor}
+                            style={styles.statusChevron}
+                          />
+                        </Pressable>
+                      </View>
 
+                      {/* Genre Subtext */}
                       <Text style={styles.genre} numberOfLines={1}>
-                        {Array.isArray(drama.genres)
-                          ? drama.genres.join(', ')
-                          : drama.genre || 'Drama'}
+                        {genreText || 'Drama'}
                       </Text>
 
-                      <Text style={styles.episodes}>
-                        {watched}/{episodeTotal || 0} eps
-                      </Text>
+                      {/* Episode Progress & Quick +1 Action */}
+                      <View style={styles.episodeProgressRow}>
+                        <Text style={styles.episodes}>
+                          <Text style={styles.episodesCurrent}>{watched}</Text> / {episodeTotal || '?'} eps
+                        </Text>
 
+                        <View style={styles.progressRightGroup}>
+                          {item.status === 'watching' && (
+                            <Pressable
+                              style={styles.quickAddEpisodeBtn}
+                              onPress={(e) => handleQuickIncrement(item, e)}
+                              hitSlop={6}
+                            >
+                              <Ionicons name="add" size={12} color="#FFFFFF" />
+                              <Text style={styles.quickAddEpisodeText}>1 ep</Text>
+                            </Pressable>
+                          )}
+                          <Text style={[styles.percentBadge, { color: statusColor }]}>
+                            {progress}%
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Sleek Progress Track */}
                       <View style={styles.progressTrack}>
                         <View
                           style={[
@@ -288,47 +508,25 @@ export default function TrackerScreen({ navigation, route }) {
                         />
                       </View>
 
+                      {/* Bottom Meta: Rating and Review */}
                       <View style={styles.bottomRow}>
                         {Number(item.rating) > 0 ? (
-                          <Text style={[styles.rating, { color: '#FBBF24' }]}>
-                            ★ {Number(item.rating).toFixed(1)}
-                          </Text>
+                          <View style={styles.ratingChip}>
+                            <Ionicons name="star" size={11} color="#FFD76A" />
+                            <Text style={styles.ratingChipText}>
+                              {Number(item.rating).toFixed(0)}/10
+                            </Text>
+                          </View>
                         ) : null}
+
                         {item.review_notes ? (
                           <Text style={styles.comment} numberOfLines={1}>
-                            {item.review_notes}
+                            "{item.review_notes}"
                           </Text>
                         ) : null}
                       </View>
                     </View>
                   </Pressable>
-
-                  {/* Status Dropdown Button */}
-                  <Pressable
-                    onPress={() => handleOpenStatusEditor(item)}
-                    style={[
-                      styles.status,
-                      { borderColor: statusColor, backgroundColor: `${statusColor}18` },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.statusText, { color: statusColor }]}
-                      numberOfLines={1}
-                    >
-                      {displayStatus}
-                    </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={9}
-                      color={statusColor}
-                      style={styles.statusChevron}
-                    />
-                  </Pressable>
-
-                  {/* Percent */}
-                  <Text style={[styles.percent, { color: statusColor }]}>
-                    {progress}%
-                  </Text>
                 </View>
               );
             })}
@@ -574,46 +772,250 @@ const styles = StyleSheet.create({
     minHeight: 85,
     paddingRight: 4,
   },
-  poster: {
-    width: 52,
-    height: 74,
-    borderRadius: 9,
-    backgroundColor: colors.bg,
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  posterPlaceholder: {
-    width: 52,
-    height: 74,
-    borderRadius: 9,
-    backgroundColor: colors.bg,
+  viewToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#1C1A27',
+    borderWidth: 1,
+    borderColor: '#383547',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emptyIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(245, 169, 196, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F5A9C4',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 18,
+  },
+  emptyAddBtnText: {
+    color: '#07070E',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  gridCard: {
+    width: '48%',
+    backgroundColor: '#171520',
+    borderRadius: 14,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  gridPosterWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: colors.bg,
+  },
+  gridPoster: {
+    width: '100%',
+    height: '100%',
+  },
+  gridPosterPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.panel2,
+  },
+  gridInfoBox: {
+    paddingTop: 8,
+    paddingHorizontal: 2,
+  },
+  gridActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  gridStatusPillClean: {
+    alignSelf: 'flex-start',
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 22,
+    paddingHorizontal: 7,
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 4,
+  },
+  gridStatusTextClean: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  gridQuickAddClean: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 22,
+    minWidth: 28,
+    backgroundColor: '#342F4B',
+    borderWidth: 1,
+    borderColor: '#595078',
+    paddingHorizontal: 7,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  gridQuickAddTextClean: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  gridProgressTrack: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  gridProgressFill: {
+    height: '100%',
+  },
+  gridTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  gridMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  gridEpisodesText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  gridRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  gridRatingText: {
+    color: '#FFD76A',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  gridPercentText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  posterContainer: {
+    width: 62,
+    height: 88,
+    borderRadius: 10,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: colors.bg,
+  },
+  posterStatusStripe: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+  },
+  poster: {
+    width: '100%',
+    height: '100%',
+  },
+  posterPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.panel2,
   },
   cardMain: {
     flex: 1,
     minWidth: 0,
-    paddingRight: 8,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   dramaTitle: {
+    flex: 1,
     color: colors.text,
     fontSize: 15,
-    lineHeight: 19,
+    lineHeight: 20,
     fontWeight: '900',
   },
   genre: {
     color: colors.muted,
-    fontSize: 12,
-    marginTop: 3,
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  episodeProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 4,
   },
   episodes: {
     color: '#AAA4AC',
     fontSize: 12,
-    marginTop: 8,
-    marginBottom: 5,
+    fontWeight: '600',
+  },
+  episodesCurrent: {
+    color: colors.text,
+    fontWeight: '900',
+  },
+  progressRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  percentBadge: {
+    fontSize: 11,
+    fontWeight: '900',
   },
   progressTrack: {
-    height: 5,
+    height: 6,
     width: '100%',
-    backgroundColor: '#292833',
+    backgroundColor: '#262433',
     borderRadius: 999,
     overflow: 'hidden',
   },
@@ -624,43 +1026,75 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     marginTop: 8,
   },
-  rating: {
-    fontSize: 12,
-    fontWeight: '800',
+  ratingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 106, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
+  },
+  ratingChipText: {
+    color: '#FFD76A',
+    fontSize: 11,
+    fontWeight: '900',
   },
   comment: {
-    color: '#8D8B98',
-    fontSize: 12,
+    color: '#9E9BAA',
+    fontSize: 11,
     fontStyle: 'italic',
     flex: 1,
   },
   status: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    height: 22,
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+  },
+  statusDotSmall: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   statusText: {
-    fontSize: 7.5,
+    fontSize: 9.5,
     fontWeight: '800',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    lineHeight: 12,
   },
   statusChevron: {
-    marginLeft: 3,
+    marginLeft: 1,
   },
-  percent: {
-    position: 'absolute',
-    right: 10,
-    bottom: 10,
-    fontSize: 8.5,
-    fontWeight: '800',
+  quickAddEpisodeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 22,
+    backgroundColor: '#342F4B',
+    borderWidth: 1,
+    borderColor: '#595078',
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    gap: 3,
+  },
+  quickAddEpisodeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    lineHeight: 12,
   },
   loadingContainer: {
     paddingVertical: 60,

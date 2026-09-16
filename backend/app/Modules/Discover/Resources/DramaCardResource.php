@@ -41,6 +41,18 @@ class DramaCardResource extends JsonResource
             ? (int) $this->resource['number_of_episodes']
             : (isset($this->resource['total_episodes']) ? (int) $this->resource['total_episodes'] : null);
 
+        // Handle genres (could be array of strings or array of objects with {id, name})
+        $genres = [];
+        if (isset($this->resource['genres']) && is_array($this->resource['genres'])) {
+            foreach ($this->resource['genres'] as $genre) {
+                if (is_string($genre)) {
+                    $genres[] = $genre;
+                } elseif (is_array($genre) && isset($genre['name'])) {
+                    $genres[] = $genre['name'];
+                }
+            }
+        }
+
         return [
             'tmdb_id'        => (int) ($this->resource['id'] ?? $this->resource['tmdb_id'] ?? 0),
             'title'          => (string) ($this->resource['name'] ?? $this->resource['title'] ?? ''),
@@ -48,7 +60,7 @@ class DramaCardResource extends JsonResource
             'release_year'   => $releaseYear,
             'rating'         => $rating,
             'rank'           => isset($this->resource['rank']) ? (int) $this->resource['rank'] : null,
-            'genres'         => $this->resource['genres'] ?? [],
+            'genres'         => $genres,
             'total_episodes' => $totalEpisodes,
             'watch_status'   => $this->resource['watch_status'] ?? null,
         ];
