@@ -289,14 +289,11 @@ export default function TrackerScreen({ navigation, route }) {
                       </View>
 
                       <View style={styles.bottomRow}>
-                        <Text
-                          style={[
-                            styles.rating,
-                            { color: Number(item.rating) > 0 ? '#FBBF24' : statusColor },
-                          ]}
-                        >
-                          ★ {Number(item.rating || drama.rating || 0).toFixed(1)}
-                        </Text>
+                        {Number(item.rating) > 0 ? (
+                          <Text style={[styles.rating, { color: '#FBBF24' }]}>
+                            ★ {Number(item.rating).toFixed(1)}
+                          </Text>
+                        ) : null}
                         {item.review_notes ? (
                           <Text style={styles.comment} numberOfLines={1}>
                             {item.review_notes}

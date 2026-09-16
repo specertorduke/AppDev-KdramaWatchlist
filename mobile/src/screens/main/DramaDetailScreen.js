@@ -180,7 +180,8 @@ export default function DramaDetailScreen({ route, navigation }) {
   const progress =
     episodesTotal > 0 ? Math.min(100, Math.round((watchedEpisodes / episodesTotal) * 100)) : 0;
   const remainingEpisodes = Math.max(0, episodesTotal - watchedEpisodes);
-  const ratingValue = Number(drama.rating || 9.2);
+  const tmdbScore = typeof drama.rating === 'number' && drama.rating > 0 ? Number(drama.rating).toFixed(1) : null;
+  const tmdbVoteCount = drama.vote_count ? Number(drama.vote_count) : null;
 
   const posterImage =
     drama.poster_url || drama.poster || drama.image || drama.backdrop_url || null;
@@ -252,10 +253,6 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Text style={styles.metaText}>tvN · Netflix</Text>
             <Text style={styles.metaDot}>•</Text>
             <Text style={styles.metaText}>{episodesTotal} Episodes</Text>
-            <Text style={styles.metaDot}>•</Text>
-            <Text style={[styles.metaText, styles.ratingMeta]}>
-              ★ {ratingValue.toFixed(1)}/10
-            </Text>
           </View>
 
           <Text style={styles.availableText} numberOfLines={1}>
@@ -315,6 +312,14 @@ export default function DramaDetailScreen({ route, navigation }) {
         <DetailRow
           label="Genres"
           value={Array.isArray(drama.genres) ? drama.genres.join(', ') : drama.genre || 'Drama'}
+        />
+        <DetailRow
+          label="TMDB Rating"
+          value={
+            tmdbScore
+              ? `★ ${tmdbScore} / 10${tmdbVoteCount ? ` (${tmdbVoteCount.toLocaleString()} votes)` : ''}`
+              : 'Not rated yet on TMDB'
+          }
         />
         <DetailRow label="Director" value={drama.director || 'Park Ji-young'} />
         <DetailRow label="Aired" value={String(drama.release_year || '2025')} />
@@ -392,37 +397,144 @@ export default function DramaDetailScreen({ route, navigation }) {
                 {savingStatus ? 'Saving...' : 'Save Status'}
               </Text>
             </Pressable>
+          </View>
 
-            {/* RATING */}
-            <Text style={[styles.sectionLabel, styles.ratingLabel]}>MY RATING</Text>
-            <View style={styles.stars}>
-              {[1, 2, 3, 4, 5].map((star) => {
-                const active = selectedRating >= star * 2;
-                return (
-                  <Pressable
-                    key={star}
-                    onPress={() => {
-                      const r = star * 2;
-                      setSelectedRating(r);
-                      setSaveMessage('');
-                    }}
-                    hitSlop={4}
-                  >
-                    <Ionicons
-                      name={active ? 'star' : 'star-outline'}
-                      size={20}
-                      color={colors.gold}
-                    />
-                  </Pressable>
-                );
-              })}
+          {/* MY RATING & REVIEW CARD */}
+          <View style={styles.card}>
+            <View style={styles.reviewHeaderRow}>
+              <View>
+                <Text style={styles.sectionLabel}>MY RATING & REVIEW</Text>
+                <Text style={styles.reviewSublabel}>Your personal score & notes</Text>
+              </View>
+              {selectedRating > 0 ? (
+                <Pressable
+                  onPress={() => {
+                    setSelectedRating(0);
+                    saveTrackerChanges(undefined, undefined, null);
+                  }}
+                  hitSlop={8}
+                  style={styles.clearRatingButton}
+                >
+                  <Ionicons name="close-circle-outline" size={13} color={colors.muted} />
+                  <Text style={styles.clearRatingText}>Clear</Text>
+                </Pressable>
+              ) : null}
             </View>
-            <Text style={styles.ratingValue}>
-              {selectedRating > 0 ? `${selectedRating}/10` : 'Not rated'}
-            </Text>
 
-            {/* NOTES */}
-            <Text style={[styles.sectionLabel, styles.notesLabel]}>MY NOTES</Text>
+            {/* Rating Display Badge - Only shown when user has actually rated */}
+            {selectedRating > 0 ? (
+              <View style={styles.myRatingBadgeRow}>
+                <View style={[styles.myRatingBadge, styles.myRatingBadgeActive]}>
+                  <Ionicons name="star" size={16} color={colors.gold} />
+                  <Text style={[styles.myRatingBadgeText, styles.myRatingBadgeTextActive]}>
+                    {selectedRating} / 10
+                  </Text>
+                </View>
+                <Text style={styles.ratingHintText}>Your rating</Text>
+              </View>
+            ) : (
+              <View style={styles.unratedPromptRow}>
+                <Text style={styles.unratedPromptText}>
+                  Slide or tap on the bar to set your score (1–10)
+                </Text>
+              </View>
+            )}
+
+            {/* Interactive Rating Slider (1 to 10 scale) */}
+            <View style={styles.sliderSection}>
+              <View
+                style={styles.sliderTouchArea}
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={(evt) => {
+                  const touchX = evt.nativeEvent.locationX;
+                  // Slider width is card width minus paddings (~320px on mobile)
+                  // Calculate score from 1 to 10 based on relative touch position
+                  const targetWidth = evt.currentTarget?.offsetWidth || 300;
+                  const ratio = Math.max(0, Math.min(1, touchX / targetWidth));
+                  const score = Math.max(1, Math.min(10, Math.round(ratio * 9 + 1)));
+                  setSelectedRating(score);
+                  setSaveMessage('');
+                }}
+                onResponderMove={(evt) => {
+                  const touchX = evt.nativeEvent.locationX;
+                  const targetWidth = evt.currentTarget?.offsetWidth || 300;
+                  const ratio = Math.max(0, Math.min(1, touchX / targetWidth));
+                  const score = Math.max(1, Math.min(10, Math.round(ratio * 9 + 1)));
+                  setSelectedRating(score);
+                }}
+                onResponderRelease={(evt) => {
+                  const touchX = evt.nativeEvent.locationX;
+                  const targetWidth = evt.currentTarget?.offsetWidth || 300;
+                  const ratio = Math.max(0, Math.min(1, touchX / targetWidth));
+                  const score = Math.max(1, Math.min(10, Math.round(ratio * 9 + 1)));
+                  setSelectedRating(score);
+                  saveTrackerChanges(undefined, undefined, score);
+                }}
+              >
+                {/* Background Track */}
+                <View style={styles.sliderTrackBg}>
+                  {/* Filled track up to current rating */}
+                  <View
+                    style={[
+                      styles.sliderTrackFill,
+                      {
+                        width:
+                          selectedRating > 0
+                            ? `${((selectedRating - 1) / 9) * 100}%`
+                            : '0%',
+                      },
+                    ]}
+                  />
+                  {/* Slider Thumb */}
+                  {selectedRating > 0 ? (
+                    <View
+                      style={[
+                        styles.sliderThumb,
+                        {
+                          left: `${((selectedRating - 1) / 9) * 100}%`,
+                        },
+                      ]}
+                    >
+                      <Ionicons name="star" size={11} color="#0D0C13" />
+                    </View>
+                  ) : (
+                    <View style={[styles.sliderThumb, styles.sliderThumbUnset, { left: '0%' }]} />
+                  )}
+                </View>
+              </View>
+
+              {/* Step indicator labels 1 to 10 for quick tapping */}
+              <View style={styles.sliderStepsRow}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => {
+                  const isCurrent = selectedRating === step;
+                  return (
+                    <Pressable
+                      key={step}
+                      onPress={() => {
+                        setSelectedRating(step);
+                        setSaveMessage('');
+                        saveTrackerChanges(undefined, undefined, step);
+                      }}
+                      hitSlop={6}
+                      style={styles.sliderStepTouchable}
+                    >
+                      <Text
+                        style={[
+                          styles.sliderStepText,
+                          isCurrent && styles.sliderStepTextActive,
+                        ]}
+                      >
+                        {step}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* MY REVIEW / NOTES */}
+            <Text style={[styles.sectionLabel, styles.notesLabel]}>PERSONAL REVIEW / NOTES</Text>
             <TextInput
               value={notes}
               onChangeText={(v) => {
@@ -431,7 +543,7 @@ export default function DramaDetailScreen({ route, navigation }) {
               }}
               multiline
               textAlignVertical="top"
-              placeholder="Add a note..."
+              placeholder="What did you think of this drama? Write your personal thoughts, favorite moments, or critique..."
               placeholderTextColor={colors.muted}
               style={styles.notesInput}
             />
@@ -442,8 +554,9 @@ export default function DramaDetailScreen({ route, navigation }) {
                 onPress={() => saveTrackerChanges(undefined, undefined, undefined, notes)}
                 disabled={savingStatus}
               >
+                <Ionicons name="chatbubble-ellipses-outline" size={15} color="#FFFFFF" />
                 <Text style={styles.saveButtonText}>
-                  {savingStatus ? 'Saving...' : 'Save Notes'}
+                  {savingStatus ? 'Saving...' : 'Save Review'}
                 </Text>
               </Pressable>
 
@@ -452,8 +565,8 @@ export default function DramaDetailScreen({ route, navigation }) {
                 onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes)}
                 disabled={savingStatus}
               >
-                <Ionicons name="save-outline" size={11} color="#FFFFFF" />
-                <Text style={styles.saveAllButtonText}>Save All</Text>
+                <Ionicons name="save-outline" size={15} color="#FFFFFF" />
+                <Text style={styles.saveAllButtonText}>Save All Changes</Text>
               </Pressable>
             </View>
 
@@ -461,7 +574,7 @@ export default function DramaDetailScreen({ route, navigation }) {
               <View style={styles.saveMessageRow}>
                 <Ionicons
                   name={saveMessage.includes('fail') ? 'alert-circle' : 'checkmark-circle'}
-                  size={11}
+                  size={13}
                   color={saveMessage.includes('fail') ? '#F87171' : '#22C55E'}
                 />
                 <Text
@@ -660,14 +773,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginHorizontal: 2,
   },
-  ratingMeta: {
+  heroTmdbRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    gap: 8,
+  },
+  tmdbPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 106, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 106, 0.3)',
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  tmdbPillScore: {
     color: '#FFD76A',
+    fontSize: 12,
     fontWeight: '900',
+  },
+  tmdbPillLabel: {
+    color: '#E0DEE9',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  tmdbVoteText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '500',
   },
   availableText: {
     color: colors.muted,
     fontSize: 11,
-    marginTop: 8,
+    marginTop: 6,
   },
   actionRow: {
     flexDirection: 'row',
@@ -900,23 +1043,146 @@ const styles = StyleSheet.create({
   saveButtonDisabled: {
     opacity: 0.55,
   },
-  ratingLabel: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  stars: {
+  reviewHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  reviewSublabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  clearRatingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: colors.line,
+    gap: 4,
+  },
+  clearRatingText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  myRatingBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 10,
+    gap: 10,
+  },
+  myRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#191822',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     gap: 6,
   },
-  ratingValue: {
+  myRatingBadgeActive: {
+    backgroundColor: 'rgba(255, 215, 106, 0.1)',
+    borderColor: 'rgba(255, 215, 106, 0.4)',
+  },
+  myRatingBadgeText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  myRatingBadgeTextActive: {
+    color: '#FFD76A',
+    fontWeight: '900',
+  },
+  ratingHintText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  unratedPromptRow: {
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  unratedPromptText: {
     color: colors.muted,
     fontSize: 12,
+    fontWeight: '500',
+  },
+  sliderSection: {
+    marginVertical: 10,
+  },
+  sliderTouchArea: {
+    height: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    cursor: 'pointer',
+  },
+  sliderTrackBg: {
+    height: 8,
+    width: '100%',
+    backgroundColor: '#1E1D2A',
+    borderRadius: 4,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  sliderTrackFill: {
+    position: 'absolute',
+    left: 0,
+    height: '100%',
+    backgroundColor: '#FFD76A',
+    borderRadius: 4,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFD76A',
+    marginLeft: -12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  sliderThumbUnset: {
+    backgroundColor: '#4A4858',
+  },
+  sliderStepsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginTop: 2,
+  },
+  sliderStepTouchable: {
+    minWidth: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+  },
+  sliderStepText: {
+    color: colors.muted,
+    fontSize: 11,
     fontWeight: '700',
-    marginTop: 6,
+  },
+  sliderStepTextActive: {
+    color: '#FFD76A',
+    fontWeight: '900',
+    fontSize: 13,
   },
   notesLabel: {
-    marginTop: 16,
+    marginTop: 14,
     marginBottom: 8,
   },
   notesInput: {
@@ -935,39 +1201,45 @@ const styles = StyleSheet.create({
   notesButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 12,
   },
   saveButton: {
-    alignSelf: 'flex-start',
-    minHeight: 36,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: colors.redBright,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  saveAllButton: {
-    minHeight: 36,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: '#292936',
-    borderWidth: 1,
-    borderColor: '#454351',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: colors.redBright,
+    gap: 7,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  saveAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#232230',
+    borderWidth: 1,
+    borderColor: '#3D3B4E',
+    gap: 7,
   },
   saveAllButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
-    marginLeft: 5,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   saveMessageRow: {
     flexDirection: 'row',
