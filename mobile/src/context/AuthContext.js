@@ -149,13 +149,21 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const register = async (name, email, password, passwordConfirmation, rememberMe = true) => {
+  const register = async (
+    name,
+    email,
+    password,
+    passwordConfirmation,
+    rememberMe = true,
+    termsPrivacyAccepted = true
+  ) => {
     // Rely strictly on backend validation
     const response = await authService.register({
       name,
       email,
       password,
       password_confirmation: passwordConfirmation,
+      terms_privacy_accepted: termsPrivacyAccepted,
     });
     const { user: userData, token: authToken } = response.data;
     setUser(userData);
