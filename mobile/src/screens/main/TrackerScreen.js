@@ -68,7 +68,9 @@ export default function TrackerScreen({ navigation, route }) {
   const fetchWatchlist = useCallback(async () => {
     try {
       const params = {};
-      if (activeTab !== 'All') {
+      if (activeTab === 'Favorites') {
+        params.favorite = true;
+      } else if (activeTab !== 'All') {
         params.status = activeTab.toLowerCase().replace(/ /g, '_');
       }
 
@@ -133,6 +135,7 @@ export default function TrackerScreen({ navigation, route }) {
 
   const tabs = [
     ['All', counts.all ?? items.length],
+    ['Favorites', counts.favorites ?? 0],
     ['Watching', counts.watching ?? 0],
     ['Completed', counts.completed ?? 0],
     ['Plan to Watch', counts.plan_to_watch ?? 0],
@@ -269,6 +272,14 @@ export default function TrackerScreen({ navigation, route }) {
                 onPress={() => setActiveTab(name)}
                 style={[styles.tab, isActive && styles.tabActive]}
               >
+                {name === 'Favorites' && (
+                  <Ionicons
+                    name="heart"
+                    size={12}
+                    color={isActive ? '#FF4655' : colors.muted}
+                    style={{ marginRight: 4 }}
+                  />
+                )}
                 <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
                   {name} ({count})
                 </Text>
@@ -724,6 +735,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.panel,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },

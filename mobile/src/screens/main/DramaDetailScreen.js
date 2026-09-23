@@ -145,6 +145,12 @@ export default function DramaDetailScreen({ route, navigation }) {
     const nextFav = !isFavorite;
     setIsFavorite(nextFav);
     await saveTrackerChanges(undefined, undefined, undefined, undefined, nextFav);
+    Alert.alert(
+      nextFav ? 'Added to Favorites' : 'Removed from Favorites',
+      nextFav
+        ? 'This drama was saved to your Favorites collection.'
+        : 'This drama was removed from your Favorites collection.'
+    );
   };
 
   const handleToggleList = async () => {
