@@ -46,7 +46,9 @@ export default function LoginScreen({ navigation, route }) {
           );
         }
       } else {
-        setErrorMessage('Cannot connect to the backend server. Please ensure the API is running.');
+        setErrorMessage(
+          err.friendlyMessage || 'Unable to connect. Please check your internet connection and try again.'
+        );
       }
     } finally {
       setLoading(false);

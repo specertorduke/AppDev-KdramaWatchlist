@@ -37,6 +37,7 @@ export const setOnUnauthorizedCallback = (callback) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // 401 Unauthorized handling
     if (error.response && error.response.status === 401) {
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('auth_user');
@@ -44,6 +45,23 @@ api.interceptors.response.use(
         onUnauthorizedCallback();
       }
     }
+
+    // Graceful network / connection failure handling
+    if (!error.response) {
+      if (__DEV__) {
+        console.warn('[Network Error] Failed to reach backend URL:', error.config?.baseURL || error.config?.url);
+        console.warn('[Network Tip] If testing on physical phone, ensure Laravel is running with: php artisan serve --host=0.0.0.0');
+      }
+
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        error.friendlyMessage = 'Connection timed out. Please check your network and try again.';
+      } else {
+        error.friendlyMessage = 'Unable to connect. Please check your internet connection and try again.';
+      }
+    } else {
+      error.friendlyMessage = error.response.data?.message || 'Something went wrong. Please try again.';
+    }
+
     return Promise.reject(error);
   }
 );
