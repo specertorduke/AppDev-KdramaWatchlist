@@ -7,14 +7,15 @@ This guide walks you through running and testing the **SarangTV Mobile App** usi
 ## 📌 Environment & Version Compatibility Reference
 
 > [!IMPORTANT]
-> This project is explicitly pinned and verified for **Expo SDK 54** to guarantee 100% compatibility with the latest Expo Go app on the iOS App Store and Google Play Store.
+> This project is explicitly pinned and verified for **Expo SDK 57** to guarantee 100% compatibility with the latest Expo Go app on the iOS App Store and Google Play Store.
 
 | Component | Target Version | Notes |
 | :--- | :--- | :--- |
-| **Expo SDK** | `^54.0.37` | Compatible with Expo Go SDK 54 |
-| **React Native** | `0.81.5` | Pinned by Expo SDK 54 |
-| **React / React DOM** | `19.1.0` | Required peer for React Native 0.81.5 |
-| **Expo Font** | `~14.0.12` | For `@expo/vector-icons` / Ionicons |
+| **Expo SDK** | `^57.0.0` | Compatible with Expo Go SDK 57 |
+| **React Native** | `0.86.3` | Pinned by Expo SDK 57 |
+| **React / React DOM** | `19.2.3` | Required peer for React Native 0.86.3 |
+| **Expo Font** | `~57.0.4` | For `@expo/vector-icons` / Ionicons |
+| **Expo Status Bar** | `~57.0.1` | Status bar controller |
 | **Node.js** | `>= 18.x` / `20.x` / `22.x` | Node runtime environment |
 | **PHP (Backend)** | `>= 8.2` | Laravel API runtime |
 
@@ -23,7 +24,7 @@ This guide walks you through running and testing the **SarangTV Mobile App** usi
 ## 📋 Prerequisites
 
 1. **Node.js**: Installed on your machine.
-2. **Expo Go App (SDK 54)**: Installed on your physical smartphone from the App Store (iOS) or Google Play Store (Android).
+2. **Expo Go App (SDK 57)**: Installed on your physical smartphone from the App Store (iOS) or Google Play Store (Android).
 3. **Same Wi-Fi Network**: Ensure your PC and mobile device are connected to the exact same Wi-Fi connection.
 
 ---
