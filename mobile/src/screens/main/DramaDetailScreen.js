@@ -35,6 +35,8 @@ export default function DramaDetailScreen({ route, navigation }) {
   const [isFavorite, setIsFavorite] = useState(false);
 
   // Form states
+  const [selectedSeasonIndex, setSelectedSeasonIndex] = useState(0);
+  const [showAllEpisodes, setShowAllEpisodes] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('Plan to Watch');
   const [watchedEpisodes, setWatchedEpisodes] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
@@ -194,17 +196,40 @@ export default function DramaDetailScreen({ route, navigation }) {
   const posterImage =
     drama.poster_url || drama.poster || drama.image || drama.backdrop_url || null;
 
-  const episodeTitles = [
-    'Neon and Rain', 'The Fixer', 'Architecture of Power', 'The Missing Tower',
-    'Protocol Zero', 'Underworld', 'Specter’s Game', 'False Identity',
-    'The Hidden Room', 'Midnight Signal', 'Broken Promise', 'The Last Clue',
-    'Dark Passenger', 'Crossing Lines', 'The Final Secret', 'Midnight in Seoul',
-  ];
+  const networksDisplay = Array.isArray(drama.networks) && drama.networks.length > 0
+    ? drama.networks.join(' · ')
+    : (drama.network || null);
 
-  const episodeList = Array.from({ length: Math.min(episodesTotal, 16) }, (_, index) => ({
-    number: index + 1,
-    title: episodeTitles[index] || `Episode ${index + 1}`,
-  }));
+  // Extract seasons from TMDB (ignoring season 0 / specials if regular seasons exist)
+  const allSeasons = Array.isArray(drama.seasons) && drama.seasons.length > 0
+    ? drama.seasons.filter((s) => s.season_number > 0 || drama.seasons.length === 1)
+    : [];
+
+  const currentSeason = allSeasons[selectedSeasonIndex] || allSeasons[0] || null;
+  // Total episodes in the currently selected season (or drama total)
+  const currentSeasonEpisodes = Math.max(
+    1,
+    currentSeason?.episode_count || episodesTotal || 16
+  );
+
+  // Generate full episode array for current season without arbitrary hard caps
+  const episodeList = Array.from({ length: currentSeasonEpisodes }, (_, index) => {
+    const epNum = index + 1;
+    // Check if backend returned detailed episode items with real names
+    const realEp = Array.isArray(drama.episodes)
+      ? drama.episodes.find((e) => e.episode_number === epNum)
+      : null;
+    return {
+      number: epNum,
+      title: realEp?.name || `Episode ${epNum}`,
+    };
+  });
+
+  const INITIAL_VISIBLE_COUNT = 30;
+  const hasMoreEpisodes = episodeList.length > INITIAL_VISIBLE_COUNT;
+  const displayedEpisodes = showAllEpisodes
+    ? episodeList
+    : episodeList.slice(0, INITIAL_VISIBLE_COUNT);
 
   const isWide = width >= 600;
 
@@ -260,8 +285,12 @@ export default function DramaDetailScreen({ route, navigation }) {
 
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>{drama.release_year || '2025'}</Text>
-            <Text style={styles.metaDot}>•</Text>
-            <Text style={styles.metaText}>tvN · Netflix</Text>
+            {networksDisplay ? (
+              <>
+                <Text style={styles.metaDot}>•</Text>
+                <Text style={styles.metaText}>{networksDisplay}</Text>
+              </>
+            ) : null}
             <Text style={styles.metaDot}>•</Text>
             <Text style={styles.metaText}>{episodesTotal} Episodes</Text>
           </View>
@@ -282,9 +311,11 @@ export default function DramaDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          <Text style={styles.availableText} numberOfLines={1}>
-            Available on tvN · Netflix
-          </Text>
+          {networksDisplay ? (
+            <Text style={styles.availableText} numberOfLines={1}>
+              Available on {networksDisplay}
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -349,9 +380,12 @@ export default function DramaDetailScreen({ route, navigation }) {
           }
         />
         <DetailRow label="Director" value={drama.director || 'Park Ji-young'} />
+        {allSeasons.length > 1 ? (
+          <DetailRow label="Seasons" value={`${allSeasons.length} Seasons (${episodesTotal} Total Eps)`} />
+        ) : null}
         <DetailRow label="Aired" value={String(drama.release_year || '2025')} />
         <DetailRow label="Duration" value={drama.duration || '62 min / ep'} />
-        <DetailRow label="Network" value="tvN · Netflix" last />
+        <DetailRow label="Network" value={networksDisplay || 'tvN · Netflix'} last />
       </View>
 
       {/* MAIN CAST */}
@@ -397,7 +431,7 @@ export default function DramaDetailScreen({ route, navigation }) {
                     key={st}
                     onPress={() => {
                       setSelectedStatus(st);
-                      setSaveMessage('');
+                      saveTrackerChanges(st);
                     }}
                     style={[styles.statusPill, active && styles.statusPillActive]}
                   >
@@ -408,22 +442,6 @@ export default function DramaDetailScreen({ route, navigation }) {
                 );
               })}
             </View>
-
-            {/* SAVE STATUS BUTTON */}
-            <Pressable
-              style={[styles.saveStatusButton, savingStatus && styles.saveButtonDisabled]}
-              onPress={() => saveTrackerChanges(selectedStatus)}
-              disabled={savingStatus}
-            >
-              <Ionicons
-                name={savingStatus ? 'hourglass-outline' : 'checkmark-circle-outline'}
-                size={12}
-                color="#FFFFFF"
-              />
-              <Text style={styles.saveStatusButtonText}>
-                {savingStatus ? 'Saving...' : 'Save Status'}
-              </Text>
-            </Pressable>
           </View>
 
           {/* MY RATING & REVIEW CARD */}
@@ -577,23 +595,18 @@ export default function DramaDetailScreen({ route, navigation }) {
 
             <View style={styles.notesButtons}>
               <Pressable
-                style={[styles.saveButton, savingStatus && styles.saveButtonDisabled]}
-                onPress={() => saveTrackerChanges(undefined, undefined, undefined, notes)}
-                disabled={savingStatus}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={15} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>
-                  {savingStatus ? 'Saving...' : 'Save Review'}
-                </Text>
-              </Pressable>
-
-              <Pressable
                 style={[styles.saveAllButton, savingStatus && styles.saveButtonDisabled]}
                 onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes)}
                 disabled={savingStatus}
               >
-                <Ionicons name="save-outline" size={15} color="#FFFFFF" />
-                <Text style={styles.saveAllButtonText}>Save All Changes</Text>
+                <Ionicons
+                  name={savingStatus ? 'hourglass-outline' : 'checkmark-circle'}
+                  size={15}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.saveAllButtonText}>
+                  {savingStatus ? 'Saving...' : 'Save Review & Notes'}
+                </Text>
               </Pressable>
             </View>
 
@@ -616,15 +629,56 @@ export default function DramaDetailScreen({ route, navigation }) {
             ) : null}
           </View>
 
-          {/* EPISODES */}
+          {/* EPISODES & SEASONS */}
           <View style={styles.card}>
             <View style={styles.episodesHeader}>
-              <Text style={styles.sectionLabel}>EPISODES</Text>
-              <Text style={styles.totalEpisodes}>{episodesTotal} Total</Text>
+              <Text style={styles.sectionLabel}>
+                {allSeasons.length > 1 ? 'SEASONS & EPISODES' : 'EPISODES'}
+              </Text>
+              <Text style={styles.totalEpisodes}>
+                {currentSeason ? `${currentSeason.episode_count || currentSeasonEpisodes} Episodes` : `${episodesTotal} Total`}
+              </Text>
             </View>
 
+            {/* Season Selector Tabs */}
+            {allSeasons.length > 1 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.seasonTabsContent}
+                style={styles.seasonTabsScroll}
+              >
+                {allSeasons.map((season, idx) => {
+                  const isActive = selectedSeasonIndex === idx;
+                  const seasonName = season.name || `Season ${season.season_number || idx + 1}`;
+                  return (
+                    <Pressable
+                      key={season.id || `season-${idx}`}
+                      onPress={() => {
+                        setSelectedSeasonIndex(idx);
+                        setShowAllEpisodes(false);
+                      }}
+                      style={[
+                        styles.seasonTabPill,
+                        isActive && styles.seasonTabPillActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.seasonTabPillText,
+                          isActive && styles.seasonTabPillTextActive,
+                        ]}
+                      >
+                        {seasonName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+
             <View style={styles.episodeList}>
-              {episodeList.map((ep) => {
+              {displayedEpisodes.map((ep) => {
                 const watched = ep.number <= watchedEpisodes;
                 return (
                   <Pressable
@@ -650,6 +704,25 @@ export default function DramaDetailScreen({ route, navigation }) {
                 );
               })}
             </View>
+
+            {hasMoreEpisodes && (
+              <Pressable
+                style={styles.showMoreButton}
+                onPress={() => setShowAllEpisodes((prev) => !prev)}
+                accessibilityRole="button"
+              >
+                <Text style={styles.showMoreButtonText}>
+                  {showAllEpisodes
+                    ? `Show Fewer Episodes`
+                    : `View All ${episodeList.length} Episodes (${episodeList.length - INITIAL_VISIBLE_COUNT} more)`}
+                </Text>
+                <Ionicons
+                  name={showAllEpisodes ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color="#F5A9C4"
+                />
+              </Pressable>
+            )}
           </View>
 
       <View style={styles.bottomSpace} />
@@ -1268,6 +1341,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.2,
   },
+  saveButtonDisabled: {
+    opacity: 0.55,
+  },
   saveMessageRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1287,6 +1363,34 @@ const styles = StyleSheet.create({
   totalEpisodes: {
     color: colors.muted,
     fontSize: 12,
+  },
+  seasonTabsScroll: {
+    marginBottom: 14,
+    marginTop: 4,
+  },
+  seasonTabsContent: {
+    gap: 8,
+  },
+  seasonTabPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#1E1C2B',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  seasonTabPillActive: {
+    backgroundColor: 'rgba(245, 169, 196, 0.18)',
+    borderColor: '#F5A9C4',
+  },
+  seasonTabPillText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  seasonTabPillTextActive: {
+    color: '#F5A9C4',
+    fontWeight: '800',
   },
   episodeList: {
     marginTop: 4,
@@ -1330,6 +1434,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     width: 32,
     textAlign: 'right',
+  },
+  showMoreButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#1E1C2B',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  showMoreButtonText: {
+    color: '#F5A9C4',
+    fontSize: 12,
+    fontWeight: '700',
   },
   actionRow: {
     flexDirection: 'row',

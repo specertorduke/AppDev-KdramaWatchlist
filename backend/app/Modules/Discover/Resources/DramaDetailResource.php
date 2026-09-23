@@ -54,6 +54,18 @@ class DramaDetailResource extends JsonResource
             }
         }
 
+        // Handle networks extraction
+        $networks = [];
+        if (isset($this->resource['networks']) && is_array($this->resource['networks'])) {
+            foreach ($this->resource['networks'] as $network) {
+                if (is_string($network)) {
+                    $networks[] = $network;
+                } elseif (is_array($network) && !empty($network['name'])) {
+                    $networks[] = $network['name'];
+                }
+            }
+        }
+
         // Handle trailer extraction from videos.results
         $trailer = null;
         if (isset($this->resource['videos']['results']) && is_array($this->resource['videos']['results'])) {
@@ -156,6 +168,7 @@ class DramaDetailResource extends JsonResource
             'status'             => $this->resource['status'] ?? null,
             'number_of_seasons'  => isset($this->resource['number_of_seasons']) ? (int) $this->resource['number_of_seasons'] : null,
             'number_of_episodes' => isset($this->resource['number_of_episodes']) ? (int) $this->resource['number_of_episodes'] : null,
+            'networks'           => $networks,
             'seasons'            => $seasons,
             'episodes'           => $episodes,
             'trailer'            => $trailer,
