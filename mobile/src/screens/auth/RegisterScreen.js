@@ -15,9 +15,11 @@ import {
 } from 'react-native';
 import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { register } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -73,7 +75,16 @@ export default function RegisterScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: (insets.top > 0 ? insets.top : 20) + 12,
+            paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 16,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Back Link */}
         <TouchableOpacity
           style={styles.backButton}

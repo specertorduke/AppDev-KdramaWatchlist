@@ -12,6 +12,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Keyboard } from 'react-native';
 import { useChatbot, QUICK_PROMPTS } from '../context/ChatbotContext';
@@ -286,12 +287,15 @@ export default function ChatbotModal() {
 }
 
 export function ChatbotFloatingTrigger() {
+  const insets = useSafeAreaInsets();
   const { toggleChat, isOpen } = useChatbot();
+  const bottomOffset = 70 + (insets.bottom > 0 ? insets.bottom : 8);
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.floatingTrigger,
+        { bottom: bottomOffset },
         isOpen && styles.floatingTriggerActive,
         pressed && styles.floatingTriggerPressed,
       ]}

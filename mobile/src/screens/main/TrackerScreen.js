@@ -12,6 +12,7 @@ import {
   Image,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { trackerService } from '../../services/api';
@@ -44,6 +45,7 @@ const getStatusColor = (status) => {
 };
 
 export default function TrackerScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState(route?.params?.initialTab || 'All');
   const [items, setItems] = useState([]);
   const [counts, setCounts] = useState({});
@@ -180,7 +182,10 @@ export default function TrackerScreen({ navigation, route }) {
       {/* Tracker Scroll View */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: (insets.top > 0 ? insets.top : 12) + 6 },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={

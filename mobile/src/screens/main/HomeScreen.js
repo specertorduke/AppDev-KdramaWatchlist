@@ -11,12 +11,14 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { homeService, trackerService, discoverService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { width } = useWindowDimensions();
   const isSmallPhone = width <= 380;
@@ -89,7 +91,15 @@ export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.screen}>
       {/* Top Mobile Bar */}
-      <View style={styles.topBar}>
+      <View
+        style={[
+          styles.topBar,
+          {
+            paddingTop: insets.top > 0 ? insets.top : 8,
+            height: (insets.top > 0 ? insets.top : 8) + 48,
+          },
+        ]}
+      >
         <View style={styles.logoRow}>
           <Image
             source={require('../../../assets/sarangtv-logo.png')}

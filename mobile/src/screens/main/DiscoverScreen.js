@@ -9,12 +9,14 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import DramaCard from '../../components/DramaCard';
 import { discoverService } from '../../services/api';
 
 export default function DiscoverScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [selectedGenreId, setSelectedGenreId] = useState(null);
@@ -106,7 +108,15 @@ export default function DiscoverScreen({ navigation }) {
   return (
     <View style={styles.screen}>
       {/* Header */}
-      <View style={styles.topHeader}>
+      <View
+        style={[
+          styles.topHeader,
+          {
+            paddingTop: insets.top > 0 ? insets.top : 8,
+            height: (insets.top > 0 ? insets.top : 8) + 54,
+          },
+        ]}
+      >
         <View style={styles.brandArea}>
           <View style={styles.brandRow}>
             <Image

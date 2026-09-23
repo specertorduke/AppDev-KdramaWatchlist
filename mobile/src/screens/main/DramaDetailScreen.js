@@ -11,6 +11,7 @@ import {
   TextInput,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { discoverService, trackerService } from '../../services/api';
@@ -24,6 +25,7 @@ const STATUSES = [
 ];
 
 export default function DramaDetailScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets();
   const tmdbId = route.params?.tmdbId;
   const { width } = useWindowDimensions();
   const [drama, setDrama] = useState(null);
@@ -205,7 +207,10 @@ export default function DramaDetailScreen({ route, navigation }) {
       style={styles.screen}
       contentContainerStyle={[
         styles.content,
-        { paddingHorizontal: isWide ? 24 : 12 },
+        {
+          paddingHorizontal: isWide ? 24 : 12,
+          paddingTop: (insets.top > 0 ? insets.top : 12) + 4,
+        },
       ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"

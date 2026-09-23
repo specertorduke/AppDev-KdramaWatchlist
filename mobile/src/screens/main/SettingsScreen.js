@@ -7,10 +7,12 @@ import {
   View,
   Switch,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 
 export default function SettingsScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [values, setValues] = useState({
     episodeAlerts: true,
     progressReminders: true,
@@ -25,7 +27,10 @@ export default function SettingsScreen({ navigation }) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: (insets.top > 0 ? insets.top : 12) + 6 },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}

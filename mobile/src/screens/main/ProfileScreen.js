@@ -12,12 +12,14 @@ import {
   Platform,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { userService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { user, logout, openAccountChooser, updateProfileAvatar } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,10 @@ export default function ProfileScreen({ navigation }) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: (insets.top > 0 ? insets.top : 12) + 6 },
+      ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl

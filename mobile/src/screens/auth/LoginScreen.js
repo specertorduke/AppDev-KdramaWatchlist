@@ -14,9 +14,11 @@ import {
 } from 'react-native';
 import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { login, savedAccounts } = useAuth();
   const [email, setEmail] = useState(route?.params?.email || '');
   const [password, setPassword] = useState('');
@@ -60,7 +62,16 @@ export default function LoginScreen({ navigation, route }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: (insets.top > 0 ? insets.top : 20) + 12,
+            paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 16,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         {savedAccounts && savedAccounts.length > 0 && (
           <TouchableOpacity
             style={styles.backButton}

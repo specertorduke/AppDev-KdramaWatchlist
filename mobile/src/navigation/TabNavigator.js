@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/main/HomeScreen';
@@ -43,8 +44,11 @@ const items = [
 ];
 
 function CustomTabBar({ state, descriptors, navigation }) {
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom > 0 ? insets.bottom : 8;
+
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { height: 60 + bottomInset, paddingBottom: bottomInset }]}>
       <View style={styles.nav}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;

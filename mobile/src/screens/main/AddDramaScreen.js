@@ -10,11 +10,13 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { discoverService, trackerService } from '../../services/api';
 
 export default function AddDramaScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [dramas, setDramas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,15 @@ export default function AddDramaScreen({ navigation }) {
   return (
     <View style={styles.screen}>
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top > 0 ? insets.top : 12,
+            height: (insets.top > 0 ? insets.top : 12) + 52,
+          },
+        ]}
+      >
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Add Drama</Text>
         </View>
