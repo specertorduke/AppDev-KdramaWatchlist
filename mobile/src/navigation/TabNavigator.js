@@ -48,8 +48,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
   const bottomInset = insets.bottom > 0 ? insets.bottom : 8;
 
   return (
-    <View style={[styles.wrapper, { height: 60 + bottomInset, paddingBottom: bottomInset }]}>
-      <View style={styles.nav}>
+    <View style={[styles.outerContainer, { paddingBottom: bottomInset + 4 }]} pointerEvents="box-none">
+      <View style={styles.floatingBar}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
           const itemConfig = items.find((i) => i.name === route.name) || items[0];
@@ -74,20 +74,20 @@ function CustomTabBar({ state, descriptors, navigation }) {
               accessibilityLabel={itemConfig.label}
               style={({ pressed }) => [
                 styles.item,
-                isFocused && styles.itemActive,
                 pressed && styles.itemPressed,
               ]}
             >
-              <View style={[styles.iconContainer, isFocused && styles.iconContainerActive]}>
+              <View style={[styles.itemContent, isFocused && styles.itemContentActive]}>
                 <Ionicons
                   name={isFocused ? itemConfig.activeIcon : itemConfig.icon}
-                  size={23}
-                  color={isFocused ? colors.text : colors.muted}
+                  size={21}
+                  color={isFocused ? '#F5A9C4' : 'rgba(255,255,255,0.45)'}
                 />
+                <Text style={[styles.label, isFocused && styles.labelActive]}>
+                  {itemConfig.label}
+                </Text>
+                {isFocused && <View style={styles.activeIndicatorDot} />}
               </View>
-              <Text style={[styles.label, isFocused && styles.labelActive]}>
-                {itemConfig.label}
-              </Text>
             </Pressable>
           );
         })}
@@ -122,59 +122,72 @@ export default function TabNavigator() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    width: '100%',
-    height: 82,
-    backgroundColor: '#0B0B13',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  outerContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
     zIndex: 100,
-    elevation: 20,
-    paddingBottom: 6,
   },
-  nav: {
-    flex: 1,
+  floatingBar: {
     width: '100%',
+    maxWidth: 500,
+    height: 64,
+    backgroundColor: '#161424',
+    borderRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     paddingHorizontal: 8,
+    // Lifted shadow effect with deep contrast
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 12,
   },
   item: {
     flex: 1,
-    height: 68,
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
-    marginHorizontal: 2,
   },
-  itemActive: {
-    backgroundColor: 'rgba(245, 169, 196, 0.12)',
+  itemContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    position: 'relative',
+  },
+  itemContentActive: {
+    backgroundColor: 'rgba(245, 169, 196, 0.14)',
   },
   itemPressed: {
-    opacity: 0.6,
-    transform: [{ scale: 0.96 }],
-  },
-  iconContainer: {
-    width: 36,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    marginBottom: 3,
-  },
-  iconContainerActive: {
-    backgroundColor: 'rgba(245, 169, 196, 0.18)',
+    opacity: 0.65,
+    transform: [{ scale: 0.94 }],
   },
   label: {
-    color: '#8D8B98',
-    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
-    lineHeight: 15,
+    marginTop: 2,
+    lineHeight: 14,
   },
   labelActive: {
     color: '#FFFFFF',
     fontWeight: '800',
+  },
+  activeIndicatorDot: {
+    position: 'absolute',
+    bottom: 2,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#F5A9C4',
   },
 });

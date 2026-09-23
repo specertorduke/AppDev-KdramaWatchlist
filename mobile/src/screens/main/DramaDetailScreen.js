@@ -115,8 +115,27 @@ export default function DramaDetailScreen({ route, navigation }) {
     const notesToSave = overrideNotes !== undefined ? overrideNotes : notes;
     const favToSave = overrideFavorite !== undefined ? overrideFavorite : isFavorite;
 
+    // Automatic status transitions:
+    // 1. If reaching/surpassing total episodes, auto-update status to Completed and notify the user
+    // 2. If transitioning from 0 to 1+ episodes and status was 'Plan to Watch', auto-update to Watching
+    let finalStatus = statusToSave;
+    let didAutoComplete = false;
+    let didAutoStart = false;
+
+    if (episodesTotal > 0 && Number(epToSave) >= episodesTotal && finalStatus !== 'completed') {
+      finalStatus = 'completed';
+      didAutoComplete = true;
+    } else if (Number(epToSave) > 0 && Number(epToSave) < episodesTotal && finalStatus === 'plan_to_watch' && !overrideStatus) {
+      finalStatus = 'watching';
+      didAutoStart = true;
+    }
+
+    const displayFinalStatus = finalStatus
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
     // Immediately update local state for instant real-time feedback
-    if (overrideStatus) setSelectedStatus(overrideStatus);
+    setSelectedStatus(displayFinalStatus);
     if (overrideEpisodes !== undefined) setWatchedEpisodes(epToSave);
     if (overrideRating !== undefined) setSelectedRating(rawRating || 0);
     if (overrideNotes !== undefined) setNotes(notesToSave);
@@ -124,7 +143,7 @@ export default function DramaDetailScreen({ route, navigation }) {
 
     const payload = {
       tmdb_id: parseInt(tmdbId, 10),
-      status: statusToSave,
+      status: finalStatus,
       current_episode: Math.max(0, parseInt(epToSave, 10) || 0),
       total_episodes: episodesTotal > 0 ? episodesTotal : null,
       rating: ratingToSave,
@@ -149,6 +168,20 @@ export default function DramaDetailScreen({ route, navigation }) {
         }
       }
       setSaveMessage('Saved successfully');
+
+      if (didAutoComplete) {
+        Alert.alert(
+          '🎉 Drama Completed!',
+          `You've watched all ${episodesTotal} episodes of "${drama?.title || 'this drama'}". Your status has been automatically updated to Completed!`,
+          [{ text: 'Awesome!' }]
+        );
+      } else if (didAutoStart) {
+        Alert.alert(
+          '🍿 Now Watching',
+          `You started watching "${drama?.title || 'this drama'}". Your status has been automatically updated to Watching.`,
+          [{ text: 'OK' }]
+        );
+      }
     } catch (err) {
       const msg =
         err.response?.data?.message ||
@@ -419,11 +452,10 @@ export default function DramaDetailScreen({ route, navigation }) {
                   styles.statusChip,
                   active
                     ? {
-                        backgroundColor: `${chipColor}24`,
-                        borderColor: chipColor,
+                        backgroundColor: `${chipColor}33`,
                       }
                     : {
-                        borderColor: 'rgba(255,255,255,0.08)',
+                        backgroundColor: '#161424',
                       },
                 ]}
               >
@@ -436,7 +468,8 @@ export default function DramaDetailScreen({ route, navigation }) {
                 <Text
                   style={[
                     styles.statusChipText,
-                    active && { color: chipColor, fontWeight: '800' },
+                    { color: active ? '#FFFFFF' : chipColor },
+                    active && { fontWeight: '900' },
                   ]}
                 >
                   {st}
@@ -739,32 +772,35 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   topBar: {
-    height: 42,
+    height: 44,
     width: '100%',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   backButton: {
     alignSelf: 'flex-start',
     minWidth: 84,
     height: 38,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#161424',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backButtonPressed: {
-    opacity: 0.65,
+    opacity: 0.7,
     transform: [{ scale: 0.97 }],
   },
   backText: {
     color: colors.text,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     marginLeft: 6,
   },
   hero: {
@@ -777,17 +813,15 @@ const styles = StyleSheet.create({
   posterWrap: {
     width: 105,
     height: 150,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.line,
+    backgroundColor: '#161424',
     position: 'relative',
     flexShrink: 0,
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 5,
   },
   poster: {
@@ -846,10 +880,10 @@ const styles = StyleSheet.create({
   tmdbPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 106, 0.12)',
-    borderRadius: 6,
+    backgroundColor: 'rgba(255, 215, 106, 0.14)',
+    borderRadius: 8,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     gap: 4,
   },
   tmdbPillScore: {
@@ -875,10 +909,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   genreTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#161424',
   },
   genreTagText: {
     color: 'rgba(255,255,255,0.7)',
@@ -894,9 +928,9 @@ const styles = StyleSheet.create({
   },
   watchlistButton: {
     flex: 1,
-    height: 46,
+    height: 48,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: '#F5A9C4',
     flexDirection: 'row',
     alignItems: 'center',
@@ -909,11 +943,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   watchlistButtonActive: {
-    backgroundColor: '#1E1C2B',
-    borderWidth: 1.5,
-    borderColor: '#4E4968',
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: '#161424',
+    shadowOpacity: 0.2,
+    shadowColor: '#000000',
+    elevation: 2,
   },
   watchlistButtonText: {
     color: '#07070E',
@@ -921,22 +954,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   watchlistButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: '#F5A9C4',
+    fontWeight: '800',
   },
   favoriteButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.12)',
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: '#161424',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   favoriteButtonActive: {
-    backgroundColor: 'rgba(255,70,85,0.15)',
-    borderColor: '#FF4655',
+    backgroundColor: 'rgba(255,70,85,0.18)',
   },
   sectionContainer: {
     width: '100%',
@@ -968,15 +1003,15 @@ const styles = StyleSheet.create({
   },
   cleanProgressTrack: {
     width: '100%',
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#1E1B2E',
     overflow: 'hidden',
     marginBottom: 14,
   },
   cleanProgressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
     backgroundColor: '#F5A9C4',
   },
   statusScroll: {
@@ -989,23 +1024,25 @@ const styles = StyleSheet.create({
   statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#161424',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statusColorDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 6,
   },
   statusChipText: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   statusChipTextActive: {
     color: '#FFFFFF',
@@ -1024,15 +1061,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   seasonTabPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#161424',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   seasonTabPillActive: {
-    backgroundColor: 'rgba(245, 169, 196, 0.2)',
-    borderWidth: 1,
-    borderColor: '#F5A9C4',
+    backgroundColor: '#2A2438',
   },
   seasonTabPillText: {
     color: colors.muted,
@@ -1058,16 +1098,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.02)',
   },
   episodeBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#161424',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   episodeBadgeWatched: {
-    backgroundColor: 'rgba(245, 169, 196, 0.15)',
+    backgroundColor: 'rgba(245, 169, 196, 0.18)',
   },
   episodeBadgeText: {
     color: 'rgba(255,255,255,0.85)',
@@ -1097,17 +1137,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   episodeCheckCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.2)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#161424',
     alignItems: 'center',
     justifyContent: 'center',
   },
   episodeCheckCircleActive: {
     backgroundColor: '#F5A9C4',
-    borderColor: '#F5A9C4',
   },
   showMoreButton: {
     marginTop: 12,
@@ -1183,16 +1221,19 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     width: '100%',
-    minHeight: 80,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    minHeight: 84,
+    borderRadius: 14,
+    backgroundColor: '#161424',
     color: colors.text,
     fontSize: 13,
     lineHeight: 19,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   notesActionRow: {
     flexDirection: 'row',

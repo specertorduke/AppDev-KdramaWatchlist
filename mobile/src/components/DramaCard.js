@@ -59,13 +59,50 @@ export default function DramaCard({ drama, onPress }) {
             ) : null}
 
             {/* Top Right Status Badge */}
-            {status ? (
-              <View style={[styles.statusBadge, hovered && styles.statusBadgeHover]}>
-                <Text style={[styles.statusText, hovered && styles.statusTextHover]}>
-                  {String(status).replace(/_/g, ' ').toUpperCase()}
-                </Text>
-              </View>
-            ) : null}
+            {status ? (() => {
+              const s = String(status).toLowerCase().replace(/_/g, ' ');
+              let badgeColor = '#F5A9C4';
+              let badgeBg = 'rgba(245, 169, 196, 0.22)';
+              if (s.includes('watch') && !s.includes('plan')) {
+                badgeColor = '#60A5FA';
+                badgeBg = 'rgba(96, 165, 250, 0.22)';
+              } else if (s.includes('complet')) {
+                badgeColor = '#10B981';
+                badgeBg = 'rgba(16, 185, 129, 0.22)';
+              } else if (s.includes('plan')) {
+                badgeColor = '#FFD76A';
+                badgeBg = 'rgba(255, 215, 106, 0.22)';
+              } else if (s.includes('hold')) {
+                badgeColor = '#F59E0B';
+                badgeBg = 'rgba(245, 158, 11, 0.22)';
+              } else if (s.includes('drop')) {
+                badgeColor = '#EF4444';
+                badgeBg = 'rgba(239, 68, 68, 0.22)';
+              }
+
+              const formattedText = String(status)
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (c) => c.toUpperCase());
+
+              return (
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: 'rgba(12, 11, 20, 0.94)' },
+                    hovered && styles.statusBadgeHover,
+                  ]}
+                >
+                  <View style={[styles.statusDot, { backgroundColor: badgeColor }]} />
+                  <Text
+                    style={[styles.statusText, { color: badgeColor }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {formattedText}
+                  </Text>
+                </View>
+              );
+            })() : null}
 
             {hovered && <View pointerEvents="none" style={styles.hoverOverlay} />}
           </View>
@@ -157,28 +194,40 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     position: 'absolute',
-    top: 7,
-    right: 7,
-    backgroundColor: 'rgba(20,20,30,0.92)',
-    borderRadius: 6,
-    paddingHorizontal: 7,
+    top: 8,
+    right: 8,
+    borderRadius: 999,
+    paddingHorizontal: 9,
     paddingVertical: 4,
-    maxWidth: '52%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   statusBadgeHover: {
-    backgroundColor: 'rgba(232,33,63,0.18)',
-    borderWidth: 1,
-    borderColor: colors.redBright,
+    transform: [{ scale: 1.05 }],
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    flexShrink: 0,
   },
   statusText: {
-    color: '#BBA8FF',
     fontSize: 10,
-    lineHeight: 12,
-    fontWeight: '800',
+    lineHeight: 13,
+    fontWeight: '900',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    flexShrink: 0,
+    letterSpacing: 0.3,
   },
-  statusTextHover: {
-    color: colors.redBright,
-  },
+  statusTextHover: {},
   ratingBadge: {
     position: 'absolute',
     left: 7,

@@ -96,7 +96,7 @@ export default function HomeScreen({ navigation }) {
           styles.topBar,
           {
             paddingTop: insets.top > 0 ? insets.top : 8,
-            height: (insets.top > 0 ? insets.top : 8) + 48,
+            height: (insets.top > 0 ? insets.top : 8) + 54,
           },
         ]}
       >
@@ -119,7 +119,7 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Discover')}
             accessibilityLabel="Search"
           >
-            <Ionicons name="search-outline" size={20} color={colors.text} />
+            <Ionicons name="search-outline" size={20} color="#FFFFFF" />
           </Pressable>
 
           <Pressable
@@ -134,7 +134,7 @@ export default function HomeScreen({ navigation }) {
           >
             <Ionicons
               name={user?.avatarIcon || 'person'}
-              size={13}
+              size={18}
               color="#FFFFFF"
             />
           </Pressable>
@@ -536,68 +536,75 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   topBar: {
-    height: 48,
-    paddingHorizontal: 12,
+    height: 54,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.bg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   topBarLogoImage: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
   },
   logo: {
     color: '#F5A9C4',
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '900',
     letterSpacing: -0.4,
   },
   topBarRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   topIconButton: {
-    width: 28,
-    height: 32,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 18,
+    backgroundColor: '#151322',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
   },
   topIconButtonHovered: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#1E1B30',
     transform: [{ scale: 1.05 }],
   },
   topIconButtonPressed: {
-    opacity: 0.65,
+    opacity: 0.7,
     transform: [{ scale: 0.94 }],
   },
   avatarButton: {
-    width: 25,
-    height: 25,
-    borderRadius: 999,
-    backgroundColor: '#292546',
-    borderWidth: 1,
-    borderColor: '#B24B65',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
   },
   avatarButtonHovered: {
-    backgroundColor: '#3A315E',
-    borderColor: '#E9A8B8',
-    transform: [{ scale: 1.08 }],
+    opacity: 0.9,
+    transform: [{ scale: 1.06 }],
   },
   avatarButtonPressed: {
-    opacity: 0.65,
-    transform: [{ scale: 0.95 }],
+    opacity: 0.75,
+    transform: [{ scale: 0.94 }],
   },
   content: {
     paddingTop: 14,
@@ -643,18 +650,20 @@ const styles = StyleSheet.create({
   statCard: {
     width: '48.5%',
     minHeight: 84,
-    backgroundColor: '#111119',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    backgroundColor: '#161424',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     marginBottom: 10,
     justifyContent: 'space-between',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
   statCardHovered: {
-    backgroundColor: '#181722',
-    borderColor: '#4A4558',
+    backgroundColor: '#1E1B30',
     transform: [{ translateY: -2 }, { scale: 1.015 }],
   },
   statCardPressed: {
@@ -676,7 +685,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 7,
-    backgroundColor: '#1B1A26',
+    backgroundColor: '#201D33',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -701,21 +710,27 @@ const styles = StyleSheet.create({
   },
   watchingCard: {
     width: '100%',
-    backgroundColor: '#0F0F16',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 13,
+    backgroundColor: '#151322',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
   },
   watchingCardEmpty: {
     width: '100%',
-    backgroundColor: '#0F0F16',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 13,
+    backgroundColor: '#151322',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
   },
   noWatchingText: {
     color: colors.muted,
@@ -816,11 +831,9 @@ const styles = StyleSheet.create({
   },
   detailsButton: {
     height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#34333C',
-    backgroundColor: '#1B1A21',
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: '#1E1B30',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -870,18 +883,20 @@ const styles = StyleSheet.create({
   quickCard: {
     width: '48.5%',
     minHeight: 56,
-    backgroundColor: '#13131D',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    paddingHorizontal: 10,
+    backgroundColor: '#161424',
+    borderRadius: 14,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   quickCardHovered: {
-    backgroundColor: '#1B1A27',
-    borderColor: '#4A4558',
+    backgroundColor: '#1E1B30',
     transform: [{ translateY: -2 }, { scale: 1.015 }],
   },
   quickCardPressed: {
@@ -924,12 +939,10 @@ const styles = StyleSheet.create({
   posterWrapper: {
     width: '100%',
     aspectRatio: 0.69,
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#171720',
-    borderWidth: 1,
-    borderColor: colors.line,
   },
   recommendedImage: {
     width: '100%',
@@ -1052,11 +1065,9 @@ const styles = StyleSheet.create({
   trendingPosterWrapper: {
     width: 124,
     height: 180,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#161622',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
     marginLeft: 6,
     position: 'relative',
     shadowColor: '#000',

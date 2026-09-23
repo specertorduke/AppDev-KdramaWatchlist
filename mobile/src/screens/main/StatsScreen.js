@@ -37,7 +37,10 @@ export default function StatsScreen({ navigation }) {
   const planCount = stats?.plan_to_watch_count ?? 1;
   const onHoldCount = stats?.on_hold_count ?? 1;
   const droppedCount = stats?.dropped_count ?? 0;
-  const averageRating = (stats?.average_rating ?? 9.5).toFixed ? stats.average_rating.toFixed(1) : '9.5';
+  const rawAvg = stats?.average_rating;
+  const averageRating = rawAvg !== null && rawAvg !== undefined && !isNaN(Number(rawAvg))
+    ? Number(rawAvg).toFixed(1)
+    : '0.0';
 
   const genreData = [
     { name: 'Romance', count: 2, percent: 100 },
@@ -113,7 +116,7 @@ export default function StatsScreen({ navigation }) {
             <Ionicons
               key={index}
               name="star"
-              size={11}
+              size={16}
               color={colors.redBright}
             />
           ))}
@@ -201,7 +204,7 @@ function StatBox({ icon, iconTone, value, label, sub }) {
   return (
     <View style={styles.statBox}>
       <View style={[styles.statIcon, styles[`icon_${iconTone}`]]}>
-        <Ionicons name={icon} size={14} color={colors.text} />
+        <Ionicons name={icon} size={18} color={colors.text} />
       </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -239,40 +242,46 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   backButton: {
-    width: 29,
-    height: 29,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#161424',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 9,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   heading: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '900',
   },
   mainStats: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   statBox: {
     width: '48.5%',
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 11,
-    marginBottom: 8,
+    backgroundColor: '#161424',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   statIcon: {
-    width: 25,
-    height: 25,
-    borderRadius: 7,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 7,
@@ -291,63 +300,70 @@ const styles = StyleSheet.create({
   },
   statValue: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '900',
   },
   statLabel: {
     color: colors.text,
-    fontSize: 9.5,
+    fontSize: 13,
     fontWeight: '800',
-    marginTop: 2,
+    marginTop: 4,
   },
   statSub: {
     color: colors.muted,
-    fontSize: 7.5,
-    marginTop: 1,
+    fontSize: 11,
+    marginTop: 2,
   },
   ratingPanel: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 13,
+    backgroundColor: '#161424',
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   ratingValue: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '900',
-    lineHeight: 24,
+    lineHeight: 28,
   },
   ratingLabel: {
     color: colors.muted,
-    fontSize: 8,
-    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
   },
   stars: {
     flexDirection: 'row',
-    gap: 3,
+    gap: 4,
   },
   panel: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 12,
-    padding: 13,
-    marginBottom: 12,
+    backgroundColor: '#161424',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sectionTitle: {
-    color: colors.muted,
-    fontSize: 8,
+    color: '#8D8B98',
+    fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 1.1,
-    marginBottom: 10,
+    letterSpacing: 1,
+    marginBottom: 12,
   },
   statusRow: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   statusLast: {
     marginBottom: 0,
@@ -355,10 +371,10 @@ const styles = StyleSheet.create({
   statusHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   statusName: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
   },
   status_blue: {
@@ -378,18 +394,18 @@ const styles = StyleSheet.create({
   },
   statusCount: {
     color: colors.muted,
-    fontSize: 8.5,
+    fontSize: 12,
     fontWeight: '700',
   },
   statusTrack: {
-    height: 4,
+    height: 6,
     backgroundColor: '#232230',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   statusFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
   },
   statusFill_blue: {
     backgroundColor: '#60A5FA',
@@ -407,67 +423,68 @@ const styles = StyleSheet.create({
     backgroundColor: '#F87171',
   },
   genreRow: {
-    marginBottom: 9,
+    marginBottom: 12,
   },
   genreHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   genreName: {
     color: colors.text,
-    fontSize: 8.5,
+    fontSize: 12.5,
     fontWeight: '700',
   },
   genreCount: {
     color: colors.muted,
-    fontSize: 8,
+    fontSize: 11,
+    fontWeight: '600',
   },
   genreTrack: {
-    height: 4,
+    height: 6,
     backgroundColor: '#232230',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   genreFill: {
     height: '100%',
     backgroundColor: colors.redBright,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   topRatedRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   topRatedPoster: {
-    width: 32,
-    height: 44,
-    borderRadius: 5,
+    width: 40,
+    height: 52,
+    borderRadius: 8,
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 9,
+    marginRight: 12,
   },
   topRatedInfo: {
     flex: 1,
   },
   topRatedTitle: {
     color: colors.text,
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '800',
   },
   topRatedMeta: {
     color: colors.muted,
-    fontSize: 7.5,
-    marginTop: 2,
+    fontSize: 11,
+    marginTop: 3,
   },
   topRatedScore: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
   },
   scoreText: {
     color: colors.redBright,
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '900',
   },
 });
