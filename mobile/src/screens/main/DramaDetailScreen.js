@@ -24,6 +24,25 @@ const STATUSES = [
   'Dropped',
 ];
 
+const STATUS_COLORS = {
+  Watching: '#60A5FA',
+  Completed: '#10B981',
+  'Plan to Watch': '#FFD76A',
+  'On Hold': '#F59E0B',
+  Dropped: '#EF4444',
+};
+
+const getStatusColor = (status) => {
+  if (!status) return '#F5A9C4';
+  const formatted = status.replace(/_/g, ' ').toLowerCase();
+  if (formatted.includes('watch') && !formatted.includes('plan')) return STATUS_COLORS.Watching;
+  if (formatted.includes('complete')) return STATUS_COLORS.Completed;
+  if (formatted.includes('plan')) return STATUS_COLORS['Plan to Watch'];
+  if (formatted.includes('hold')) return STATUS_COLORS['On Hold'];
+  if (formatted.includes('drop')) return STATUS_COLORS.Dropped;
+  return '#F5A9C4';
+};
+
 export default function DramaDetailScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const tmdbId = route.params?.tmdbId;
@@ -254,7 +273,7 @@ export default function DramaDetailScreen({ route, navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={18} color={colors.text} />
+          <Ionicons name="chevron-back" size={20} color={colors.text} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
       </View>
@@ -267,9 +286,6 @@ export default function DramaDetailScreen({ route, navigation }) {
           ) : (
             <View style={styles.posterFallback} />
           )}
-          <View style={styles.topBadge}>
-            <Text style={styles.topBadgeText}>TOP 1</Text>
-          </View>
         </View>
 
         <View style={styles.heroInfo}>
@@ -283,6 +299,7 @@ export default function DramaDetailScreen({ route, navigation }) {
             </Text>
           ) : null}
 
+          {/* Clean metadata line */}
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>{drama.release_year || '2025'}</Text>
             {networksDisplay ? (
@@ -295,43 +312,48 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Text style={styles.metaText}>{episodesTotal} Episodes</Text>
           </View>
 
-          {/* Clear TMDB Rating Pill in Hero */}
+          {/* Clean TMDB Rating Tag */}
           {tmdbScore && (
             <View style={styles.heroTmdbRow}>
               <View style={styles.tmdbPill}>
-                <Ionicons name="star" size={13} color="#FFD76A" />
+                <Ionicons name="star" size={12} color="#FFD76A" />
                 <Text style={styles.tmdbPillScore}>{tmdbScore}</Text>
                 <Text style={styles.tmdbPillLabel}>TMDB</Text>
               </View>
               {tmdbVoteCount ? (
                 <Text style={styles.tmdbVoteText}>
-                  ({tmdbVoteCount.toLocaleString()} votes)
+                  {tmdbVoteCount.toLocaleString()} ratings
                 </Text>
               ) : null}
             </View>
           )}
 
-          {networksDisplay ? (
-            <Text style={styles.availableText} numberOfLines={1}>
-              Available on {networksDisplay}
-            </Text>
-          ) : null}
+          {/* Genres Chips */}
+          {Array.isArray(drama.genres) && drama.genres.length > 0 && (
+            <View style={styles.genreRow}>
+              {drama.genres.slice(0, 3).map((g) => (
+                <View key={g} style={styles.genreTag}>
+                  <Text style={styles.genreTagText}>{g}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Action Row */}
+      {/* Primary Action Buttons */}
       <View style={styles.actionRow}>
         <Pressable
           style={[styles.watchlistButton, tracker && styles.watchlistButtonActive]}
           onPress={handleToggleList}
           disabled={savingStatus}
           accessibilityRole="button"
-          accessibilityLabel={tracker ? 'Remove from Watchlist' : 'Add to Watchlist'}
+          accessibilityLabel={tracker ? 'In Watchlist' : 'Add to Watchlist'}
         >
           <Ionicons
             name={tracker ? 'checkmark-circle' : 'add'}
-            size={20}
-            color={tracker ? '#FFFFFF' : '#07070E'}
+            size={19}
+            color={tracker ? '#F5A9C4' : '#07070E'}
           />
           <Text style={[styles.watchlistButtonText, tracker && styles.watchlistButtonTextActive]}>
             {tracker ? 'In Watchlist' : 'Add to Watchlist'}
@@ -352,20 +374,312 @@ export default function DramaDetailScreen({ route, navigation }) {
         </Pressable>
       </View>
 
-      <View style={styles.divider} />
+      {/* STREAMING-STYLE TRACKING SECTION */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>MY WATCH STATUS</Text>
+          {progress > 0 && (
+            <Text style={[styles.progressCounterText, { color: getStatusColor(selectedStatus) }]}>
+              {watchedEpisodes} / {episodesTotal} ({progress}%)
+            </Text>
+          )}
+        </View>
 
-      {/* Content Cards */}
-      <View style={styles.card}>
-        <Text style={styles.sectionLabel}>SYNOPSIS</Text>
-        <Text style={styles.synopsis}>
+        {/* Minimal Progress Bar */}
+        <View style={styles.cleanProgressTrack}>
+          <View
+            style={[
+              styles.cleanProgressFill,
+              {
+                width: `${progress}%`,
+                backgroundColor: getStatusColor(selectedStatus),
+              },
+            ]}
+          />
+        </View>
+
+        {/* Status Filter Scroll */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statusScrollContent}
+          style={styles.statusScroll}
+        >
+          {STATUSES.map((st) => {
+            const active = selectedStatus === st;
+            const chipColor = getStatusColor(st);
+            return (
+              <Pressable
+                key={st}
+                onPress={() => {
+                  setSelectedStatus(st);
+                  saveTrackerChanges(st);
+                }}
+                style={[
+                  styles.statusChip,
+                  active
+                    ? {
+                        backgroundColor: `${chipColor}24`,
+                        borderColor: chipColor,
+                      }
+                    : {
+                        borderColor: 'rgba(255,255,255,0.08)',
+                      },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.statusColorDot,
+                    { backgroundColor: chipColor },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.statusChipText,
+                    active && { color: chipColor, fontWeight: '800' },
+                  ]}
+                >
+                  {st}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* SYNOPSIS SECTION */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>SYNOPSIS</Text>
+        <Text style={styles.synopsisText}>
           {drama.overview ||
             'A cold detective and a runaway heiress are bound together by a decade-old secret buried beneath the city’s glittering surface. Love was never part of the plan.'}
         </Text>
       </View>
 
-      {/* DETAILS */}
-      <View style={styles.card}>
-        <Text style={styles.sectionLabel}>DETAILS</Text>
+      {/* SEASONS & EPISODES SECTION */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>
+            {allSeasons.length > 1 ? 'SEASONS & EPISODES' : 'EPISODES'}
+          </Text>
+          <Text style={styles.sectionCountText}>
+            {currentSeason ? `${currentSeason.episode_count || currentSeasonEpisodes} Episodes` : `${episodesTotal} Total`}
+          </Text>
+        </View>
+
+        {/* Season Selector Tabs */}
+        {allSeasons.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.seasonTabsContent}
+            style={styles.seasonTabsScroll}
+          >
+            {allSeasons.map((season, idx) => {
+              const isActive = selectedSeasonIndex === idx;
+              const seasonName = season.name || `Season ${season.season_number || idx + 1}`;
+              return (
+                <Pressable
+                  key={season.id || `season-${idx}`}
+                  onPress={() => {
+                    setSelectedSeasonIndex(idx);
+                    setShowAllEpisodes(false);
+                  }}
+                  style={[
+                    styles.seasonTabPill,
+                    isActive && styles.seasonTabPillActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.seasonTabPillText,
+                      isActive && styles.seasonTabPillTextActive,
+                    ]}
+                  >
+                    {seasonName}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {/* Clean Episode Rows */}
+        <View style={styles.episodeList}>
+          {displayedEpisodes.map((ep) => {
+            const watched = ep.number <= watchedEpisodes;
+            return (
+              <Pressable
+                key={ep.number}
+                style={({ pressed }) => [styles.episodeRow, pressed && styles.episodeRowPressed]}
+                onPress={() => {
+                  const next = watched ? ep.number - 1 : ep.number;
+                  setWatchedEpisodes(next);
+                  saveTrackerChanges(undefined, next);
+                }}
+              >
+                <View style={[styles.episodeBadge, watched && styles.episodeBadgeWatched]}>
+                  <Text style={[styles.episodeBadgeText, watched && styles.episodeBadgeTextWatched]}>
+                    {ep.number}
+                  </Text>
+                </View>
+
+                <View style={styles.episodeContent}>
+                  <Text
+                    style={[styles.episodeTitle, watched && styles.episodeTitleWatched]}
+                    numberOfLines={1}
+                  >
+                    {ep.title}
+                  </Text>
+                  <Text style={styles.episodeSubtitle}>
+                    {watched ? 'Watched' : 'Mark as watched'}
+                  </Text>
+                </View>
+
+                <View style={[styles.episodeCheckCircle, watched && styles.episodeCheckCircleActive]}>
+                  {watched ? (
+                    <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name="play" size={12} color={colors.muted} />
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {hasMoreEpisodes && (
+          <Pressable
+            style={styles.showMoreButton}
+            onPress={() => setShowAllEpisodes((prev) => !prev)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.showMoreButtonText}>
+              {showAllEpisodes
+                ? `Show Fewer Episodes`
+                : `View All ${episodeList.length} Episodes (${episodeList.length - INITIAL_VISIBLE_COUNT} more)`}
+            </Text>
+            <Ionicons
+              name={showAllEpisodes ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color="#F5A9C4"
+            />
+          </Pressable>
+        )}
+      </View>
+
+      {/* RATING & PERSONAL REVIEW */}
+      <View style={styles.sectionContainer}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>MY RATING & REVIEW</Text>
+          {selectedRating > 0 && (
+            <Pressable
+              onPress={() => {
+                setSelectedRating(0);
+                saveTrackerChanges(undefined, undefined, null);
+              }}
+              hitSlop={8}
+              style={styles.clearRatingButton}
+            >
+              <Ionicons name="close-circle-outline" size={13} color={colors.muted} />
+              <Text style={styles.clearRatingText}>Clear</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* 10-point Tap-to-Rate Row */}
+        <View style={styles.ratingNumberBar}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => {
+            const isSelected = selectedRating === score;
+            const isPassed = selectedRating >= score;
+            return (
+              <Pressable
+                key={score}
+                style={[
+                  styles.scoreButton,
+                  isSelected && styles.scoreButtonSelected,
+                  isPassed && !isSelected && styles.scoreButtonPassed,
+                ]}
+                onPress={() => {
+                  setSelectedRating(score);
+                  saveTrackerChanges(undefined, undefined, score);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.scoreButtonText,
+                    (isSelected || isPassed) && styles.scoreButtonTextActive,
+                  ]}
+                >
+                  {score}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {selectedRating > 0 && (
+          <View style={styles.activeScoreRow}>
+            <Ionicons name="star" size={14} color="#FFD76A" />
+            <Text style={styles.activeScoreText}>
+              Your rating: <Text style={styles.activeScoreHighlight}>{selectedRating} / 10</Text>
+            </Text>
+          </View>
+        )}
+
+        {/* Review Notes Area */}
+        <TextInput
+          value={notes}
+          onChangeText={(v) => {
+            setNotes(v);
+            setSaveMessage('');
+          }}
+          multiline
+          textAlignVertical="top"
+          placeholder="Write your personal thoughts, favorite moments, or critique..."
+          placeholderTextColor="rgba(255,255,255,0.3)"
+          style={styles.notesInput}
+        />
+
+        <View style={styles.notesActionRow}>
+          <Pressable
+            style={[styles.saveAllButton, savingStatus && styles.saveButtonDisabled]}
+            onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes)}
+            disabled={savingStatus}
+          >
+            <Ionicons
+              name={savingStatus ? 'hourglass-outline' : 'checkmark-circle'}
+              size={15}
+              color="#07070E"
+            />
+            <Text style={styles.saveAllButtonText}>
+              {savingStatus ? 'Saving...' : 'Save Review'}
+            </Text>
+          </Pressable>
+
+          {saveMessage ? (
+            <View style={styles.saveMessageRow}>
+              <Ionicons
+                name={saveMessage.includes('fail') ? 'alert-circle' : 'checkmark-circle'}
+                size={13}
+                color={saveMessage.includes('fail') ? '#F87171' : '#22C55E'}
+              />
+              <Text
+                style={[
+                  styles.saveMessage,
+                  { color: saveMessage.includes('fail') ? '#F87171' : '#22C55E' },
+                ]}
+              >
+                {saveMessage}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      {/* SERIES INFO / DETAILS */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>INFORMATION</Text>
         <DetailRow label="Native Title" value={drama.original_title || '—'} />
         <DetailRow
           label="Genres"
@@ -384,346 +698,8 @@ export default function DramaDetailScreen({ route, navigation }) {
           <DetailRow label="Seasons" value={`${allSeasons.length} Seasons (${episodesTotal} Total Eps)`} />
         ) : null}
         <DetailRow label="Aired" value={String(drama.release_year || '2025')} />
-        <DetailRow label="Duration" value={drama.duration || '62 min / ep'} />
         <DetailRow label="Network" value={networksDisplay || 'tvN · Netflix'} last />
       </View>
-
-      {/* MAIN CAST */}
-      <View style={styles.card}>
-        <Text style={styles.sectionLabel}>MAIN CAST</Text>
-        <View style={styles.castRow}>
-          <View style={styles.castAvatar}>
-            <Ionicons name="person" size={17} color={colors.muted} />
-          </View>
-          <View style={styles.castInfo}>
-            <Text style={styles.castName} numberOfLines={1}>Main Cast</Text>
-            <Text style={styles.castRole}>Cast information</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* PROGRESS */}
-          <View style={styles.card}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.sectionLabel}>PROGRESS</Text>
-              <Text style={styles.progressPercent}>{progress}%</Text>
-            </View>
-
-            <Text style={styles.progressSubtext}>
-              {watchedEpisodes}/{episodesTotal} eps · added recently
-            </Text>
-
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
-            </View>
-
-            <Text style={styles.remainingText}>
-              {remainingEpisodes} eps remaining
-            </Text>
-
-            {/* STATUS */}
-            <Text style={[styles.sectionLabel, styles.statusLabel]}>STATUS</Text>
-            <View style={styles.statusGrid}>
-              {STATUSES.map((st) => {
-                const active = selectedStatus === st;
-                return (
-                  <Pressable
-                    key={st}
-                    onPress={() => {
-                      setSelectedStatus(st);
-                      saveTrackerChanges(st);
-                    }}
-                    style={[styles.statusPill, active && styles.statusPillActive]}
-                  >
-                    <Text style={[styles.statusPillText, active && styles.statusPillTextActive]}>
-                      {st}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* MY RATING & REVIEW CARD */}
-          <View style={styles.card}>
-            <View style={styles.reviewHeaderRow}>
-              <View>
-                <Text style={styles.sectionLabel}>MY RATING & REVIEW</Text>
-                <Text style={styles.reviewSublabel}>Your personal score & notes</Text>
-              </View>
-              {selectedRating > 0 ? (
-                <Pressable
-                  onPress={() => {
-                    setSelectedRating(0);
-                    saveTrackerChanges(undefined, undefined, null);
-                  }}
-                  hitSlop={8}
-                  style={styles.clearRatingButton}
-                >
-                  <Ionicons name="close-circle-outline" size={13} color={colors.muted} />
-                  <Text style={styles.clearRatingText}>Clear</Text>
-                </Pressable>
-              ) : null}
-            </View>
-
-            {/* Rating Display Badge - Only shown when user has actually rated */}
-            {selectedRating > 0 ? (
-              <View style={styles.myRatingBadgeRow}>
-                <View style={[styles.myRatingBadge, styles.myRatingBadgeActive]}>
-                  <Ionicons name="star" size={16} color={colors.gold} />
-                  <Text style={[styles.myRatingBadgeText, styles.myRatingBadgeTextActive]}>
-                    {selectedRating} / 10
-                  </Text>
-                </View>
-                <Text style={styles.ratingHintText}>Your rating</Text>
-              </View>
-            ) : (
-              <View style={styles.unratedPromptRow}>
-                <Text style={styles.unratedPromptText}>
-                  Slide or tap on the bar to set your score (1–10)
-                </Text>
-              </View>
-            )}
-
-            {/* Interactive Rating Slider (1 to 10 scale) */}
-            <View style={styles.sliderSection}>
-              <View
-                style={styles.sliderTouchArea}
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderGrant={(evt) => {
-                  const touchX = evt.nativeEvent.locationX;
-                  // Slider width is card width minus paddings (~320px on mobile)
-                  // Calculate score from 1 to 10 based on relative touch position
-                  const targetWidth = evt.currentTarget?.offsetWidth || 300;
-                  const ratio = Math.max(0, Math.min(1, touchX / targetWidth));
-                  const score = Math.max(1, Math.min(10, Math.round(ratio * 9 + 1)));
-                  setSelectedRating(score);
-                  setSaveMessage('');
-                }}
-                onResponderMove={(evt) => {
-                  const touchX = evt.nativeEvent.locationX;
-                  const targetWidth = evt.currentTarget?.offsetWidth || 300;
-                  const ratio = Math.max(0, Math.min(1, touchX / targetWidth));
-                  const score = Math.max(1, Math.min(10, Math.round(ratio * 9 + 1)));
-                  setSelectedRating(score);
-                }}
-                onResponderRelease={(evt) => {
-                  const touchX = evt.nativeEvent.locationX;
-                  const targetWidth = evt.currentTarget?.offsetWidth || 300;
-                  const ratio = Math.max(0, Math.min(1, touchX / targetWidth));
-                  const score = Math.max(1, Math.min(10, Math.round(ratio * 9 + 1)));
-                  setSelectedRating(score);
-                  saveTrackerChanges(undefined, undefined, score);
-                }}
-              >
-                {/* Background Track */}
-                <View style={styles.sliderTrackBg}>
-                  {/* Filled track up to current rating */}
-                  <View
-                    style={[
-                      styles.sliderTrackFill,
-                      {
-                        width:
-                          selectedRating > 0
-                            ? `${((selectedRating - 1) / 9) * 100}%`
-                            : '0%',
-                      },
-                    ]}
-                  />
-                  {/* Slider Thumb */}
-                  {selectedRating > 0 ? (
-                    <View
-                      style={[
-                        styles.sliderThumb,
-                        {
-                          left: `${((selectedRating - 1) / 9) * 100}%`,
-                        },
-                      ]}
-                    >
-                      <Ionicons name="star" size={11} color="#0D0C13" />
-                    </View>
-                  ) : (
-                    <View style={[styles.sliderThumb, styles.sliderThumbUnset, { left: '0%' }]} />
-                  )}
-                </View>
-              </View>
-
-              {/* Step indicator labels 1 to 10 for quick tapping */}
-              <View style={styles.sliderStepsRow}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((step) => {
-                  const isCurrent = selectedRating === step;
-                  return (
-                    <Pressable
-                      key={step}
-                      onPress={() => {
-                        setSelectedRating(step);
-                        setSaveMessage('');
-                        saveTrackerChanges(undefined, undefined, step);
-                      }}
-                      hitSlop={6}
-                      style={styles.sliderStepTouchable}
-                    >
-                      <Text
-                        style={[
-                          styles.sliderStepText,
-                          isCurrent && styles.sliderStepTextActive,
-                        ]}
-                      >
-                        {step}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* MY REVIEW / NOTES */}
-            <Text style={[styles.sectionLabel, styles.notesLabel]}>PERSONAL REVIEW / NOTES</Text>
-            <TextInput
-              value={notes}
-              onChangeText={(v) => {
-                setNotes(v);
-                setSaveMessage('');
-              }}
-              multiline
-              textAlignVertical="top"
-              placeholder="What did you think of this drama? Write your personal thoughts, favorite moments, or critique..."
-              placeholderTextColor={colors.muted}
-              style={styles.notesInput}
-            />
-
-            <View style={styles.notesButtons}>
-              <Pressable
-                style={[styles.saveAllButton, savingStatus && styles.saveButtonDisabled]}
-                onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes)}
-                disabled={savingStatus}
-              >
-                <Ionicons
-                  name={savingStatus ? 'hourglass-outline' : 'checkmark-circle'}
-                  size={15}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.saveAllButtonText}>
-                  {savingStatus ? 'Saving...' : 'Save Review & Notes'}
-                </Text>
-              </Pressable>
-            </View>
-
-            {saveMessage ? (
-              <View style={styles.saveMessageRow}>
-                <Ionicons
-                  name={saveMessage.includes('fail') ? 'alert-circle' : 'checkmark-circle'}
-                  size={13}
-                  color={saveMessage.includes('fail') ? '#F87171' : '#22C55E'}
-                />
-                <Text
-                  style={[
-                    styles.saveMessage,
-                    { color: saveMessage.includes('fail') ? '#F87171' : '#22C55E' },
-                  ]}
-                >
-                  {saveMessage}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* EPISODES & SEASONS */}
-          <View style={styles.card}>
-            <View style={styles.episodesHeader}>
-              <Text style={styles.sectionLabel}>
-                {allSeasons.length > 1 ? 'SEASONS & EPISODES' : 'EPISODES'}
-              </Text>
-              <Text style={styles.totalEpisodes}>
-                {currentSeason ? `${currentSeason.episode_count || currentSeasonEpisodes} Episodes` : `${episodesTotal} Total`}
-              </Text>
-            </View>
-
-            {/* Season Selector Tabs */}
-            {allSeasons.length > 1 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.seasonTabsContent}
-                style={styles.seasonTabsScroll}
-              >
-                {allSeasons.map((season, idx) => {
-                  const isActive = selectedSeasonIndex === idx;
-                  const seasonName = season.name || `Season ${season.season_number || idx + 1}`;
-                  return (
-                    <Pressable
-                      key={season.id || `season-${idx}`}
-                      onPress={() => {
-                        setSelectedSeasonIndex(idx);
-                        setShowAllEpisodes(false);
-                      }}
-                      style={[
-                        styles.seasonTabPill,
-                        isActive && styles.seasonTabPillActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.seasonTabPillText,
-                          isActive && styles.seasonTabPillTextActive,
-                        ]}
-                      >
-                        {seasonName}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            )}
-
-            <View style={styles.episodeList}>
-              {displayedEpisodes.map((ep) => {
-                const watched = ep.number <= watchedEpisodes;
-                return (
-                  <Pressable
-                    key={ep.number}
-                    style={styles.episodeRow}
-                    onPress={() => {
-                      const next = watched ? ep.number - 1 : ep.number;
-                      setWatchedEpisodes(next);
-                      saveTrackerChanges(undefined, next);
-                    }}
-                  >
-                    <View style={[styles.episodeCircle, watched && styles.episodeCircleActive]}>
-                      {watched ? <Ionicons name="checkmark" size={10} color="#FFFFFF" /> : null}
-                    </View>
-                    <Text
-                      style={[styles.episodeTitle, watched && styles.episodeTitleWatched]}
-                      numberOfLines={1}
-                    >
-                      {ep.title}
-                    </Text>
-                    <Text style={styles.episodeNumber}>Ep {ep.number}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {hasMoreEpisodes && (
-              <Pressable
-                style={styles.showMoreButton}
-                onPress={() => setShowAllEpisodes((prev) => !prev)}
-                accessibilityRole="button"
-              >
-                <Text style={styles.showMoreButtonText}>
-                  {showAllEpisodes
-                    ? `Show Fewer Episodes`
-                    : `View All ${episodeList.length} Episodes (${episodeList.length - INITIAL_VISIBLE_COUNT} more)`}
-                </Text>
-                <Ionicons
-                  name={showAllEpisodes ? 'chevron-up' : 'chevron-down'}
-                  size={14}
-                  color="#F5A9C4"
-                />
-              </Pressable>
-            )}
-          </View>
 
       <View style={styles.bottomSpace} />
     </ScrollView>
@@ -820,34 +796,21 @@ const styles = StyleSheet.create({
   },
   posterFallback: {
     flex: 1,
-    backgroundColor: colors.panel2,
-  },
-  topBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: '#10A9D6',
-    borderRadius: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  topBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '900',
+    backgroundColor: '#1E1C2B',
   },
   heroInfo: {
     flex: 1,
     minWidth: 0,
     paddingLeft: 16,
-    paddingTop: 2,
+    paddingTop: 4,
+    justifyContent: 'center',
   },
   title: {
     color: colors.text,
     fontSize: 22,
-    lineHeight: 26,
+    lineHeight: 27,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   koreanTitle: {
     color: '#F5A9C4',
@@ -864,30 +827,28 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaText: {
-    color: colors.muted,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 12,
     fontWeight: '600',
   },
   metaDot: {
-    color: colors.muted,
+    color: 'rgba(255, 255, 255, 0.35)',
     fontSize: 12,
-    marginHorizontal: 2,
+    marginHorizontal: 3,
   },
   heroTmdbRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: 10,
     gap: 8,
   },
   tmdbPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 215, 106, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 106, 0.3)',
     borderRadius: 6,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     gap: 4,
   },
@@ -907,556 +868,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  availableText: {
-    color: colors.muted,
-    fontSize: 11,
-    marginTop: 6,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 15,
-  },
-  updateButton: {
-    height: 31,
-    paddingHorizontal: 11,
-    borderRadius: 7,
-    backgroundColor: colors.redBright,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  updateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '900',
-    marginLeft: 5,
-  },
-  favoriteButton: {
-    width: 31,
-    height: 31,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: colors.redBright,
-    marginLeft: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  favoriteButtonActive: {
-    backgroundColor: 'rgba(238,45,82,0.12)',
-  },
-  listButton: {
-    width: 31,
-    height: 31,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: colors.line,
-    marginLeft: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listButtonActive: {
-    backgroundColor: colors.redBright,
-    borderColor: colors.redBright,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.line,
-    marginTop: 13,
-    marginBottom: 14,
-  },
-  columns: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 13,
-  },
-  columnsStacked: {
-    flexDirection: 'column',
-    gap: 0,
-  },
-  leftColumn: {
-    flex: 1,
-    minWidth: 0,
-    width: '100%',
-  },
-  rightColumn: {
-    flex: 1,
-    minWidth: 0,
-    width: '100%',
-  },
-  card: {
-    width: '100%',
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-  },
-  sectionLabel: {
-    color: '#8D8B98',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '900',
-    letterSpacing: 1.1,
-    marginBottom: 10,
-  },
-  synopsis: {
-    color: colors.text,
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: '400',
-  },
-  detailRow: {
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.055)',
-  },
-  detailRowLast: {
-    borderBottomWidth: 0,
-  },
-  detailLabel: {
-    color: '#8D8B98',
-    fontSize: 13,
-    fontWeight: '600',
-    flex: 0.8,
-  },
-  detailValue: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'right',
-    flex: 1.2,
-  },
-  castRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  castAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#292936',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  castInfo: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 12,
-  },
-  castName: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  castRole: {
-    color: colors.muted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  progressPercent: {
-    color: colors.redBright,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  progressSubtext: {
-    color: colors.muted,
-    fontSize: 12,
-    marginTop: -2,
-    marginBottom: 8,
-  },
-  progressTrack: {
-    width: '100%',
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#292832',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-    backgroundColor: colors.redBright,
-  },
-  remainingText: {
-    color: colors.muted,
-    fontSize: 12,
-    marginTop: 8,
-  },
-  statusLabel: {
-    marginTop: 16,
-    marginBottom: 10,
-  },
-  statusGrid: {
+  genreRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+    marginTop: 10,
   },
-  statusPill: {
-    minHeight: 34,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#353540',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusPillActive: {
-    borderColor: '#5B9FFF',
-    backgroundColor: 'rgba(59,130,246,0.15)',
-  },
-  statusPillText: {
-    color: '#AAA7B3',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  statusPillTextActive: {
-    color: '#67A7FF',
-    fontWeight: '900',
-  },
-  saveStatusButton: {
-    minHeight: 40,
-    marginTop: 14,
-    borderRadius: 10,
-    backgroundColor: colors.redBright,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-  },
-  saveStatusButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '900',
-    marginLeft: 6,
-  },
-  saveButtonDisabled: {
-    opacity: 0.55,
-  },
-  reviewHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  reviewSublabel: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  clearRatingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  genreTag: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: colors.line,
-    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  clearRatingText: {
-    color: colors.muted,
+  genreTagText: {
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 11,
-    fontWeight: '700',
-  },
-  myRatingBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 10,
-    gap: 10,
-  },
-  myRatingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#191822',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 6,
-  },
-  myRatingBadgeActive: {
-    backgroundColor: 'rgba(255, 215, 106, 0.1)',
-    borderColor: 'rgba(255, 215, 106, 0.4)',
-  },
-  myRatingBadgeText: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  myRatingBadgeTextActive: {
-    color: '#FFD76A',
-    fontWeight: '900',
-  },
-  ratingHintText: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  unratedPromptRow: {
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  unratedPromptText: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  sliderSection: {
-    marginVertical: 10,
-  },
-  sliderTouchArea: {
-    height: 38,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    cursor: 'pointer',
-  },
-  sliderTrackBg: {
-    height: 8,
-    width: '100%',
-    backgroundColor: '#1E1D2A',
-    borderRadius: 4,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  sliderTrackFill: {
-    position: 'absolute',
-    left: 0,
-    height: '100%',
-    backgroundColor: '#FFD76A',
-    borderRadius: 4,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFD76A',
-    marginLeft: -12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  sliderThumbUnset: {
-    backgroundColor: '#4A4858',
-  },
-  sliderStepsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    marginTop: 2,
-  },
-  sliderStepTouchable: {
-    minWidth: 26,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 6,
-  },
-  sliderStepText: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  sliderStepTextActive: {
-    color: '#FFD76A',
-    fontWeight: '900',
-    fontSize: 13,
-  },
-  notesLabel: {
-    marginTop: 14,
-    marginBottom: 8,
-  },
-  notesInput: {
-    width: '100%',
-    minHeight: 80,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#353540',
-    backgroundColor: '#171720',
-    color: colors.text,
-    fontSize: 13,
-    lineHeight: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  notesButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 12,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 42,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.redBright,
-    gap: 7,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  saveAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 42,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#232230',
-    borderWidth: 1,
-    borderColor: '#3D3B4E',
-    gap: 7,
-  },
-  saveAllButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  saveButtonDisabled: {
-    opacity: 0.55,
-  },
-  saveMessageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  saveMessage: {
-    fontSize: 12,
-    fontWeight: '800',
-    marginLeft: 5,
-  },
-  episodesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  totalEpisodes: {
-    color: colors.muted,
-    fontSize: 12,
-  },
-  seasonTabsScroll: {
-    marginBottom: 14,
-    marginTop: 4,
-  },
-  seasonTabsContent: {
-    gap: 8,
-  },
-  seasonTabPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#1E1C2B',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  seasonTabPillActive: {
-    backgroundColor: 'rgba(245, 169, 196, 0.18)',
-    borderColor: '#F5A9C4',
-  },
-  seasonTabPillText: {
-    color: colors.muted,
-    fontSize: 12,
     fontWeight: '600',
-  },
-  seasonTabPillTextActive: {
-    color: '#F5A9C4',
-    fontWeight: '800',
-  },
-  episodeList: {
-    marginTop: 4,
-  },
-  episodeRow: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.055)',
-    paddingVertical: 4,
-  },
-  episodeCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    borderColor: '#4A4855',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  episodeCircleActive: {
-    backgroundColor: colors.redBright,
-    borderColor: colors.redBright,
-  },
-  episodeTitle: {
-    flex: 1,
-    minWidth: 0,
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '700',
-    marginLeft: 12,
-    marginRight: 8,
-  },
-  episodeTitleWatched: {
-    color: '#8D8B98',
-  },
-  episodeNumber: {
-    color: colors.muted,
-    fontSize: 12,
-    width: 32,
-    textAlign: 'right',
-  },
-  showMoreButton: {
-    marginTop: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#1E1C2B',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  showMoreButtonText: {
-    color: '#F5A9C4',
-    fontSize: 12,
-    fontWeight: '700',
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 18,
+    marginBottom: 8,
     gap: 12,
   },
   watchlistButton: {
@@ -1505,7 +938,317 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,70,85,0.15)',
     borderColor: '#FF4655',
   },
+  sectionContainer: {
+    width: '100%',
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  sectionCountText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  progressCounterText: {
+    color: '#F5A9C4',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cleanProgressTrack: {
+    width: '100%',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  cleanProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: '#F5A9C4',
+  },
+  statusScroll: {
+    marginHorizontal: -4,
+  },
+  statusScrollContent: {
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  statusColorDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusChipText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statusChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  synopsisText: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '400',
+  },
+  seasonTabsScroll: {
+    marginBottom: 14,
+  },
+  seasonTabsContent: {
+    gap: 8,
+  },
+  seasonTabPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  seasonTabPillActive: {
+    backgroundColor: 'rgba(245, 169, 196, 0.2)',
+    borderWidth: 1,
+    borderColor: '#F5A9C4',
+  },
+  seasonTabPillText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  seasonTabPillTextActive: {
+    color: '#F5A9C4',
+    fontWeight: '800',
+  },
+  episodeList: {
+    marginTop: 4,
+  },
+  episodeRow: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  episodeRowPressed: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  episodeBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  episodeBadgeWatched: {
+    backgroundColor: 'rgba(245, 169, 196, 0.15)',
+  },
+  episodeBadgeText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  episodeBadgeTextWatched: {
+    color: '#F5A9C4',
+  },
+  episodeContent: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 10,
+  },
+  episodeTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  episodeTitleWatched: {
+    color: 'rgba(255,255,255,0.45)',
+  },
+  episodeSubtitle: {
+    color: colors.muted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  episodeCheckCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  episodeCheckCircleActive: {
+    backgroundColor: '#F5A9C4',
+    borderColor: '#F5A9C4',
+  },
+  showMoreButton: {
+    marginTop: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  showMoreButtonText: {
+    color: '#F5A9C4',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  ratingNumberBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  scoreButton: {
+    flex: 1,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreButtonPassed: {
+    backgroundColor: 'rgba(255, 215, 106, 0.1)',
+  },
+  scoreButtonSelected: {
+    backgroundColor: '#FFD76A',
+  },
+  scoreButtonText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  scoreButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+  activeScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  activeScoreText: {
+    color: colors.muted,
+    fontSize: 12,
+  },
+  activeScoreHighlight: {
+    color: '#FFD76A',
+    fontWeight: '800',
+  },
+  clearRatingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  clearRatingText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  notesInput: {
+    width: '100%',
+    minHeight: 80,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 19,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  notesActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 12,
+  },
+  saveAllButton: {
+    height: 38,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    backgroundColor: '#F5A9C4',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  saveAllButtonText: {
+    color: '#07070E',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  saveMessage: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 5,
+  },
+  detailRow: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  detailRowLast: {},
+  detailLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 0.8,
+  },
+  detailValue: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'right',
+    flex: 1.2,
+  },
   bottomSpace: {
-    height: 40,
+    height: 50,
   },
 });
