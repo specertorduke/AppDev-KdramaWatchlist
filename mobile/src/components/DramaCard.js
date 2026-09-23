@@ -67,15 +67,6 @@ export default function DramaCard({ drama, onPress }) {
               </View>
             ) : null}
 
-            {/* Bottom Left Rating Badge */}
-            {rating > 0 ? (
-              <View style={[styles.ratingBadge, hovered && styles.ratingBadgeHover]}>
-                <Text style={[styles.ratingText, hovered && styles.ratingTextHover]}>
-                  ★ {rating.toFixed(1)}
-                </Text>
-              </View>
-            ) : null}
-
             {hovered && <View pointerEvents="none" style={styles.hoverOverlay} />}
           </View>
 

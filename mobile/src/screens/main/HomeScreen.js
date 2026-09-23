@@ -401,13 +401,6 @@ export default function HomeScreen({ navigation }) {
                         style={styles.trendingPosterImage}
                         resizeMode="cover"
                       />
-                      {/* Rating pill */}
-                      {rating > 0 && (
-                        <View style={styles.trendingRatingPill}>
-                          <Ionicons name="star" size={10} color="#FFD76A" />
-                          <Text style={styles.trendingRatingVal}>{rating.toFixed(1)}</Text>
-                        </View>
-                      )}
                     </View>
 
                     <Text style={styles.trendingDramaTitle} numberOfLines={1}>
@@ -521,9 +514,6 @@ function RecommendedCard({ drama, rank, onPress }) {
         <Image source={{ uri: image }} style={styles.recommendedImage} resizeMode="cover" />
         <View style={styles.rankBadge}>
           <Text style={styles.rankText}>TOP {rank}</Text>
-        </View>
-        <View style={styles.ratingBadge}>
-          <Text style={styles.ratingText}>★ {rating.toFixed(1)}</Text>
         </View>
       </View>
       <Text style={styles.recommendedTitle} numberOfLines={1}>

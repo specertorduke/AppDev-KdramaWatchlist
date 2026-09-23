@@ -260,6 +260,22 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Text style={styles.metaText}>{episodesTotal} Episodes</Text>
           </View>
 
+          {/* Clear TMDB Rating Pill in Hero */}
+          {tmdbScore && (
+            <View style={styles.heroTmdbRow}>
+              <View style={styles.tmdbPill}>
+                <Ionicons name="star" size={13} color="#FFD76A" />
+                <Text style={styles.tmdbPillScore}>{tmdbScore}</Text>
+                <Text style={styles.tmdbPillLabel}>TMDB</Text>
+              </View>
+              {tmdbVoteCount ? (
+                <Text style={styles.tmdbVoteText}>
+                  ({tmdbVoteCount.toLocaleString()} votes)
+                </Text>
+              ) : null}
+            </View>
+          )}
+
           <Text style={styles.availableText} numberOfLines={1}>
             Available on tvN · Netflix
           </Text>
