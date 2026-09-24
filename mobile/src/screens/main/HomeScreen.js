@@ -146,7 +146,10 @@ export default function HomeScreen({ navigation }) {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingHorizontal: horizontalPadding },
+          {
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: Math.max(insets.bottom, 16) + 85,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={

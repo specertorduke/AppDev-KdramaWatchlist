@@ -187,7 +187,10 @@ export default function TrackerScreen({ navigation, route }) {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: (insets.top > 0 ? insets.top : 12) + 6 },
+          {
+            paddingTop: (insets.top > 0 ? insets.top : 12) + 6,
+            paddingBottom: Math.max(insets.bottom, 16) + 85,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

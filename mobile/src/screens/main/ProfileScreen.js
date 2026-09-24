@@ -110,7 +110,10 @@ export default function ProfileScreen({ navigation }) {
       style={styles.screen}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: (insets.top > 0 ? insets.top : 12) + 6 },
+        {
+          paddingTop: (insets.top > 0 ? insets.top : 12) + 6,
+          paddingBottom: Math.max(insets.bottom, 16) + 85,
+        },
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
