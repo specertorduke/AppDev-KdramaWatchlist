@@ -30,6 +30,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'terms_privacy_accepted' => 'boolean',
             'terms_privacy_accepted_at' => 'datetime',
+            'favorite_genres' => 'array',
         ];
     }
 

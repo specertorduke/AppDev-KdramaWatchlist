@@ -84,6 +84,7 @@ export const authService = {
 export const userService = {
   getProfile: () => api.get('/user/profile'),
   getStats: () => api.get('/user/stats'),
+  updatePreferences: (data) => api.patch('/user/preferences', data),
   deleteAccount: (data) => api.delete('/user', { data }),
 };
 

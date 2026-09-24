@@ -266,6 +266,31 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={13} color={colors.muted} />
         </Pressable>
 
+        {/* Favorite Genres & Taste */}
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.menuItem,
+            hovered && styles.menuItemHovered,
+            pressed && styles.menuItemPressed,
+          ]}
+          onPress={() => navigation.navigate('GenreSelection', { isEditing: true })}
+          accessibilityRole="button"
+          accessibilityLabel="Favorite Genres"
+        >
+          <View style={styles.menuIcon}>
+            <Ionicons name="sparkles-outline" size={15} color="#F5A9C4" />
+          </View>
+          <View style={styles.menuText}>
+            <Text style={styles.menuTitle}>Favorite Genres</Text>
+            <Text style={styles.menuSubtitle}>
+              {Array.isArray(user?.favorite_genres) && user.favorite_genres.length > 0
+                ? user.favorite_genres.join(', ')
+                : 'Select your preferred genres'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+        </Pressable>
+
         {/* Settings */}
         <Pressable
           style={({ pressed, hovered }) => [

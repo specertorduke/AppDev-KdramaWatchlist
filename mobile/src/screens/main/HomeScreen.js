@@ -404,6 +404,32 @@ export default function HomeScreen({ navigation }) {
                         style={styles.trendingPosterImage}
                         resizeMode="cover"
                       />
+                      {(drama.watch_status || drama.status) ? (() => {
+                        const s = String(drama.watch_status || drama.status).toLowerCase().replace(/_/g, ' ');
+                        let badgeColor = '#F5A9C4';
+                        if (s.includes('watch') && !s.includes('plan')) {
+                          badgeColor = '#60A5FA';
+                        } else if (s.includes('complet')) {
+                          badgeColor = '#10B981';
+                        } else if (s.includes('plan')) {
+                          badgeColor = '#FFD76A';
+                        } else if (s.includes('hold')) {
+                          badgeColor = '#F59E0B';
+                        } else if (s.includes('drop')) {
+                          badgeColor = '#EF4444';
+                        }
+                        const formattedText = String(drama.watch_status || drama.status)
+                          .replace(/_/g, ' ')
+                          .replace(/\b\w/g, (c) => c.toUpperCase());
+                        return (
+                          <View style={styles.cardStatusBadge}>
+                            <View style={[styles.cardStatusDot, { backgroundColor: badgeColor }]} />
+                            <Text style={[styles.cardStatusText, { color: badgeColor }]} numberOfLines={1}>
+                              {formattedText}
+                            </Text>
+                          </View>
+                        );
+                      })() : null}
                     </View>
 
                     <Text style={styles.trendingDramaTitle} numberOfLines={1}>
@@ -421,11 +447,26 @@ export default function HomeScreen({ navigation }) {
 
             {/* Recommended */}
             <View style={styles.recommendedHeaderRow}>
-              <SectionTitle text="RECOMMENDED FOR YOU" />
+              <View style={styles.recommendedTitleGroup}>
+                <SectionTitle text="RECOMMENDED FOR YOU" />
+                {Array.isArray(user?.favorite_genres) && user.favorite_genres.length > 0 && (
+                  <View style={styles.genreTagPill}>
+                    <Ionicons name="sparkles" size={11} color="#F5A9C4" />
+                    <Text style={styles.genreTagText} numberOfLines={1}>
+                      {user.favorite_genres.slice(0, 2).join(' · ')}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
 
-            <View style={styles.recommendedGrid}>
-              {recommended.slice(0, 4).map((drama, index) => (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedScrollContent}
+              style={styles.recommendedScrollView}
+            >
+              {recommended.slice(0, 15).map((drama, index) => (
                 <RecommendedCard
                   key={String(drama.tmdb_id || drama.id || index)}
                   drama={drama}
@@ -435,7 +476,7 @@ export default function HomeScreen({ navigation }) {
                   }
                 />
               ))}
-            </View>
+            </ScrollView>
 
             <View style={styles.bottomSpace} />
           </>
@@ -504,6 +545,8 @@ function RecommendedCard({ drama, rank, onPress }) {
     drama?.backdrop_url ||
     'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400';
 
+  const status = drama?.watch_status || drama?.status;
+
   return (
     <Pressable
       style={({ pressed, hovered }) => [
@@ -516,8 +559,35 @@ function RecommendedCard({ drama, rank, onPress }) {
       <View style={styles.posterWrapper}>
         <Image source={{ uri: image }} style={styles.recommendedImage} resizeMode="cover" />
         <View style={styles.rankBadge}>
-          <Text style={styles.rankText}>TOP {rank}</Text>
+          <Text style={styles.rankText}>#{rank}</Text>
         </View>
+
+        {status ? (() => {
+          const s = String(status).toLowerCase().replace(/_/g, ' ');
+          let badgeColor = '#F5A9C4';
+          if (s.includes('watch') && !s.includes('plan')) {
+            badgeColor = '#60A5FA';
+          } else if (s.includes('complet')) {
+            badgeColor = '#10B981';
+          } else if (s.includes('plan')) {
+            badgeColor = '#FFD76A';
+          } else if (s.includes('hold')) {
+            badgeColor = '#F59E0B';
+          } else if (s.includes('drop')) {
+            badgeColor = '#EF4444';
+          }
+          const formattedText = String(status)
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          return (
+            <View style={styles.cardStatusBadge}>
+              <View style={[styles.cardStatusDot, { backgroundColor: badgeColor }]} />
+              <Text style={[styles.cardStatusText, { color: badgeColor }]} numberOfLines={1}>
+                {formattedText}
+              </Text>
+            </View>
+          );
+        })() : null}
       </View>
       <Text style={styles.recommendedTitle} numberOfLines={1}>
         {drama.title || drama.name}
@@ -921,13 +991,63 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '800',
   },
+  recommendedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 6,
+  },
+  recommendedTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  genreTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245, 169, 196, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  genreTagText: {
+    color: '#F5A9C4',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  tuneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#161424',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  tuneButtonText: {
+    color: '#F5A9C4',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  recommendedScrollView: {
+    marginHorizontal: -12,
+    marginBottom: 20,
+  },
+  recommendedScrollContent: {
+    paddingHorizontal: 12,
+    gap: 14,
+  },
   recommendedGrid: {
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   recommendedCard: {
-    width: '23.7%',
+    width: 124,
     minWidth: 0,
     borderRadius: 9,
   },
@@ -946,6 +1066,30 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#171720',
+  },
+  cardStatusBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(12, 11, 20, 0.92)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: 96,
+  },
+  cardStatusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    flexShrink: 0,
+  },
+  cardStatusText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.2,
   },
   recommendedImage: {
     width: '100%',

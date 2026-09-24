@@ -149,6 +149,9 @@ class GeminiService
         }
 
         $sections = [];
+        if (!empty($user->favorite_genres)) {
+            $sections[] = "User's Favorite Genres:\n" . implode(', ', (array) $user->favorite_genres);
+        }
         if (!empty($watchingLines)) {
             $sections[] = "Currently Watching:\n" . implode("\n", $watchingLines);
         }
@@ -157,8 +160,8 @@ class GeminiService
         }
 
         return !empty($sections)
-            ? "User's Tracked K-Drama History:\n\n" . implode("\n\n", $sections)
-            : "User's Tracked K-Drama History:\nNo dramas tracked yet.";
+            ? "User's Taste & Tracked K-Drama History:\n\n" . implode("\n\n", $sections)
+            : "User's Taste & Tracked K-Drama History:\nNo dramas tracked yet.";
     }
 
     /**

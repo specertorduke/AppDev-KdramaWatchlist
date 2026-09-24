@@ -59,6 +59,23 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updatePreferences(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'favorite_genres'   => 'nullable|array',
+            'favorite_genres.*' => 'string|max:50',
+            'avatar_url'        => 'nullable|string|max:255',
+        ]);
+
+        $user = $request->user();
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Preferences updated successfully',
+            'user'    => new UserResource($user),
+        ]);
+    }
+
     public function stats(Request $request): JsonResponse
     {
         $user = $request->user();

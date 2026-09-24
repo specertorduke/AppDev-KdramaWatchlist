@@ -110,9 +110,67 @@ class HomeController extends Controller
             ];
         }
 
-        // 4. Recommended (Discover)
-        $discoverData = $this->discoverService->discover(['page' => 1], $user);
+        // 4. Recommended: Curated based on user favorite genres & tracked favorites (at least 10 items)
+        $userFavoriteGenres = $user ? ($user->favorite_genres ?? []) : [];
+        $genreMap = $this->discoverService->getGenreMap();
+        $genreMapFlipped = array_change_key_case(array_flip($genreMap), CASE_LOWER);
+
+        // Also check if user has favorite dramas in tracker to extract genres
+        $favoriteTrackers = $user ? $user->trackers()->where('is_favorite', true)->pluck('tmdb_id')->toArray() : [];
+
+        // Map custom genres to TMDB TV genre IDs:
+        // TMDB TV: 10759 (Action & Adv), 35 (Comedy), 80 (Crime), 18 (Drama), 10751 (Family), 9648 (Mystery), 10765 (Sci-Fi & Fantasy), 10766 (Soap)
+        $knownTmdbTvGenres = [
+            'romance'           => 18, // Also works with soap 10766 or drama 18
+            'comedy'            => 35,
+            'drama'             => 18,
+            'mystery'           => 9648,
+            'action'            => 10759,
+            'action & adventure'=> 10759,
+            'sci-fi & fantasy'  => 10765,
+            'fantasy & sci-fi'  => 10765,
+            'sci-fi'            => 10765,
+            'crime'             => 80,
+            'family'            => 10751,
+        ];
+
+        $genreIdList = [];
+        if (!empty($userFavoriteGenres)) {
+            foreach ($userFavoriteGenres as $fav) {
+                $favLower = strtolower(trim($fav));
+                if (isset($knownTmdbTvGenres[$favLower])) {
+                    $genreIdList[] = $knownTmdbTvGenres[$favLower];
+                } elseif (isset($genreMapFlipped[$favLower])) {
+                    $genreIdList[] = $genreMapFlipped[$favLower];
+                }
+            }
+        }
+
+        $genreIdList = array_values(array_unique($genreIdList));
+        $primaryGenreId = !empty($genreIdList) ? $genreIdList[0] : null;
+
+        $discoverParams = ['page' => 1];
+        if ($primaryGenreId) {
+            $discoverParams['genre_id'] = $primaryGenreId;
+        }
+
+        $discoverData = $this->discoverService->discover($discoverParams, $user);
         $recommendedRaw = $discoverData['data'] ?? [];
+
+        // If less than 10 or empty, fallback with page 1 general discover
+        if (count($recommendedRaw) < 10) {
+            $generalData = $this->discoverService->discover(['page' => 1], $user);
+            $existingIds = array_column($recommendedRaw, 'id');
+            foreach ($generalData['data'] ?? [] as $extra) {
+                if (!in_array($extra['id'], $existingIds, true)) {
+                    $recommendedRaw[] = $extra;
+                    $existingIds[] = $extra['id'];
+                }
+                if (count($recommendedRaw) >= 15) {
+                    break;
+                }
+            }
+        }
 
         $imageBaseUrl = rtrim(config('services.tmdb.image_url', 'https://image.tmdb.org/t/p/original'), '/');
         $recommended = [];
@@ -141,6 +199,7 @@ class HomeController extends Controller
                 'rating'         => $rating,
                 'genres'         => $item['genres'] ?? [],
                 'total_episodes' => $totalEpisodes,
+                'watch_status'   => $item['watch_status'] ?? $this->discoverService->getWatchStatus((int) ($item['id'] ?? $item['tmdb_id'] ?? 0), $user),
             ];
         }
 

@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
 
   const [savedAccounts, setSavedAccounts] = useState([]);
   const [isChoosingAccount, setIsChoosingAccount] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     setOnUnauthorizedCallback(async () => {
@@ -95,6 +96,43 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUserPreferences = async ({ favoriteGenres, avatarUrl }) => {
+    try {
+      if (!user) return;
+      const payload = {};
+      if (favoriteGenres !== undefined) payload.favorite_genres = favoriteGenres;
+      if (avatarUrl !== undefined) payload.avatar_url = avatarUrl;
+
+      const updatedUser = {
+        ...user,
+        ...(favoriteGenres !== undefined ? { favorite_genres: favoriteGenres } : {}),
+        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+      };
+
+      setUser(updatedUser);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+      const stored = await AsyncStorage.getItem('saved_accounts');
+      let accounts = stored ? JSON.parse(stored) : [];
+      accounts = accounts.map((a) => {
+        if (a.id === user.id || a.email === user.email) {
+          return {
+            ...a,
+            user: { ...a.user, ...updatedUser },
+          };
+        }
+        return a;
+      });
+      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
+      setSavedAccounts(accounts);
+
+      // Persist to backend
+      await userService.updatePreferences(payload);
+    } catch (e) {
+      console.warn('Failed to update user preferences:', e);
+    }
+  };
+
   const loadStoredAuth = async () => {
     try {
       const storedAccountsStr = await AsyncStorage.getItem('saved_accounts');
@@ -169,6 +207,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     setToken(authToken);
     setIsChoosingAccount(false);
+    setNeedsOnboarding(true);
     await AsyncStorage.setItem('auth_token', authToken);
     await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
     if (rememberMe) {
@@ -267,6 +306,9 @@ export const AuthProvider = ({ children }) => {
         switchAccount,
         removeSavedAccount,
         updateProfileAvatar,
+        updateUserPreferences,
+        needsOnboarding,
+        setNeedsOnboarding,
         login,
         register,
         logout,
