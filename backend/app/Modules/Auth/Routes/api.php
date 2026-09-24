@@ -22,6 +22,7 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [AuthController::class, 'profile']);
+    Route::patch('/preferences', [AuthController::class, 'updatePreferences']);
     Route::get('/stats', [AuthController::class, 'stats']);
     Route::put('/password', [AuthController::class, 'updatePassword']);
     Route::patch('/password', [AuthController::class, 'updatePassword']);
