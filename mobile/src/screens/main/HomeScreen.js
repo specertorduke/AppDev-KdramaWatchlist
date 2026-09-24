@@ -470,7 +470,6 @@ export default function HomeScreen({ navigation }) {
                 <RecommendedCard
                   key={String(drama.tmdb_id || drama.id || index)}
                   drama={drama}
-                  rank={index + 1}
                   onPress={() =>
                     navigation.navigate('DramaDetail', { tmdbId: drama.tmdb_id || drama.id })
                   }
@@ -536,7 +535,7 @@ function QuickAccess({ icon, iconBackground, title, onPress }) {
   );
 }
 
-function RecommendedCard({ drama, rank, onPress }) {
+function RecommendedCard({ drama, onPress }) {
   const rating = Number(drama?.rating) || 0;
   const image =
     drama?.poster_url ||
@@ -558,9 +557,6 @@ function RecommendedCard({ drama, rank, onPress }) {
     >
       <View style={styles.posterWrapper}>
         <Image source={{ uri: image }} style={styles.recommendedImage} resizeMode="cover" />
-        <View style={styles.rankBadge}>
-          <Text style={styles.rankText}>#{rank}</Text>
-        </View>
 
         {status ? (() => {
           const s = String(status).toLowerCase().replace(/_/g, ' ');
