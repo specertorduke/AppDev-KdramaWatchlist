@@ -2,10 +2,13 @@
 
 namespace App\Modules\Auth\Services;
 
+use App\Modules\Auth\Mail\VerifyEmailOtpMail;
+use App\Modules\Auth\Models\EmailOtp;
 use App\Modules\Auth\Models\User;
 use App\Modules\Tracker\Models\Tracker;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -13,10 +16,10 @@ use Illuminate\Validation\ValidationException;
 class AuthService
 {
     /**
-     * Register a new user and generate an access token.
+     * Register a new user as unverified and dispatch an email OTP.
      *
      * @param  array<string, mixed>  $data
-     * @return array{user: User, token: string}
+     * @return array{user: User, requires_verification: bool}
      */
     public function register(array $data): array
     {
@@ -24,9 +27,83 @@ class AuthService
             'name'                       => $data['name'],
             'email'                      => $data['email'],
             'password'                   => $data['password'],
+            'email_verified_at'          => null,
             'terms_privacy_accepted'    => true,
             'terms_privacy_accepted_at' => now(),
         ]);
+
+        $this->sendEmailOtp($user);
+
+        return [
+            'user'                  => $user,
+            'requires_verification' => true,
+        ];
+    }
+
+    /**
+     * Generate, store, and email a 6-digit OTP code to the user.
+     */
+    public function sendEmailOtp(User $user): void
+    {
+        $otp = (string) random_int(100000, 999999);
+
+        EmailOtp::updateOrCreate(
+            ['email' => $user->email],
+            [
+                'code_hash'  => Hash::make($otp),
+                'attempts'   => 0,
+                'expires_at' => now()->addMinutes(10),
+            ]
+        );
+
+        Mail::to($user->email)->send(new VerifyEmailOtpMail($otp, $user->name));
+    }
+
+    /**
+     * Verify the 6-digit OTP code and activate the user's account.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{user: User, token: string}
+     *
+     * @throws ValidationException
+     */
+    public function verifyOtp(array $data): array
+    {
+        $user = User::where('email', $data['email'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'email' => ['We could not find an account associated with this email.'],
+            ]);
+        }
+
+        $otpRecord = EmailOtp::where('email', $data['email'])->first();
+
+        if (! $otpRecord || $otpRecord->isExpired()) {
+            throw ValidationException::withMessages([
+                'otp' => ['The verification code has expired or does not exist. Please request a new one.'],
+            ]);
+        }
+
+        if ($otpRecord->hasExceededMaxAttempts()) {
+            $otpRecord->delete();
+
+            throw ValidationException::withMessages([
+                'otp' => ['Too many invalid attempts. This code has been invalidated. Please request a new one.'],
+            ]);
+        }
+
+        $otpRecord->increment('attempts');
+
+        if (! Hash::check($data['otp'], $otpRecord->code_hash)) {
+            throw ValidationException::withMessages([
+                'otp' => ['The verification code is incorrect.'],
+            ]);
+        }
+
+        // Successfully verified
+        $otpRecord->delete();
+        $user->update(['email_verified_at' => now()]);
 
         $deviceName = $data['device_name'] ?? 'auth_token';
         $token = $user->createToken($deviceName)->plainTextToken;
@@ -34,6 +111,45 @@ class AuthService
         return [
             'user'  => $user,
             'token' => $token,
+        ];
+    }
+
+    /**
+     * Resend a fresh 6-digit OTP code if the user is unverified.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{message: string}
+     *
+     * @throws ValidationException
+     */
+    public function resendOtp(array $data): array
+    {
+        $user = User::where('email', $data['email'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'email' => ['We could not find an account associated with this email.'],
+            ]);
+        }
+
+        if ($user->email_verified_at !== null) {
+            throw ValidationException::withMessages([
+                'email' => ['This email address is already verified.'],
+            ]);
+        }
+
+        $latestOtp = EmailOtp::where('email', $data['email'])->first();
+        if ($latestOtp && $latestOtp->updated_at && $latestOtp->updated_at->gt(now()->subSeconds(60))) {
+            $secondsRemaining = 60 - (int) now()->diffInSeconds($latestOtp->updated_at);
+            throw ValidationException::withMessages([
+                'email' => ["Please wait {$secondsRemaining} seconds before requesting a new code."],
+            ]);
+        }
+
+        $this->sendEmailOtp($user);
+
+        return [
+            'message' => 'A new verification code has been sent to your email.',
         ];
     }
 
@@ -52,6 +168,12 @@ class AuthService
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials do not match our records.'],
+            ]);
+        }
+
+        if ($user->email_verified_at === null) {
+            throw ValidationException::withMessages([
+                'email' => ['Your email address has not been verified. Please verify your email using the OTP code sent to you.'],
             ]);
         }
 

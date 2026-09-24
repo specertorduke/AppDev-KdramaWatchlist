@@ -47,8 +47,10 @@ Authorization: Bearer <plain_text_token>
 
 | Group | Method | Path | Auth Required | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/auth/register` | Public | Register new user account & get token |
-| **Auth** | `POST` | `/auth/login` | Public | Authenticate user & get token |
+| **Auth** | `POST` | `/auth/register` | Public | Register new user account & dispatch email OTP |
+| **Auth** | `POST` | `/auth/verify-otp` | Public | Verify 6-digit email OTP & receive Sanctum token |
+| **Auth** | `POST` | `/auth/resend-otp` | Public | Request a new 6-digit OTP code (60s cooldown) |
+| **Auth** | `POST` | `/auth/login` | Public | Authenticate verified user & get token |
 | **Auth** | `GET` | `/auth/me` | Yes (`Bearer`) | Get currently authenticated user data |
 | **Auth** | `POST` | `/auth/logout` | Yes (`Bearer`) | Invalidate current session token |
 | **Auth** | `POST` | `/auth/logout-all` | Yes (`Bearer`) | Invalidate all active tokens across devices |
@@ -89,13 +91,14 @@ Authorization: Bearer <plain_text_token>
     "email": "jane@example.com",
     "password": "Password123!",
     "password_confirmation": "Password123!",
+    "terms_privacy_accepted": true,
     "device_name": "Web Browser" // optional
   }
   ```
 - **Success Response (`201 Created`):**
   ```json
   {
-    "message": "User registered successfully",
+    "message": "Registration successful. A verification code has been sent to your email.",
     "user": {
       "id": 1,
       "name": "Jane Doe",
@@ -105,15 +108,67 @@ Authorization: Bearer <plain_text_token>
       "created_at": "2026-08-26T12:00:00.000000Z",
       "updated_at": "2026-08-26T12:00:00.000000Z"
     },
+    "requires_verification": true
+  }
+  ```
+- **Errors:**
+  - `422 Unprocessable Content`: Validation failure (e.g., email already exists, password confirmation mismatch, terms not accepted).
+
+---
+
+#### 2. Verify Email OTP
+- **Route:** `POST /api/v1/auth/verify-otp`
+- **Auth:** Public (Rate limit: 6 req/min)
+- **Request Body:**
+  ```json
+  {
+    "email": "jane@example.com",
+    "otp": "123456",
+    "device_name": "Web Browser" // optional
+  }
+  ```
+- **Success Response (`200 OK`):**
+  ```json
+  {
+    "message": "Email verified successfully.",
+    "user": {
+      "id": 1,
+      "name": "Jane Doe",
+      "email": "jane@example.com",
+      "avatar_url": null,
+      "email_verified_at": "2026-08-26T12:05:00.000000Z",
+      "created_at": "2026-08-26T12:00:00.000000Z",
+      "updated_at": "2026-08-26T12:05:00.000000Z"
+    },
     "token": "1|abc1234567890abcdef..."
   }
   ```
 - **Errors:**
-  - `422 Unprocessable Content`: Validation failure (e.g., email already exists, password confirmation mismatch).
+  - `422 Unprocessable Content`: Invalid code, expired code, code format error, or too many failed attempts (5 max).
 
 ---
 
-#### 2. User Login
+#### 3. Resend Email OTP
+- **Route:** `POST /api/v1/auth/resend-otp`
+- **Auth:** Public (Rate limit: 3 req/min)
+- **Request Body:**
+  ```json
+  {
+    "email": "jane@example.com"
+  }
+  ```
+- **Success Response (`200 OK`):**
+  ```json
+  {
+    "message": "A new verification code has been sent to your email."
+  }
+  ```
+- **Errors:**
+  - `422 Unprocessable Content`: Email already verified, account not found, or cooldown active (must wait 60s between requests).
+
+---
+
+#### 4. User Login
 - **Route:** `POST /api/v1/auth/login`
 - **Auth:** Public (Rate limit: 6 req/min)
 - **Request Body:**
@@ -141,11 +196,11 @@ Authorization: Bearer <plain_text_token>
   }
   ```
 - **Errors:**
-  - `422 Unprocessable Content`: Invalid credentials (`The provided credentials do not match our records.`).
+  - `422 Unprocessable Content`: Invalid credentials (`The provided credentials do not match our records.`) or email not verified (`Your email address has not been verified. Please verify your email using the OTP code sent to you.`).
 
 ---
 
-#### 3. Current User (`/me`)
+#### 5. Current User (`/me`)
 - **Route:** `GET /api/v1/auth/me`
 - **Auth:** `Bearer <token>`
 - **Success Response (`200 OK`):**
@@ -155,15 +210,15 @@ Authorization: Bearer <plain_text_token>
     "name": "Jane Doe",
     "email": "jane@example.com",
     "avatar_url": null,
-    "email_verified_at": null,
+    "email_verified_at": "2026-08-26T12:05:00.000000Z",
     "created_at": "2026-08-26T12:00:00.000000Z",
-    "updated_at": "2026-08-26T12:00:00.000000Z"
+    "updated_at": "2026-08-26T12:05:00.000000Z"
   }
   ```
 
 ---
 
-#### 4. Logout / Logout All
+#### 6. Logout / Logout All
 - **Route:** `POST /api/v1/auth/logout` | `POST /api/v1/auth/logout-all`
 - **Auth:** `Bearer <token>`
 - **Success Response (`200 OK`):**
@@ -175,7 +230,7 @@ Authorization: Bearer <plain_text_token>
 
 ---
 
-#### 5. User Profile & Aggregated Stats
+#### 7. User Profile & Aggregated Stats
 - **Route:** `GET /api/v1/user/profile` (or `GET /api/v1/user/stats`)
 - **Auth:** `Bearer <token>`
 - **Success Response (`200 OK`):**
@@ -186,9 +241,9 @@ Authorization: Bearer <plain_text_token>
       "name": "Jane Doe",
       "email": "jane@example.com",
       "avatar_url": null,
-      "email_verified_at": null,
+      "email_verified_at": "2026-08-26T12:05:00.000000Z",
       "created_at": "2026-08-26T12:00:00.000000Z",
-      "updated_at": "2026-08-26T12:00:00.000000Z"
+      "updated_at": "2026-08-26T12:05:00.000000Z"
     },
     "stats": {
       "total_dramas": 14,
@@ -208,7 +263,7 @@ Authorization: Bearer <plain_text_token>
 
 ---
 
-#### 6. Update Password
+#### 8. Update Password
 - **Route:** `PATCH /api/v1/auth/password` (or `PUT/PATCH /api/v1/user/password`)
 - **Auth:** `Bearer <token>`
 - **Request Body:**
@@ -230,7 +285,7 @@ Authorization: Bearer <plain_text_token>
 
 ---
 
-#### 7. Delete User Account
+#### 9. Delete User Account
 - **Route:** `DELETE /api/v1/user`
 - **Auth:** `Bearer <token>`
 - **Request Body:**
