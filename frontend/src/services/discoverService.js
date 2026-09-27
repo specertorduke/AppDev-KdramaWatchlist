@@ -68,6 +68,49 @@ export function mapDramaDetail(item) {
     watched: i < watchedCount,
   }))
 
+  // Map cast list if provided by TMDB/backend, with normalization
+  let cast = []
+  if (Array.isArray(item.cast) && item.cast.length > 0) {
+    cast = item.cast.map((actor) => {
+      const actorName = actor.name || 'Unknown Actor'
+      const actorRole = actor.role || actor.character || 'Cast'
+      const actorAvatar =
+        actor.avatar ||
+        actor.profile_url ||
+        (actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : null) ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(actorName)}&background=1f1f23&color=e4e4e7`
+
+      return {
+        id: actor.id || actorName,
+        name: actorName,
+        role: actorRole,
+        avatar: actorAvatar,
+      }
+    })
+  } else if (typeof item.cast === 'string' && item.cast.trim()) {
+    cast = item.cast.split(',').map((name) => {
+      const trimmed = name.trim()
+      return {
+        id: trimmed,
+        name: trimmed,
+        role: 'Cast',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(trimmed)}&background=1f1f23&color=e4e4e7`,
+      }
+    })
+  } else if (Array.isArray(item.credits?.cast) && item.credits.cast.length > 0) {
+    cast = item.credits.cast.map((actor) => {
+      const actorName = actor.name || 'Unknown Actor'
+      return {
+        id: actor.id || actorName,
+        name: actorName,
+        role: actor.character || 'Cast',
+        avatar: actor.profile_path
+          ? `https://image.tmdb.org/t/p/w185${actor.profile_path}`
+          : `https://ui-avatars.com/api/?name=${encodeURIComponent(actorName)}&background=1f1f23&color=e4e4e7`,
+      }
+    })
+  }
+
   return {
     id: tmdbId,
     tmdb_id: tmdbId,
@@ -96,18 +139,7 @@ export function mapDramaDetail(item) {
       item.overview ||
       'An acclaimed Korean drama series featuring compelling storytelling, memorable characters, and emotional twists.',
     myNotes: item.notes || '',
-    cast: [
-      {
-        name: 'Lead Actor',
-        role: 'Main Character',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=128&q=80',
-      },
-      {
-        name: 'Lead Actress',
-        role: 'Main Character',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=128&q=80',
-      },
-    ],
+    cast,
     trailer: item.trailer || null,
     episodeList,
   }
