@@ -8,8 +8,10 @@ use App\Modules\Auth\Requests\DeleteAccountRequest;
 use App\Modules\Auth\Requests\ForgotPasswordRequest;
 use App\Modules\Auth\Requests\LoginRequest;
 use App\Modules\Auth\Requests\RegisterRequest;
+use App\Modules\Auth\Requests\ResendOtpRequest;
 use App\Modules\Auth\Requests\ResetPasswordRequest;
 use App\Modules\Auth\Requests\UpdatePasswordRequest;
+use App\Modules\Auth\Requests\VerifyOtpRequest;
 use App\Modules\Auth\Resources\UserResource;
 use App\Modules\Auth\Services\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -26,10 +28,28 @@ class AuthController extends Controller
         $result = $this->authService->register($request->validated());
 
         return response()->json([
-            'message' => 'User registered successfully',
+            'message'               => 'Registration successful. A verification code has been sent to your email.',
+            'user'                  => new UserResource($result['user']),
+            'requires_verification' => true,
+        ], 201);
+    }
+
+    public function verifyOtp(VerifyOtpRequest $request): JsonResponse
+    {
+        $result = $this->authService->verifyOtp($request->validated());
+
+        return response()->json([
+            'message' => 'Email verified successfully.',
             'user'    => new UserResource($result['user']),
             'token'   => $result['token'],
-        ], 201);
+        ]);
+    }
+
+    public function resendOtp(ResendOtpRequest $request): JsonResponse
+    {
+        $result = $this->authService->resendOtp($request->validated());
+
+        return response()->json($result);
     }
 
     public function login(LoginRequest $request): JsonResponse

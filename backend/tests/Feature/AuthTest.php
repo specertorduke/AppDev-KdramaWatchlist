@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Auth\Mail\VerifyEmailOtpMail;
+use App\Modules\Auth\Models\EmailOtp;
 use App\Modules\Auth\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
@@ -14,6 +18,8 @@ class AuthTest extends TestCase
 
     public function test_user_can_register(): void
     {
+        Mail::fake();
+
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'John Doe',
             'email'                  => 'john@example.com',
@@ -27,17 +33,28 @@ class AuthTest extends TestCase
             ->assertJsonStructure([
                 'message',
                 'user' => ['id', 'name', 'email', 'created_at', 'updated_at'],
-                'token',
+                'requires_verification',
+            ])
+            ->assertJson([
+                'requires_verification' => true,
             ]);
 
         $this->assertDatabaseHas('users', [
             'email'                  => 'john@example.com',
+            'email_verified_at'      => null,
             'terms_privacy_accepted' => true,
         ]);
 
+        $this->assertDatabaseHas('email_otps', [
+            'email' => 'john@example.com',
+        ]);
+
+        Mail::assertSent(VerifyEmailOtpMail::class, function ($mail) {
+            return $mail->hasTo('john@example.com') && strlen($mail->otp) === 6;
+        });
+
         $user = User::where('email', 'john@example.com')->first();
-        $this->assertCount(1, $user->tokens);
-        $this->assertEquals('mobile-app', $user->tokens->first()->name);
+        $this->assertCount(0, $user->tokens);
         $this->assertTrue($user->terms_privacy_accepted);
         $this->assertNotNull($user->terms_privacy_accepted_at);
     }
@@ -71,6 +88,8 @@ class AuthTest extends TestCase
 
     public function test_user_registration_stores_acceptance_and_timestamp(): void
     {
+        Mail::fake();
+
         $beforeRegistration = now()->subSecond();
 
         $response = $this->postJson('/api/v1/auth/register', [
@@ -298,6 +317,200 @@ class AuthTest extends TestCase
             'email'                 => 'reset_fail@example.com',
             'password'              => 'brandnewpassword123',
             'password_confirmation' => 'brandnewpassword123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_user_can_verify_email_with_valid_otp(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'email' => 'otp_user@example.com',
+        ]);
+
+        EmailOtp::create([
+            'email'      => 'otp_user@example.com',
+            'code_hash'  => Hash::make('123456'),
+            'attempts'   => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/verify-otp', [
+            'email'       => 'otp_user@example.com',
+            'otp'         => '123456',
+            'device_name' => 'mobile_test',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'message',
+                'user' => ['id', 'name', 'email'],
+                'token',
+            ]);
+
+        $user->refresh();
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertDatabaseMissing('email_otps', [
+            'email' => 'otp_user@example.com',
+        ]);
+        $this->assertCount(1, $user->tokens);
+    }
+
+    public function test_user_cannot_verify_with_invalid_otp(): void
+    {
+        User::factory()->unverified()->create([
+            'email' => 'otp_fail@example.com',
+        ]);
+
+        $otpRecord = EmailOtp::create([
+            'email'      => 'otp_fail@example.com',
+            'code_hash'  => Hash::make('123456'),
+            'attempts'   => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/verify-otp', [
+            'email' => 'otp_fail@example.com',
+            'otp'   => '999999',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['otp']);
+
+        $otpRecord->refresh();
+        $this->assertEquals(1, $otpRecord->attempts);
+    }
+
+    public function test_user_cannot_verify_with_expired_otp(): void
+    {
+        User::factory()->unverified()->create([
+            'email' => 'otp_expired@example.com',
+        ]);
+
+        EmailOtp::create([
+            'email'      => 'otp_expired@example.com',
+            'code_hash'  => Hash::make('123456'),
+            'attempts'   => 0,
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/verify-otp', [
+            'email' => 'otp_expired@example.com',
+            'otp'   => '123456',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['otp']);
+    }
+
+    public function test_otp_is_invalidated_after_max_attempts(): void
+    {
+        User::factory()->unverified()->create([
+            'email' => 'otp_max@example.com',
+        ]);
+
+        EmailOtp::create([
+            'email'      => 'otp_max@example.com',
+            'code_hash'  => Hash::make('123456'),
+            'attempts'   => 5,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/verify-otp', [
+            'email' => 'otp_max@example.com',
+            'otp'   => '123456',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['otp']);
+
+        $this->assertDatabaseMissing('email_otps', [
+            'email' => 'otp_max@example.com',
+        ]);
+    }
+
+    public function test_user_can_resend_otp(): void
+    {
+        Mail::fake();
+
+        User::factory()->unverified()->create([
+            'name'  => 'Resend User',
+            'email' => 'resend@example.com',
+        ]);
+
+        $otpRecord = EmailOtp::create([
+            'email'      => 'resend@example.com',
+            'code_hash'  => Hash::make('111111'),
+            'attempts'   => 2,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+        // Set updated_at to > 60 seconds ago
+        $otpRecord->updated_at = now()->subSeconds(70);
+        $otpRecord->save();
+
+        $response = $this->postJson('/api/v1/auth/resend-otp', [
+            'email' => 'resend@example.com',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['message']);
+
+        Mail::assertSent(VerifyEmailOtpMail::class);
+
+        $otpRecord->refresh();
+        $this->assertEquals(0, $otpRecord->attempts);
+        $this->assertFalse(Hash::check('111111', $otpRecord->code_hash));
+    }
+
+    public function test_resend_otp_enforces_cooldown(): void
+    {
+        Mail::fake();
+
+        User::factory()->unverified()->create([
+            'email' => 'cooldown@example.com',
+        ]);
+
+        EmailOtp::create([
+            'email'      => 'cooldown@example.com',
+            'code_hash'  => Hash::make('111111'),
+            'attempts'   => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/resend-otp', [
+            'email' => 'cooldown@example.com',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_resend_otp_fails_if_already_verified(): void
+    {
+        User::factory()->create([
+            'email'             => 'verified@example.com',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/resend-otp', [
+            'email' => 'verified@example.com',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_unverified_user_cannot_login(): void
+    {
+        User::factory()->unverified()->create([
+            'email'    => 'unverified@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email'    => 'unverified@example.com',
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(422)
