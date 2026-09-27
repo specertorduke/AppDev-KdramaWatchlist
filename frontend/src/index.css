@@ -1,8 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #f7f0f0;
+  --color-bg: #07070E;
+  --color-nav: #0B0B13;
+  --color-panel: #11111B;
+  --color-panel-raised: #151521;
+  --color-text: #F0EEE8;
+  --color-muted: #8D8B98;
+  --color-primary: #F5A9C4;
+  --color-primary-dark: #E085A6;
+  --color-line: rgba(255, 255, 255, 0.08);
+  font-family: 'Poppins', sans-serif;
+  color: var(--color-text);
   background: #080808;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,13 +22,14 @@
 }
 
 html {
-  background: #080808;
+  background: var(--color-bg);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: var(--color-bg);
 }
 
 button,
@@ -32,6 +42,6 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid #eb5b78;
+  outline: 2px solid var(--color-primary);
   outline-offset: 4px;
 }

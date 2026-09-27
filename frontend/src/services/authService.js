@@ -61,6 +61,11 @@ export const authService = {
     }
   },
 
+  async updatePreferences(preferences) {
+    const response = await api.patch('/user/preferences', preferences)
+    return response.data
+  },
+
   async logoutAll() {
     const response = await api.post('/auth/logout-all')
     return response.data
