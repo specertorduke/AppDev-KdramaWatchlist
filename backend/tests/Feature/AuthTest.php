@@ -516,4 +516,113 @@ class AuthTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['email']);
     }
+
+    public function test_user_can_send_signup_otp_prior_to_registration(): void
+    {
+        Mail::fake();
+
+        $response = $this->postJson('/api/v1/auth/send-signup-otp', [
+            'email' => 'newuser@example.com',
+            'name'  => 'New User',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['message' => 'Verification code sent to your email.']);
+
+        $this->assertDatabaseHas('email_otps', [
+            'email' => 'newuser@example.com',
+        ]);
+
+        // User must NOT be created yet in the database
+        $this->assertDatabaseMissing('users', [
+            'email' => 'newuser@example.com',
+        ]);
+
+        Mail::assertSent(VerifyEmailOtpMail::class, function ($mail) {
+            return $mail->hasTo('newuser@example.com');
+        });
+    }
+
+    public function test_user_cannot_send_signup_otp_if_email_already_registered(): void
+    {
+        User::factory()->create(['email' => 'existing@example.com']);
+
+        $response = $this->postJson('/api/v1/auth/send-signup-otp', [
+            'email' => 'existing@example.com',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_user_can_register_directly_with_valid_otp_in_form(): void
+    {
+        EmailOtp::create([
+            'email'      => 'inform@example.com',
+            'code_hash'  => Hash::make('654321'),
+            'attempts'   => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'In Form User',
+            'email'                  => 'inform@example.com',
+            'password'               => 'password123',
+            'password_confirmation'  => 'password123',
+            'terms_privacy_accepted' => true,
+            'otp'                    => '654321',
+            'device_name'            => 'mobile-app',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'message',
+                'user' => ['id', 'name', 'email'],
+                'token',
+                'requires_verification',
+            ])
+            ->assertJson([
+                'requires_verification' => false,
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'inform@example.com',
+        ]);
+
+        $user = User::where('email', 'inform@example.com')->first();
+        $this->assertNotNull($user->email_verified_at);
+        $this->assertCount(1, $user->tokens);
+
+        // OTP should be deleted upon successful registration
+        $this->assertDatabaseMissing('email_otps', [
+            'email' => 'inform@example.com',
+        ]);
+    }
+
+    public function test_user_cannot_register_with_incorrect_otp_in_form(): void
+    {
+        EmailOtp::create([
+            'email'      => 'inform_fail@example.com',
+            'code_hash'  => Hash::make('654321'),
+            'attempts'   => 0,
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'Failed User',
+            'email'                  => 'inform_fail@example.com',
+            'password'               => 'password123',
+            'password_confirmation'  => 'password123',
+            'terms_privacy_accepted' => true,
+            'otp'                    => '000000',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['otp']);
+
+        // User must NOT be created
+        $this->assertDatabaseMissing('users', [
+            'email' => 'inform_fail@example.com',
+        ]);
+    }
 }

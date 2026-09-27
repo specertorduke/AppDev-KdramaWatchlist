@@ -16,13 +16,109 @@ use Illuminate\Validation\ValidationException;
 class AuthService
 {
     /**
-     * Register a new user as unverified and dispatch an email OTP.
+     * Send or resend an OTP code to an email address prior to account creation.
      *
      * @param  array<string, mixed>  $data
-     * @return array{user: User, requires_verification: bool}
+     * @return array{message: string}
+     *
+     * @throws ValidationException
+     */
+    public function sendSignupOtp(array $data): array
+    {
+        $existing = User::where('email', $data['email'])->first();
+        if ($existing) {
+            throw ValidationException::withMessages([
+                'email' => ['An account with this email address already exists. Please log in instead.'],
+            ]);
+        }
+
+        $latestOtp = EmailOtp::where('email', $data['email'])->first();
+        if ($latestOtp && $latestOtp->updated_at && $latestOtp->updated_at->gt(now()->subSeconds(60))) {
+            $secondsRemaining = 60 - (int) now()->diffInSeconds($latestOtp->updated_at);
+            throw ValidationException::withMessages([
+                'email' => ["Please wait {$secondsRemaining} seconds before requesting a new code."],
+            ]);
+        }
+
+        $otp = (string) random_int(100000, 999999);
+
+        EmailOtp::updateOrCreate(
+            ['email' => $data['email']],
+            [
+                'code_hash'  => Hash::make($otp),
+                'attempts'   => 0,
+                'expires_at' => now()->addMinutes(10),
+            ]
+        );
+
+        $recipientName = $data['name'] ?? explode('@', $data['email'])[0];
+        Mail::to($data['email'])->send(new VerifyEmailOtpMail($otp, $recipientName));
+
+        return [
+            'message' => 'Verification code sent to your email.',
+        ];
+    }
+
+    /**
+     * Register a new user. If OTP is provided in the form, verify it immediately
+     * and activate the account (creating user only after verification).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{user: User, token?: string, requires_verification?: bool}
+     *
+     * @throws ValidationException
      */
     public function register(array $data): array
     {
+        // 1. In-Form OTP verification flow: user provides 'otp' directly with registration form
+        if (! empty($data['otp'])) {
+            $otpRecord = EmailOtp::where('email', $data['email'])->first();
+
+            if (! $otpRecord || $otpRecord->isExpired()) {
+                throw ValidationException::withMessages([
+                    'otp' => ['The verification code has expired or does not exist. Please request a new one.'],
+                ]);
+            }
+
+            if ($otpRecord->hasExceededMaxAttempts()) {
+                $otpRecord->delete();
+
+                throw ValidationException::withMessages([
+                    'otp' => ['Too many invalid attempts. This code has been invalidated. Please request a new one.'],
+                ]);
+            }
+
+            $otpRecord->increment('attempts');
+
+            if (! Hash::check($data['otp'], $otpRecord->code_hash)) {
+                throw ValidationException::withMessages([
+                    'otp' => ['The verification code is incorrect.'],
+                ]);
+            }
+
+            // OTP verified! Clean up OTP record and create user immediately in verified state
+            $otpRecord->delete();
+
+            $user = User::create([
+                'name'                       => $data['name'],
+                'email'                      => $data['email'],
+                'password'                   => $data['password'],
+                'email_verified_at'          => now(),
+                'terms_privacy_accepted'    => true,
+                'terms_privacy_accepted_at' => now(),
+            ]);
+
+            $deviceName = $data['device_name'] ?? 'auth_token';
+            $token = $user->createToken($deviceName)->plainTextToken;
+
+            return [
+                'user'                  => $user,
+                'token'                 => $token,
+                'requires_verification' => false,
+            ];
+        }
+
+        // 2. Legacy two-step flow fallback
         $user = User::create([
             'name'                       => $data['name'],
             'email'                      => $data['email'],

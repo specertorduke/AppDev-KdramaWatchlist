@@ -28,10 +28,13 @@ export default function LoginScreen({ navigation, route }) {
   const [errorMessage, setErrorMessage] = useState(route?.params?.message || '');
   const [fieldErrors, setFieldErrors] = useState({});
 
+  const [needsVerification, setNeedsVerification] = useState(false);
+
   const handleLogin = async () => {
     setLoading(true);
     setErrorMessage('');
     setFieldErrors({});
+    setNeedsVerification(false);
 
     try {
       // Backend handles validation (422)
@@ -40,8 +43,17 @@ export default function LoginScreen({ navigation, route }) {
       if (err.response) {
         if (err.response.status === 422) {
           const data = err.response.data;
-          setErrorMessage(data.message || 'Validation failed.');
+          const msg = data.message || 'Validation failed.';
+          setErrorMessage(msg);
           setFieldErrors(data.errors || {});
+
+          if (
+            msg.toLowerCase().includes('not been verified') ||
+            msg.toLowerCase().includes('verify your email') ||
+            data.errors?.email?.[0]?.toLowerCase()?.includes('verify')
+          ) {
+            setNeedsVerification(true);
+          }
         } else {
           setErrorMessage(
             err.response.data?.message || 'Invalid credentials. Please try again.'
@@ -105,7 +117,25 @@ export default function LoginScreen({ navigation, route }) {
         {errorMessage ? (
           <View style={styles.alertError}>
             <Ionicons name="alert-circle" size={18} color="#EF4444" />
-            <Text style={styles.alertErrorText}>{errorMessage}</Text>
+            <View style={styles.alertErrorContent}>
+              <Text style={styles.alertErrorText}>{errorMessage}</Text>
+              {needsVerification && (
+                <TouchableOpacity
+                  style={styles.verifyActionBtn}
+                  onPress={() => {
+                    navigation.navigate('OtpVerification', {
+                      email: email.trim(),
+                      message: errorMessage,
+                      rememberMe,
+                      mode: 'login',
+                    });
+                  }}
+                >
+                  <Text style={styles.verifyActionText}>Enter Verification Code</Text>
+                  <Ionicons name="arrow-forward" size={12} color="#FCA5A5" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ) : null}
 
@@ -265,7 +295,7 @@ const styles = StyleSheet.create({
   },
   alertError: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.4)',
@@ -274,11 +304,29 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 8,
   },
+  alertErrorContent: {
+    flex: 1,
+  },
   alertErrorText: {
     color: '#F87171',
     fontSize: 13,
     fontWeight: '500',
-    flex: 1,
+  },
+  verifyActionBtn: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(239, 68, 68, 0.22)',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  verifyActionText: {
+    color: '#FCA5A5',
+    fontSize: 12,
+    fontWeight: '700',
   },
   form: {
     width: '100%',

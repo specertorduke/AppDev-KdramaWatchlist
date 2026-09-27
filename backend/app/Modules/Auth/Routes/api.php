@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
     // Public routes (with rate limiting / brute-force protection)
+    Route::post('/send-signup-otp', [AuthController::class, 'sendSignupOtp'])->middleware('throttle:5,1');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:6,1');
     Route::post('/resend-otp', [AuthController::class, 'resendOtp'])->middleware('throttle:3,1');

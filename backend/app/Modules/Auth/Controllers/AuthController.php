@@ -10,6 +10,7 @@ use App\Modules\Auth\Requests\LoginRequest;
 use App\Modules\Auth\Requests\RegisterRequest;
 use App\Modules\Auth\Requests\ResendOtpRequest;
 use App\Modules\Auth\Requests\ResetPasswordRequest;
+use App\Modules\Auth\Requests\SendSignupOtpRequest;
 use App\Modules\Auth\Requests\UpdatePasswordRequest;
 use App\Modules\Auth\Requests\VerifyOtpRequest;
 use App\Modules\Auth\Resources\UserResource;
@@ -23,15 +24,31 @@ class AuthController extends Controller
         protected AuthService $authService
     ) {}
 
+    public function sendSignupOtp(SendSignupOtpRequest $request): JsonResponse
+    {
+        $result = $this->authService->sendSignupOtp($request->validated());
+
+        return response()->json($result);
+    }
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $result = $this->authService->register($request->validated());
 
-        return response()->json([
-            'message'               => 'Registration successful. A verification code has been sent to your email.',
+        $requiresVerification = $result['requires_verification'] ?? false;
+        $response = [
+            'message'               => $requiresVerification
+                ? 'Registration successful. A verification code has been sent to your email.'
+                : 'Registration successful. Your email has been verified.',
             'user'                  => new UserResource($result['user']),
-            'requires_verification' => true,
-        ], 201);
+            'requires_verification' => $requiresVerification,
+        ];
+
+        if (! empty($result['token'])) {
+            $response['token'] = $result['token'];
+        }
+
+        return response()->json($response, 201);
     }
 
     public function verifyOtp(VerifyOtpRequest $request): JsonResponse

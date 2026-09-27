@@ -47,7 +47,8 @@ Authorization: Bearer <plain_text_token>
 
 | Group | Method | Path | Auth Required | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/auth/register` | Public | Register new user account & dispatch email OTP |
+| **Auth** | `POST` | `/auth/send-signup-otp` | Public | Send 6-digit email OTP prior to account registration |
+| **Auth** | `POST` | `/auth/register` | Public | Register new user account (supports in-form OTP verification) |
 | **Auth** | `POST` | `/auth/verify-otp` | Public | Verify 6-digit email OTP & receive Sanctum token |
 | **Auth** | `POST` | `/auth/resend-otp` | Public | Request a new 6-digit OTP code (60s cooldown) |
 | **Auth** | `POST` | `/auth/login` | Public | Authenticate verified user & get token |
@@ -81,9 +82,32 @@ Authorization: Bearer <plain_text_token>
 
 ---
 
-#### 1. Register User
+#### 1. Send Sign Up OTP (In-Form Verification)
+- **Route:** `POST /api/v1/auth/send-signup-otp`
+- **Auth:** Public (Rate limit: 5 req/min)
+- **Description:** Sends a 6-digit numeric OTP code to the given email before the user is registered in the database.
+- **Request Body:**
+  ```json
+  {
+    "email": "jane@example.com",
+    "name": "Jane Doe" // optional
+  }
+  ```
+- **Success Response (`200 OK`):**
+  ```json
+  {
+    "message": "Verification code sent to your email."
+  }
+  ```
+- **Errors:**
+  - `422 Unprocessable Content`: Email already exists (`An account with this email address already exists. Please log in instead.`) or 60s cooldown not passed.
+
+---
+
+#### 2. Register User (With In-Form OTP)
 - **Route:** `POST /api/v1/auth/register`
 - **Auth:** Public (Rate limit: 10 req/min)
+- **Description:** Creates the user account. When `otp` is provided, verifies the email immediately, generates the Sanctum token, and marks the user as verified so no unverified account is left orphaned.
 - **Request Body:**
   ```json
   {
@@ -92,27 +116,29 @@ Authorization: Bearer <plain_text_token>
     "password": "Password123!",
     "password_confirmation": "Password123!",
     "terms_privacy_accepted": true,
-    "device_name": "Web Browser" // optional
+    "otp": "123456", // 6-digit code received in email
+    "device_name": "Mobile App" // optional
   }
   ```
 - **Success Response (`201 Created`):**
   ```json
   {
-    "message": "Registration successful. A verification code has been sent to your email.",
+    "message": "Registration successful. Your email has been verified.",
     "user": {
       "id": 1,
       "name": "Jane Doe",
       "email": "jane@example.com",
       "avatar_url": null,
-      "email_verified_at": null,
-      "created_at": "2026-08-26T12:00:00.000000Z",
-      "updated_at": "2026-08-26T12:00:00.000000Z"
+      "email_verified_at": "2026-09-28T00:00:00.000000Z",
+      "created_at": "2026-09-28T00:00:00.000000Z",
+      "updated_at": "2026-09-28T00:00:00.000000Z"
     },
-    "requires_verification": true
+    "token": "1|abc1234567890abcdef...",
+    "requires_verification": false
   }
   ```
 - **Errors:**
-  - `422 Unprocessable Content`: Validation failure (e.g., email already exists, password confirmation mismatch, terms not accepted).
+  - `422 Unprocessable Content`: Validation failure (e.g., incorrect/expired OTP, email already exists, password confirmation mismatch, terms not accepted).
 
 ---
 

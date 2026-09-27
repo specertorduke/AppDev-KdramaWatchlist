@@ -193,26 +193,65 @@ export const AuthProvider = ({ children }) => {
     password,
     passwordConfirmation,
     rememberMe = true,
-    termsPrivacyAccepted = true
+    termsPrivacyAccepted = true,
+    otp = null
   ) => {
     // Rely strictly on backend validation
-    const response = await authService.register({
+    const payload = {
       name,
       email,
       password,
       password_confirmation: passwordConfirmation,
       terms_privacy_accepted: termsPrivacyAccepted,
-    });
-    const { user: userData, token: authToken } = response.data;
-    setUser(userData);
-    setToken(authToken);
-    setIsChoosingAccount(false);
-    setNeedsOnboarding(true);
-    await AsyncStorage.setItem('auth_token', authToken);
-    await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-    if (rememberMe) {
-      await updateSavedAccountsList(userData, authToken);
+    };
+    if (otp) {
+      payload.otp = otp;
     }
+
+    const response = await authService.register(payload);
+    const data = response.data;
+    if (data?.token && data?.user) {
+      setUser(data.user);
+      setToken(data.token);
+      setIsChoosingAccount(false);
+      setNeedsOnboarding(true);
+      await AsyncStorage.setItem('auth_token', data.token);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(data.user));
+      if (rememberMe) {
+        await updateSavedAccountsList(data.user, data.token);
+      }
+    }
+    return data;
+  };
+
+  const sendSignupOtp = async ({ email, name }) => {
+    const response = await authService.sendSignupOtp({ email, name });
+    return response.data;
+  };
+
+  const verifyOtp = async ({ email, otp, rememberMe = true, deviceName = 'Mobile App' }) => {
+    const response = await authService.verifyOtp({
+      email,
+      otp,
+      device_name: deviceName,
+    });
+    const data = response.data;
+    if (data?.token && data?.user) {
+      setUser(data.user);
+      setToken(data.token);
+      setIsChoosingAccount(false);
+      setNeedsOnboarding(true);
+      await AsyncStorage.setItem('auth_token', data.token);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(data.user));
+      if (rememberMe) {
+        await updateSavedAccountsList(data.user, data.token);
+      }
+    }
+    return data;
+  };
+
+  const resendOtp = async ({ email }) => {
+    const response = await authService.resendOtp({ email });
     return response.data;
   };
 
@@ -311,6 +350,9 @@ export const AuthProvider = ({ children }) => {
         setNeedsOnboarding,
         login,
         register,
+        sendSignupOtp,
+        verifyOtp,
+        resendOtp,
         logout,
       }}
     >

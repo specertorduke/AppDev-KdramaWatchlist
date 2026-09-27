@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { register } = useAuth();
+  const { register, sendSignupOtp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +31,68 @@ export default function RegisterScreen({ navigation }) {
   const [policyModal, setPolicyModal] = useState(null); // 'terms' | 'privacy' | null
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successNotice, setSuccessNotice] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+
+  // In-form OTP state
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Cooldown countdown timer
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const handleSendOtp = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        email: ['Please enter your email address to receive a verification code.'],
+      }));
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setErrorMessage('');
+    setSuccessNotice('');
+    setFieldErrors((prev) => ({ ...prev, email: null, otp: null }));
+
+    try {
+      const res = await sendSignupOtp({ email: trimmedEmail, name: name.trim() });
+      setOtpSent(true);
+      setCooldown(60);
+      setSuccessNotice(res?.message || 'Verification code sent to your email.');
+    } catch (err) {
+      if (err?.response?.status === 429) {
+        setErrorMessage('Too many attempts. Please wait a minute before requesting another code.');
+      } else if (err?.response?.status === 422) {
+        const errors = err.response.data?.errors || {};
+        if (errors.email) {
+          setFieldErrors((prev) => ({ ...prev, email: errors.email }));
+        }
+        setErrorMessage(err.response.data?.message || 'Failed to send verification code.');
+      } else {
+        setErrorMessage(
+          err.friendlyMessage || 'Unable to connect. Please check your internet connection.'
+        );
+      }
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
 
   const handleRegister = async () => {
     if (!termsAccepted) {
@@ -42,13 +103,46 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
+    if (!otpSent) {
+      setErrorMessage('Please request a verification code by tapping "Send Code".');
+      return;
+    }
+
+    if (!otp || otp.trim().length !== 6) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        otp: ['Please enter the 6-digit verification code sent to your email.'],
+      }));
+      return;
+    }
+
     setLoading(true);
     setErrorMessage('');
+    setSuccessNotice('');
     setFieldErrors({});
 
     try {
-      // Backend handles validation rules
-      await register(name, email, password, passwordConfirmation, rememberMe, termsAccepted);
+      // Backend validates in-form OTP; creates user and logs in only when verified!
+      const data = await register(
+        name.trim(),
+        email.trim(),
+        password,
+        passwordConfirmation,
+        rememberMe,
+        termsAccepted,
+        otp.trim()
+      );
+
+      // If registered with legacy two-step requires_verification
+      if (data?.requires_verification) {
+        navigation.navigate('OtpVerification', {
+          email: email.trim(),
+          message: data?.message || 'Registration successful. A verification code has been sent to your email.',
+          rememberMe,
+          mode: 'signup',
+        });
+      }
+      // If verified directly in form, AuthContext sets token/user and RootNavigator smoothly transitions to MainTabs
     } catch (err) {
       if (err.response) {
         if (err.response.status === 422) {
@@ -107,6 +201,14 @@ export default function RegisterScreen({ navigation }) {
           <Text style={styles.subtitle}>Create an account to begin tracking.</Text>
         </View>
 
+        {/* Global Success Banner */}
+        {successNotice ? (
+          <View style={styles.alertSuccess}>
+            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+            <Text style={styles.alertSuccessText}>{successNotice}</Text>
+          </View>
+        ) : null}
+
         {/* Global Error Banner */}
         {errorMessage ? (
           <View style={styles.alertError}>
@@ -156,6 +258,63 @@ export default function RegisterScreen({ navigation }) {
             </View>
             {fieldErrors.email && (
               <Text style={styles.fieldErrorText}>{fieldErrors.email[0]}</Text>
+            )}
+          </View>
+
+          {/* In-Form Email Verification Code Field */}
+          <View style={styles.field}>
+            <View style={styles.otpLabelRow}>
+              <Text style={styles.label}>Verification Code</Text>
+              {otpSent && (
+                <Text style={styles.otpSentStatus}>
+                  <Ionicons name="checkmark-circle" size={12} color="#10B981" /> Code sent to email
+                </Text>
+              )}
+            </View>
+            <View style={styles.otpActionRow}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  styles.otpInputWrapper,
+                  fieldErrors.otp && styles.inputWrapperError,
+                ]}
+              >
+                <TextInput
+                  style={[styles.input, styles.otpInput]}
+                  placeholder="6-digit code"
+                  placeholderTextColor="#5A5866"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={otp}
+                  onChangeText={(val) => {
+                    const cleaned = val.replace(/[^0-9]/g, '');
+                    setOtp(cleaned);
+                    if (fieldErrors.otp) setFieldErrors((prev) => ({ ...prev, otp: null }));
+                  }}
+                />
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.sendOtpButton,
+                  (isSendingOtp || cooldown > 0 || !email.trim()) && styles.sendOtpButtonDisabled,
+                ]}
+                onPress={handleSendOtp}
+                disabled={isSendingOtp || cooldown > 0 || !email.trim()}
+                activeOpacity={0.8}
+              >
+                {isSendingOtp ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : cooldown > 0 ? (
+                  <Text style={styles.sendOtpButtonText}>{cooldown}s</Text>
+                ) : (
+                  <Text style={styles.sendOtpButtonText}>
+                    {otpSent ? 'Resend' : 'Send Code'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            {fieldErrors.otp && (
+              <Text style={styles.fieldErrorText}>{fieldErrors.otp[0]}</Text>
             )}
           </View>
 
@@ -483,6 +642,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  alertSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  alertSuccessText: {
+    color: '#34D399',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
   alertError: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -499,6 +675,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     flex: 1,
+  },
+  otpLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 7,
+  },
+  otpSentStatus: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  otpActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  otpInputWrapper: {
+    flex: 1,
+  },
+  otpInput: {
+    letterSpacing: 4,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  sendOtpButton: {
+    height: 48,
+    backgroundColor: '#EB5B78',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  sendOtpButtonDisabled: {
+    backgroundColor: '#2A2735',
+    opacity: 0.7,
+  },
+  sendOtpButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   form: {
     width: '100%',
