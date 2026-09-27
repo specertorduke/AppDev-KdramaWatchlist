@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, FileText, Loader2, ShieldCheck, X } from 'lucide-react'
-import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
+import OtpVerification from './components/OtpVerification.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
@@ -41,13 +42,21 @@ function LandingPage() {
 
 function AuthPage({ mode }) {
   const isSignup = mode === 'signup'
+  const isDirectOtp = mode === 'otp'
   const navigate = useNavigate()
-  const { login, register, savedAccounts, setSession } = useAuth()
+  const [searchParams] = useSearchParams()
+  const { login, register, setSession } = useAuth()
   const [showLoginForm, setShowLoginForm] = useState(false)
+
+  // Auth sub-step: 'form' or 'otp'
+  const [authStep, setAuthStep] = useState(isDirectOtp ? 'otp' : 'form')
+  const [otpEmail, setOtpEmail] = useState(searchParams.get('email') || '')
+  const [otpNotice, setOtpNotice] = useState('')
+  const [otpCooldown, setOtpCooldown] = useState(60)
 
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    email: searchParams.get('email') || '',
     password: '',
     password_confirmation: '',
   })
@@ -57,6 +66,57 @@ function AuthPage({ mode }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
+
+  // If in OTP verification step, render the OTP screen
+  if (authStep === 'otp') {
+    return (
+      <main className="auth-page">
+        <div className="auth-container login-container">
+          <div className="auth-nav-bar">
+            <button
+              type="button"
+              className="back-link"
+              onClick={() => {
+                if (isDirectOtp) {
+                  navigate('/')
+                } else {
+                  setAuthStep('form')
+                  setErrorMessage('')
+                }
+              }}
+              aria-label="Back"
+            >
+              <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
+              {isSignup ? 'Back to Sign Up' : 'Back to Log In'}
+            </button>
+            <Link className="auth-brand" to="/" aria-label="SarangTV home">
+              <img src="/logo.png" alt="SarangTV logo" className="brand-logo-img" />
+              <span>Sarang<span className="brand-tv-accent">TV</span></span>
+            </Link>
+            <div className="auth-nav-spacer" aria-hidden="true" />
+          </div>
+
+          <OtpVerification
+            email={otpEmail || formData.email}
+            initialCooldown={otpCooldown}
+            notice={otpNotice}
+            mode={isSignup ? 'signup' : 'login'}
+            onSuccess={() => {
+              navigate('/dashboard')
+            }}
+            onCancel={() => {
+              if (isDirectOtp) {
+                navigate('/')
+              } else {
+                setAuthStep('form')
+                setErrorMessage('')
+              }
+            }}
+          />
+        </div>
+      </main>
+    )
+  }
 
   if (!isSignup && !showLoginForm) {
     return (
@@ -98,44 +158,84 @@ function AuthPage({ mode }) {
 
     try {
       if (isSignup) {
-        await register({
+        const result = await register({
           name: formData.name,
           email: formData.email,
           password: formData.password,
           password_confirmation: formData.password_confirmation,
           terms_privacy_accepted: true,
         })
+
+        // Registration successful. Backend sends 6-digit OTP and does NOT return a token.
+        // Pass user's email to the OTP verification screen:
+        setOtpEmail(formData.email)
+        setOtpNotice(result?.message || 'Registration successful. Please verify the OTP sent to your email.')
+        setOtpCooldown(60)
+        setAuthStep('otp')
       } else {
         await login({
           email: formData.email,
           password: formData.password,
         })
+        navigate('/dashboard')
       }
-      navigate('/dashboard')
     } catch (err) {
       if (err.response) {
-        if (err.response.status === 422 && err.response.data?.errors) {
-          setFieldErrors(err.response.data.errors)
+        const status = err.response.status
+        const data = err.response.data
+
+        if (status === 429) {
+          setErrorMessage('Too many requests. Rate limit exceeded. Please wait a minute before trying again.')
+          return
+        }
+
+        const emailErr = data?.errors?.email?.[0] || ''
+        const generalMsg = data?.message || ''
+        const combinedErr = (emailErr + ' ' + generalMsg).toLowerCase()
+
+        // Check if unverified user is attempting to log in
+        const isUnverified =
+          combinedErr.includes('not been verified') ||
+          combinedErr.includes('verify your email') ||
+          combinedErr.includes('otp code')
+
+        if (!isSignup && isUnverified) {
+          setOtpEmail(formData.email)
+          setOtpNotice('Your email has not been verified yet. Please enter the 6-digit OTP sent to your email to activate your account.')
+          setOtpCooldown(0)
+          setAuthStep('otp')
+          return
+        }
+
+        if (status === 422 && data?.errors) {
+          setFieldErrors(data.errors)
         }
         setErrorMessage(
-          err.response.data?.message ||
+          data?.message ||
           (isSignup ? 'Registration failed. Please check the inputs.' : 'Invalid credentials. Please try again.')
         )
       } else {
         // Dev fallback if backend API server is offline
-        const demoUser = {
-          id: 1,
-          name: formData.name || formData.email?.split('@')[0] || 'Ji-young',
-          email: formData.email || 'user@sarangtv.app',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=96&q=80',
-        }
-        if (setSession) {
-          setSession('mock_dev_token_2026', demoUser)
+        if (isSignup) {
+          setOtpEmail(formData.email || 'user@example.com')
+          setOtpNotice('Dev fallback: Please enter test verification code (e.g. 123456).')
+          setOtpCooldown(60)
+          setAuthStep('otp')
         } else {
-          localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
-          localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
+          const demoUser = {
+            id: 1,
+            name: formData.name || formData.email?.split('@')[0] || 'Ji-young',
+            email: formData.email || 'user@sarangtv.app',
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=96&q=80',
+          }
+          if (setSession) {
+            setSession('mock_dev_token_2026', demoUser)
+          } else {
+            localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
+            localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
+          }
+          navigate('/dashboard')
         }
-        navigate('/dashboard')
       }
     } finally {
       setIsSubmitting(false)
@@ -298,7 +398,23 @@ function AuthPage({ mode }) {
             </div>
           )}
 
-          {!isSignup && <Link className="forgot-link" to="/login">Forgot password?</Link>}
+          {!isSignup && (
+            <div className="auth-login-aux-links">
+              <button
+                type="button"
+                className="auth-link-btn"
+                onClick={() => {
+                  setOtpEmail(formData.email)
+                  setOtpNotice('Enter your email and the 6-digit verification code to activate your account.')
+                  setOtpCooldown(0)
+                  setAuthStep('otp')
+                }}
+              >
+                Verify email with OTP
+              </button>
+              <Link className="forgot-link" to="/login">Forgot password?</Link>
+            </div>
+          )}
 
           {/* Terms & Data Privacy Policy agreement checkbox (registration only) */}
           {isSignup && (
@@ -547,6 +663,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/signup" element={<AuthPage mode="signup" />} />
+            <Route path="/verify-otp" element={<AuthPage mode="otp" />} />
             <Route path="/switch-account" element={<AuthPage mode="login" />} />
             <Route
               path="/dashboard"

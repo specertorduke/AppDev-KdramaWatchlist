@@ -12,6 +12,22 @@ export const authService = {
     return response.data
   },
 
+  async verifyOtp({ email, otp, device_name = 'Web Browser' }) {
+    const response = await api.post('/auth/verify-otp', {
+      email,
+      otp,
+      device_name,
+    })
+    return response.data
+  },
+
+  async resendOtp({ email }) {
+    const response = await api.post('/auth/resend-otp', {
+      email,
+    })
+    return response.data
+  },
+
   async login({ email, password }) {
     const response = await api.post('/auth/login', {
       email,

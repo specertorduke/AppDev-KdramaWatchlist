@@ -149,7 +149,8 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     const data = await authService.register(userData)
-    if (data.token) {
+    // Note: /register returns requires_verification: true without an auth token.
+    if (data?.token) {
       setToken(data.token)
       setUser(data.user)
       localStorage.setItem('sarangtv_token', data.token)
@@ -157,6 +158,22 @@ export function AuthProvider({ children }) {
       recordAccount(data.user, data.token)
     }
     return data
+  }
+
+  const verifyOtp = async ({ email, otp, device_name }) => {
+    const data = await authService.verifyOtp({ email, otp, device_name })
+    if (data?.token) {
+      setToken(data.token)
+      setUser(data.user)
+      localStorage.setItem('sarangtv_token', data.token)
+      localStorage.setItem('sarangtv_user', JSON.stringify(data.user))
+      recordAccount(data.user, data.token)
+    }
+    return data
+  }
+
+  const resendOtp = async ({ email }) => {
+    return await authService.resendOtp({ email })
   }
 
   const switchAccount = async (targetIdOrEmail) => {
@@ -305,6 +322,8 @@ export function AuthProvider({ children }) {
     isLoading,
     login,
     register,
+    verifyOtp,
+    resendOtp,
     logout,
     updateProfile,
     savedAccounts,
