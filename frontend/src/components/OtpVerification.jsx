@@ -7,10 +7,14 @@ export default function OtpVerification({
   initialCooldown = 60,
   notice = '',
   mode = 'signup',
+  registrationData = null,
+  onEmailChange,
+  onVerify,
+  onResend,
   onSuccess,
   onCancel,
 }) {
-  const { verifyOtp, resendOtp, setSession } = useAuth()
+  const { verifyOtp, resendOtp, sendSignupOtp, register, setSession } = useAuth()
 
   const [email, setEmail] = useState(initialEmail)
   const [isEditingEmail, setIsEditingEmail] = useState(!initialEmail)
@@ -25,6 +29,14 @@ export default function OtpVerification({
   const [isExpiredOrInvalidated, setIsExpiredOrInvalidated] = useState(false)
 
   const inputRefs = useRef([])
+
+  // Keep email synced if initialEmail changes
+  useEffect(() => {
+    if (initialEmail && initialEmail !== email) {
+      setEmail(initialEmail)
+      setEmailInput(initialEmail)
+    }
+  }, [initialEmail, email])
 
   // 60-second client-side cooldown timer
   useEffect(() => {
@@ -137,7 +149,18 @@ export default function OtpVerification({
     setIsExpiredOrInvalidated(false)
 
     try {
-      const response = await resendOtp({ email: targetEmail })
+      let response
+      if (onResend) {
+        response = await onResend(targetEmail)
+      } else if (mode === 'signup') {
+        response = await sendSignupOtp({
+          email: targetEmail,
+          name: registrationData?.name,
+        })
+      } else {
+        response = await resendOtp({ email: targetEmail })
+      }
+
       setSuccessMessage(response?.message || 'A new 6-digit OTP code has been sent to your email.')
       setCooldown(60) // Reset 60s cooldown
       setOtp(['', '', '', '', '', '']) // Clear inputs for fresh code
@@ -192,13 +215,32 @@ export default function OtpVerification({
     setIsExpiredOrInvalidated(false)
 
     try {
-      const data = await verifyOtp({
-        email: targetEmail,
-        otp: otpCode,
-        device_name: 'Web Browser',
-      })
+      let data
+      if (onVerify) {
+        data = await onVerify(otpCode, targetEmail)
+      } else if (mode === 'signup' && registrationData) {
+        // Complete account registration with verified OTP
+        data = await register({
+          ...registrationData,
+          terms_privacy_accepted: registrationData.terms_privacy_accepted ?? true,
+          email: targetEmail,
+          otp: otpCode,
+          device_name: 'Web Browser',
+        })
+      } else {
+        // Direct OTP verification for existing unverified accounts
+        data = await verifyOtp({
+          email: targetEmail,
+          otp: otpCode,
+          device_name: 'Web Browser',
+        })
+      }
 
-      setSuccessMessage('Email verified successfully! Redirecting...')
+      setSuccessMessage(
+        mode === 'signup'
+          ? 'Registration successful! Redirecting...'
+          : 'Email verified successfully! Redirecting...'
+      )
 
       if (onSuccess) {
         onSuccess(data)
@@ -227,7 +269,7 @@ export default function OtpVerification({
         if (!err?.response && (otpCode === '123456' || otpCode.length === 6)) {
           const demoUser = {
             id: 1,
-            name: targetEmail.split('@')[0] || 'User',
+            name: registrationData?.name || targetEmail.split('@')[0] || 'User',
             email: targetEmail,
             email_verified_at: new Date().toISOString(),
           }
@@ -248,10 +290,48 @@ export default function OtpVerification({
     }
   }
 
-  const handleSaveEmail = (e) => {
+  const handleSaveEmail = async (e) => {
     e.preventDefault()
-    if (emailInput.trim()) {
-      setEmail(emailInput.trim())
+    const newEmail = emailInput.trim()
+    if (!newEmail) return
+
+    if (newEmail === email) {
+      setIsEditingEmail(false)
+      return
+    }
+
+    if (mode === 'signup') {
+      setIsResending(true)
+      setErrorMessage('')
+      setSuccessMessage('')
+      try {
+        const response = await sendSignupOtp({
+          email: newEmail,
+          name: registrationData?.name,
+        })
+        setEmail(newEmail)
+        if (onEmailChange) onEmailChange(newEmail)
+        setIsEditingEmail(false)
+        setSuccessMessage(response?.message || 'Verification code sent to your new email.')
+        setCooldown(60)
+        setOtp(['', '', '', '', '', ''])
+        if (inputRefs.current[0]) inputRefs.current[0].focus()
+      } catch (err) {
+        if (err?.response?.status === 422) {
+          const errText =
+            err.response.data?.errors?.email?.[0] ||
+            err.response.data?.message ||
+            'Unable to send verification code to this email.'
+          setErrorMessage(errText)
+        } else {
+          setErrorMessage('Unable to send verification code. Please try again.')
+        }
+      } finally {
+        setIsResending(false)
+      }
+    } else {
+      setEmail(newEmail)
+      if (onEmailChange) onEmailChange(newEmail)
       setIsEditingEmail(false)
       setErrorMessage('')
       setSuccessMessage('')
@@ -368,10 +448,10 @@ export default function OtpVerification({
             {isVerifying ? (
               <span className="submit-loading">
                 <Loader2 className="spinner-icon" size={16} />
-                Verifying Code...
+                {mode === 'signup' ? 'Completing Registration...' : 'Verifying Code...'}
               </span>
             ) : (
-              'Verify & Continue'
+              mode === 'signup' ? 'Verify & Complete Registration' : 'Verify & Continue'
             )}
           </button>
         </form>

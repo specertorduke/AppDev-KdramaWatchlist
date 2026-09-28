@@ -1,14 +1,28 @@
 import api from './api.js'
 
 export const authService = {
-  async register({ name, email, password, password_confirmation, terms_privacy_accepted }) {
-    const response = await api.post('/auth/register', {
+  async sendSignupOtp({ email, name }) {
+    const payload = { email }
+    if (name) payload.name = name
+    const response = await api.post('/auth/send-signup-otp', payload)
+    return response.data
+  },
+
+  async register({ name, email, password, password_confirmation, terms_privacy_accepted, otp, device_name }) {
+    const payload = {
       name,
       email,
       password,
       password_confirmation,
       terms_privacy_accepted,
-    })
+    }
+    if (otp !== undefined && otp !== null && otp !== '') {
+      payload.otp = otp
+    }
+    if (device_name) {
+      payload.device_name = device_name
+    }
+    const response = await api.post('/auth/register', payload)
     return response.data
   },
 

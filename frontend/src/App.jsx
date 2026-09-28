@@ -45,7 +45,7 @@ function AuthPage({ mode }) {
   const isDirectOtp = mode === 'otp'
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { login, register, setSession } = useAuth()
+  const { login, sendSignupOtp, setSession } = useAuth()
   const [showLoginForm, setShowLoginForm] = useState(false)
 
   // Auth sub-step: 'form' or 'otp'
@@ -101,6 +101,15 @@ function AuthPage({ mode }) {
             initialCooldown={otpCooldown}
             notice={otpNotice}
             mode={isSignup ? 'signup' : 'login'}
+            registrationData={
+              isSignup
+                ? { ...formData, terms_privacy_accepted: termsAccepted }
+                : null
+            }
+            onEmailChange={(newEmail) => {
+              setOtpEmail(newEmail)
+              setFormData((prev) => ({ ...prev, email: newEmail }))
+            }}
             onSuccess={() => {
               navigate('/dashboard')
             }}
@@ -146,30 +155,43 @@ function AuthPage({ mode }) {
     setFieldErrors({})
 
     // Client verification: user must agree to Terms and Privacy Policy before proceeding
-    if (isSignup && !termsAccepted) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        terms_privacy_accepted: ['You must agree to the Terms and Data Privacy Policy to create an account.'],
-      }))
-      return
+    if (isSignup) {
+      const clientErrors = {}
+      if (!formData.name?.trim()) {
+        clientErrors.name = ['Please enter your name.']
+      }
+      if (!formData.email?.trim()) {
+        clientErrors.email = ['Please enter your email address.']
+      }
+      if (!formData.password) {
+        clientErrors.password = ['Please enter a password.']
+      } else if (formData.password.length < 8) {
+        clientErrors.password = ['The password must be at least 8 characters.']
+      }
+      if (formData.password !== formData.password_confirmation) {
+        clientErrors.password_confirmation = ['The password confirmation does not match.']
+      }
+      if (!termsAccepted) {
+        clientErrors.terms_privacy_accepted = ['You must agree to the Terms and Data Privacy Policy to create an account.']
+      }
+      if (Object.keys(clientErrors).length > 0) {
+        setFieldErrors(clientErrors)
+        return
+      }
     }
 
     setIsSubmitting(true)
 
     try {
       if (isSignup) {
-        const result = await register({
-          name: formData.name,
+        const result = await sendSignupOtp({
           email: formData.email,
-          password: formData.password,
-          password_confirmation: formData.password_confirmation,
-          terms_privacy_accepted: true,
+          name: formData.name,
         })
 
-        // Registration successful. Backend sends 6-digit OTP and does NOT return a token.
-        // Pass user's email to the OTP verification screen:
+        // Verification code sent to user's email prior to registration
         setOtpEmail(formData.email)
-        setOtpNotice(result?.message || 'Registration successful. Please verify the OTP sent to your email.')
+        setOtpNotice(result?.message || 'Verification code sent to your email.')
         setOtpCooldown(60)
         setAuthStep('otp')
       } else {
@@ -212,7 +234,7 @@ function AuthPage({ mode }) {
         }
         setErrorMessage(
           data?.message ||
-          (isSignup ? 'Registration failed. Please check the inputs.' : 'Invalid credentials. Please try again.')
+          (isSignup ? 'Unable to send verification code. Please check your inputs.' : 'Invalid credentials. Please try again.')
         )
       } else {
         // Dev fallback if backend API server is offline
@@ -469,7 +491,7 @@ function AuthPage({ mode }) {
             {isSubmitting ? (
               <span className="submit-loading">
                 <Loader2 className="spinner-icon" size={16} />
-                {isSignup ? 'Creating Account...' : 'Logging In...'}
+                {isSignup ? 'Sending Code...' : 'Logging In...'}
               </span>
             ) : (
               isSignup ? 'Create Account' : 'Log In'

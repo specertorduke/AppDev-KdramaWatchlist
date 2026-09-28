@@ -217,6 +217,10 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  const sendSignupOtp = async ({ email, name }) => {
+    return await authService.sendSignupOtp({ email, name })
+  }
+
   const resendOtp = async ({ email }) => {
     return await authService.resendOtp({ email })
   }
@@ -367,6 +371,7 @@ export function AuthProvider({ children }) {
     isLoading,
     login,
     register,
+    sendSignupOtp,
     verifyOtp,
     resendOtp,
     logout,
