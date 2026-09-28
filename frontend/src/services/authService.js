@@ -12,6 +12,22 @@ export const authService = {
     return response.data
   },
 
+  async verifyOtp({ email, otp, device_name = 'Web Browser' }) {
+    const response = await api.post('/auth/verify-otp', {
+      email,
+      otp,
+      device_name,
+    })
+    return response.data
+  },
+
+  async resendOtp({ email }) {
+    const response = await api.post('/auth/resend-otp', {
+      email,
+    })
+    return response.data
+  },
+
   async login({ email, password }) {
     const response = await api.post('/auth/login', {
       email,
@@ -43,6 +59,11 @@ export const authService = {
       // Backend may not have an active profile update endpoint; return payload
       return payload
     }
+  },
+
+  async updatePreferences(preferences) {
+    const response = await api.patch('/user/preferences', preferences)
+    return response.data
   },
 
   async logoutAll() {

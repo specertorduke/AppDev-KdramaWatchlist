@@ -135,6 +135,51 @@ export function AuthProvider({ children }) {
     return true
   }
 
+  const updateUserPreferences = async ({ favoriteGenres, avatarUrl }) => {
+    if (!user) return false
+
+    const preferences = {}
+    if (favoriteGenres !== undefined) preferences.favorite_genres = favoriteGenres
+    if (avatarUrl !== undefined) preferences.avatar_url = avatarUrl
+
+    let apiResult
+    try {
+      apiResult = await authService.updatePreferences(preferences)
+    } catch {
+      return false
+    }
+
+    const updated = {
+      ...user,
+      ...(apiResult?.user || {}),
+      ...(favoriteGenres !== undefined ? { favorite_genres: favoriteGenres } : {}),
+      ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+    }
+    setUser(updated)
+    localStorage.setItem('sarangtv_user', JSON.stringify(updated))
+
+    const userKey = updated.id || updated.email
+    if (userKey) {
+      let savedProfile = {}
+      try {
+        savedProfile = JSON.parse(localStorage.getItem(`sarangtv_profile_${userKey}`) || '{}')
+      } catch {
+        // Ignore invalid cached profile data
+      }
+      localStorage.setItem(
+        `sarangtv_profile_${userKey}`,
+        JSON.stringify({
+          ...savedProfile,
+          ...(favoriteGenres !== undefined ? { favorite_genres: updated.favorite_genres } : {}),
+          ...(avatarUrl !== undefined ? { avatar_url: updated.avatar_url } : {}),
+        })
+      )
+    }
+    if (token) recordAccount(updated, token)
+
+    return true
+  }
+
   const login = async (credentials) => {
     const data = await authService.login(credentials)
     if (data.token) {
@@ -149,7 +194,8 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     const data = await authService.register(userData)
-    if (data.token) {
+    // Note: /register returns requires_verification: true without an auth token.
+    if (data?.token) {
       setToken(data.token)
       setUser(data.user)
       localStorage.setItem('sarangtv_token', data.token)
@@ -157,6 +203,22 @@ export function AuthProvider({ children }) {
       recordAccount(data.user, data.token)
     }
     return data
+  }
+
+  const verifyOtp = async ({ email, otp, device_name }) => {
+    const data = await authService.verifyOtp({ email, otp, device_name })
+    if (data?.token) {
+      setToken(data.token)
+      setUser(data.user)
+      localStorage.setItem('sarangtv_token', data.token)
+      localStorage.setItem('sarangtv_user', JSON.stringify(data.user))
+      recordAccount(data.user, data.token)
+    }
+    return data
+  }
+
+  const resendOtp = async ({ email }) => {
+    return await authService.resendOtp({ email })
   }
 
   const switchAccount = async (targetIdOrEmail) => {
@@ -305,8 +367,11 @@ export function AuthProvider({ children }) {
     isLoading,
     login,
     register,
+    verifyOtp,
+    resendOtp,
     logout,
     updateProfile,
+    updateUserPreferences,
     savedAccounts,
     switchAccount,
     removeSavedAccount,
