@@ -254,7 +254,7 @@ export default function TrackerScreen({ navigation, route }) {
               accessibilityLabel="Add drama"
               hitSlop={5}
             >
-              <Ionicons name="add" size={16} color="#07070E" />
+              <Ionicons name="add" size={16} color="#FFFFFF" />
               <Text style={styles.addText}>Add</Text>
             </Pressable>
           </View>
@@ -305,7 +305,7 @@ export default function TrackerScreen({ navigation, route }) {
               style={styles.emptyAddBtn}
               onPress={() => navigation.navigate('AddDrama')}
             >
-              <Ionicons name="add-circle" size={16} color="#07070E" />
+              <Ionicons name="add-circle" size={16} color="#FFFFFF" />
               <Text style={styles.emptyAddBtnText}>Explore & Add Drama</Text>
             </Pressable>
           </View>
@@ -707,26 +707,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
     paddingHorizontal: 13,
     paddingVertical: 8,
     minHeight: 34,
     borderRadius: 999,
-    shadowColor: '#F5A9C4',
+    shadowColor: '#eb5b78',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 3,
   },
   addButtonHover: {
-    backgroundColor: '#E085A6',
+    backgroundColor: '#d44865',
     transform: [{ scale: 1.035 }],
   },
   addButtonPressed: {
     opacity: 0.7,
   },
   addText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
     marginLeft: 6,
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: 'rgba(245, 169, 196, 0.12)',
+    backgroundColor: 'rgba(235, 91, 120, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -834,14 +834,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     marginTop: 18,
   },
   emptyAddBtnText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },

@@ -106,7 +106,9 @@ export default function HomeScreen({ navigation }) {
             style={styles.topBarLogoImage}
             resizeMode="contain"
           />
-          <Text style={styles.logo}>SarangTV</Text>
+          <Text style={styles.logo}>
+            Sarang<Text style={styles.logoTv}>TV</Text>
+          </Text>
         </View>
 
         <View style={styles.topBarRight}>
@@ -360,7 +362,7 @@ export default function HomeScreen({ navigation }) {
                 style={styles.seeAllButton}
               >
                 <Text style={styles.seeAllText}>See all</Text>
-                <Ionicons name="chevron-forward" size={14} color="#F5A9C4" />
+                <Ionicons name="chevron-forward" size={14} color="#eb5b78" />
               </Pressable>
             </View>
 
@@ -406,7 +408,7 @@ export default function HomeScreen({ navigation }) {
                       />
                       {(drama.watch_status || drama.status) ? (() => {
                         const s = String(drama.watch_status || drama.status).toLowerCase().replace(/_/g, ' ');
-                        let badgeColor = '#F5A9C4';
+                        let badgeColor = '#eb5b78';
                         if (s.includes('watch') && !s.includes('plan')) {
                           badgeColor = '#60A5FA';
                         } else if (s.includes('complet')) {
@@ -451,7 +453,7 @@ export default function HomeScreen({ navigation }) {
                 <SectionTitle text="RECOMMENDED FOR YOU" />
                 {Array.isArray(user?.favorite_genres) && user.favorite_genres.length > 0 && (
                   <View style={styles.genreTagPill}>
-                    <Ionicons name="sparkles" size={11} color="#F5A9C4" />
+                    <Ionicons name="sparkles" size={11} color="#eb5b78" />
                     <Text style={styles.genreTagText} numberOfLines={1}>
                       {user.favorite_genres.slice(0, 2).join(' · ')}
                     </Text>
@@ -560,7 +562,7 @@ function RecommendedCard({ drama, onPress }) {
 
         {status ? (() => {
           const s = String(status).toLowerCase().replace(/_/g, ' ');
-          let badgeColor = '#F5A9C4';
+          let badgeColor = '#eb5b78';
           if (s.includes('watch') && !s.includes('plan')) {
             badgeColor = '#60A5FA';
           } else if (s.includes('complet')) {
@@ -624,10 +626,13 @@ const styles = StyleSheet.create({
     height: 32,
   },
   logo: {
-    color: '#F5A9C4',
+    color: '#FFFFFF',
     fontSize: 19,
     fontWeight: '900',
     letterSpacing: -0.4,
+  },
+  logoTv: {
+    color: '#eb5b78',
   },
   topBarRight: {
     flexDirection: 'row',
@@ -701,7 +706,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   korean: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -1005,13 +1010,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(245, 169, 196, 0.12)',
+    backgroundColor: 'rgba(235, 91, 120, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
   },
   genreTagText: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -1025,7 +1030,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tuneButtonText: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1156,7 +1161,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   seeAllText: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1200,7 +1205,7 @@ const styles = StyleSheet.create({
     lineHeight: 96,
     fontWeight: '900',
     color: '#151522',
-    textShadowColor: '#F5A9C4',
+    textShadowColor: '#eb5b78',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
     includeFontPadding: false,

@@ -124,7 +124,9 @@ export default function DiscoverScreen({ navigation }) {
               style={styles.logoImage}
               resizeMode="contain"
             />
-            <Text style={styles.brand}>SarangTV</Text>
+            <Text style={styles.brand}>
+              Sarang<Text style={styles.brandTv}>TV</Text>
+            </Text>
           </View>
           <Text style={styles.pageTitle}>Discover</Text>
         </View>
@@ -237,7 +239,7 @@ export default function DiscoverScreen({ navigation }) {
                     pressed && styles.detailsButtonPressed,
                   ]}
                 >
-                  <Ionicons name="play" size={10} color={colors.text} />
+                  <Ionicons name="play" size={10} color="#FFFFFF" />
                   <Text style={styles.detailsText}>View Details</Text>
                 </Pressable>
 
@@ -373,10 +375,13 @@ const styles = StyleSheet.create({
     height: 22,
   },
   brand: {
-    color: '#F5A9C4',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '900',
     lineHeight: 19,
+  },
+  brandTv: {
+    color: '#eb5b78',
   },
   pageTitle: {
     color: colors.text,
@@ -491,7 +496,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
   detailsText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',
     marginLeft: 5,

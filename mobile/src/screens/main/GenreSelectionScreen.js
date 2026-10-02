@@ -13,7 +13,7 @@ import { colors } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 
 const GENRE_OPTIONS = [
-  { id: 'Romance', label: 'Romance', icon: 'heart', color: '#F5A9C4' },
+  { id: 'Romance', label: 'Romance', icon: 'heart', color: '#eb5b78' },
   { id: 'Comedy', label: 'Comedy', icon: 'happy-outline', color: '#FFD166' },
   { id: 'Drama', label: 'Drama', icon: 'film-outline', color: '#B8A5FF' },
   { id: 'Mystery', label: 'Mystery & Thriller', icon: 'eye-outline', color: '#70D6FF' },
@@ -101,7 +101,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
             </Pressable>
           ) : (
             <View style={styles.badgePill}>
-              <Ionicons name="sparkles" size={13} color="#F5A9C4" />
+              <Ionicons name="sparkles" size={13} color="#eb5b78" />
               <Text style={styles.badgePillText}>Personalize Your Feed</Text>
             </View>
           )}
@@ -151,7 +151,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
                     <Ionicons
                       name={g.icon}
                       size={22}
-                      color={isSelected ? '#07070E' : g.color}
+                      color={isSelected ? '#FFFFFF' : g.color}
                     />
                   </View>
 
@@ -172,7 +172,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
                     ]}
                   >
                     {isSelected && (
-                      <Ionicons name="checkmark" size={12} color="#07070E" />
+                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
                     )}
                   </View>
                 </Pressable>
@@ -192,7 +192,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
             ]}
           >
             {saving ? (
-              <ActivityIndicator color="#07070E" size="small" />
+              <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <>
                 <Text style={styles.primaryBtnText}>
@@ -200,7 +200,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
                     ? `Continue with ${selected.length} Selected`
                     : 'Explore All Dramas'}
                 </Text>
-                <Ionicons name="arrow-forward" size={18} color="#07070E" />
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </>
             )}
           </Pressable>
@@ -237,13 +237,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(245, 169, 196, 0.12)',
+    backgroundColor: 'rgba(235, 91, 120, 0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
   },
   badgePillText: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   cardSelected: {
     backgroundColor: '#1E1B32',
     elevation: 6,
-    shadowColor: '#F5A9C4',
+    shadowColor: '#eb5b78',
     shadowOpacity: 0.2,
     shadowRadius: 10,
   },
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkCircleSelected: {
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
   },
   footer: {
     paddingTop: 12,
@@ -348,13 +348,13 @@ const styles = StyleSheet.create({
   primaryBtn: {
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     elevation: 4,
-    shadowColor: '#F5A9C4',
+    shadowColor: '#eb5b78',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   primaryBtnText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '900',
   },

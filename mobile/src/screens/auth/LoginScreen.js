@@ -108,7 +108,9 @@ export default function LoginScreen({ navigation, route }) {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.brand}>SARANGTV</Text>
+          <Text style={styles.brand}>
+            SARANG<Text style={styles.brandTv}>TV</Text>
+          </Text>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Log in to your watchlist.</Text>
         </View>
@@ -275,11 +277,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   brand: {
-    color: '#F5A9C4',
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 2,
     marginBottom: 14,
+  },
+  brandTv: {
+    color: '#eb5b78',
   },
   title: {
     color: '#F7F0F0',

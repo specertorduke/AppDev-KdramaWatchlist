@@ -94,7 +94,9 @@ export default function AccountChooserScreen({ navigation }) {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.logo}>SarangTV</Text>
+          <Text style={styles.logo}>
+            Sarang<Text style={styles.logoTv}>TV</Text>
+          </Text>
         </View>
 
         {/* TITLE */}
@@ -205,7 +207,7 @@ export default function AccountChooserScreen({ navigation }) {
         {/* BOTTOM BRANDING */}
         <View style={styles.bottomArea}>
           <View style={styles.bottomLine} />
-          <Text style={styles.bottomText}>SarangTV</Text>
+          <Text style={styles.bottomText}>Sarang<Text style={{ color: '#eb5b78' }}>TV</Text></Text>
         </View>
       </View>
     </SafeAreaView>
@@ -255,10 +257,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logo: {
-    color: '#F5A9C4',
+    color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '900',
     letterSpacing: -0.4,
+  },
+  logoTv: {
+    color: '#eb5b78',
   },
   title: {
     color: colors.text,

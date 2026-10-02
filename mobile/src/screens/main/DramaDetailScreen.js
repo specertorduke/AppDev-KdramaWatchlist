@@ -33,14 +33,14 @@ const STATUS_COLORS = {
 };
 
 const getStatusColor = (status) => {
-  if (!status) return '#F5A9C4';
+  if (!status) return '#eb5b78';
   const formatted = status.replace(/_/g, ' ').toLowerCase();
   if (formatted.includes('watch') && !formatted.includes('plan')) return STATUS_COLORS.Watching;
   if (formatted.includes('complete')) return STATUS_COLORS.Completed;
   if (formatted.includes('plan')) return STATUS_COLORS['Plan to Watch'];
   if (formatted.includes('hold')) return STATUS_COLORS['On Hold'];
   if (formatted.includes('drop')) return STATUS_COLORS.Dropped;
-  return '#F5A9C4';
+  return '#eb5b78';
 };
 
 export default function DramaDetailScreen({ route, navigation }) {
@@ -386,7 +386,7 @@ export default function DramaDetailScreen({ route, navigation }) {
           <Ionicons
             name={tracker ? 'checkmark-circle' : 'add'}
             size={19}
-            color={tracker ? '#F5A9C4' : '#07070E'}
+            color={tracker ? '#eb5b78' : '#FFFFFF'}
           />
           <Text style={[styles.watchlistButtonText, tracker && styles.watchlistButtonTextActive]}>
             {tracker ? 'In Watchlist' : 'Add to Watchlist'}
@@ -595,7 +595,7 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Ionicons
               name={showAllEpisodes ? 'chevron-up' : 'chevron-down'}
               size={14}
-              color="#F5A9C4"
+              color="#eb5b78"
             />
           </Pressable>
         )}
@@ -683,7 +683,7 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Ionicons
               name={savingStatus ? 'hourglass-outline' : 'checkmark-circle'}
               size={15}
-              color="#07070E"
+              color="#FFFFFF"
             />
             <Text style={styles.saveAllButtonText}>
               {savingStatus ? 'Saving...' : 'Save Review'}
@@ -847,7 +847,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   koreanTitle: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 13,
     lineHeight: 18,
     marginTop: 3,
@@ -931,12 +931,12 @@ const styles = StyleSheet.create({
     height: 48,
     paddingHorizontal: 16,
     borderRadius: 14,
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#F5A9C4',
+    shadowColor: '#eb5b78',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -949,12 +949,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   watchlistButtonText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
   },
   watchlistButtonTextActive: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontWeight: '800',
   },
   favoriteButton: {
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   progressCounterText: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1012,7 +1012,7 @@ const styles = StyleSheet.create({
   cleanProgressFill: {
     height: '100%',
     borderRadius: 3,
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
   },
   statusScroll: {
     marginHorizontal: -4,
@@ -1080,7 +1080,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   seasonTabPillTextActive: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontWeight: '800',
   },
   episodeList: {
@@ -1107,7 +1107,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   episodeBadgeWatched: {
-    backgroundColor: 'rgba(245, 169, 196, 0.18)',
+    backgroundColor: 'rgba(235, 91, 120, 0.18)',
   },
   episodeBadgeText: {
     color: 'rgba(255,255,255,0.85)',
@@ -1115,7 +1115,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   episodeBadgeTextWatched: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
   },
   episodeContent: {
     flex: 1,
@@ -1145,7 +1145,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   episodeCheckCircleActive: {
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
   },
   showMoreButton: {
     marginTop: 12,
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   showMoreButtonText: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1245,14 +1245,14 @@ const styles = StyleSheet.create({
     height: 38,
     paddingHorizontal: 18,
     borderRadius: 10,
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   saveAllButtonText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },

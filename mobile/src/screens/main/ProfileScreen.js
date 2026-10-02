@@ -26,7 +26,7 @@ export default function ProfileScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(user?.avatarIcon || 'heart');
-  const [selectedColor, setSelectedColor] = useState(user?.color || '#F5A9C4');
+  const [selectedColor, setSelectedColor] = useState(user?.color || '#eb5b78');
 
   const AVATAR_ICONS = [
     { id: 'heart', icon: 'heart', label: 'Romance Lead' },
@@ -44,7 +44,7 @@ export default function ProfileScreen({ navigation }) {
   ];
 
   const COLOR_PALETTES = [
-    '#F5A9C4', // Signature Pink
+    '#eb5b78', // Signature Rose / Accent
     '#E085A6', // Deep Rose
     '#6B2638', // Wine
     '#29234D', // Midnight Plum
@@ -102,7 +102,7 @@ export default function ProfileScreen({ navigation }) {
     await logout();
   };
 
-  const activeColor = user?.color || selectedColor || '#F5A9C4';
+  const activeColor = user?.color || selectedColor || '#eb5b78';
   const activeIcon = user?.avatarIcon || selectedIcon;
 
   return (
@@ -278,7 +278,7 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Favorite Genres"
         >
           <View style={styles.menuIcon}>
-            <Ionicons name="sparkles-outline" size={15} color="#F5A9C4" />
+            <Ionicons name="sparkles-outline" size={15} color="#eb5b78" />
           </View>
           <View style={styles.menuText}>
             <Text style={styles.menuTitle}>Favorite Genres</Text>
@@ -478,13 +478,13 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
   avatarText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '900',
   },
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   saveAvatarBtnText: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',
   },

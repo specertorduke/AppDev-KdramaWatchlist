@@ -61,8 +61,8 @@ export default function DramaCard({ drama, onPress }) {
             {/* Top Right Status Badge */}
             {status ? (() => {
               const s = String(status).toLowerCase().replace(/_/g, ' ');
-              let badgeColor = '#F5A9C4';
-              let badgeBg = 'rgba(245, 169, 196, 0.22)';
+              let badgeColor = '#eb5b78';
+              let badgeBg = 'rgba(235, 91, 120, 0.22)';
               if (s.includes('watch') && !s.includes('plan')) {
                 badgeColor = '#60A5FA';
                 badgeBg = 'rgba(96, 165, 250, 0.22)';

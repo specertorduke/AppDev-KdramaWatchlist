@@ -81,7 +81,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 <Ionicons
                   name={isFocused ? itemConfig.activeIcon : itemConfig.icon}
                   size={21}
-                  color={isFocused ? '#F5A9C4' : 'rgba(255,255,255,0.45)'}
+                  color={isFocused ? '#eb5b78' : 'rgba(255,255,255,0.45)'}
                 />
                 <Text style={[styles.label, isFocused && styles.labelActive]}>
                   {itemConfig.label}
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   itemContentActive: {
-    backgroundColor: 'rgba(245, 169, 196, 0.14)',
+    backgroundColor: 'rgba(235, 91, 120, 0.15)',
   },
   itemPressed: {
     opacity: 0.65,
@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
   },
 });
