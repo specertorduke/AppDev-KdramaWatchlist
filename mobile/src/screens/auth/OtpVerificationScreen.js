@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   brand: {
-    color: '#FFFFFF',
+    color: '#ed8ea4',
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 2,

@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   brand: {
-    color: '#FFFFFF',
+    color: '#ed8ea4',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 2,

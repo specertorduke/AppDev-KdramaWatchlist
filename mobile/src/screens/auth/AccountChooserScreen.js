@@ -124,7 +124,13 @@ export default function AccountChooserScreen({ navigation }) {
                     { backgroundColor: account.color || '#6B2638' },
                   ]}
                 >
-                  {account.avatarIcon ? (
+                  {account.avatar_url ? (
+                    <Image
+                      source={{ uri: account.avatar_url }}
+                      style={styles.avatarPhoto}
+                      resizeMode="cover"
+                    />
+                  ) : account.avatarIcon ? (
                     <Ionicons name={account.avatarIcon} size={34} color="#FFFFFF" />
                   ) : (
                     <Text style={styles.avatarInitials}>
@@ -257,7 +263,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logo: {
-    color: '#FFFFFF',
+    color: '#ed8ea4',
     fontSize: 24,
     fontWeight: '900',
     letterSpacing: -0.4,
@@ -318,6 +324,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 4,
+  },
+  avatarPhoto: {
+    width: '100%',
+    height: '100%',
   },
   avatarInitials: {
     color: '#fff',

@@ -14,6 +14,8 @@
     "expo": "^57.0.0",
     "expo-constants": "~57.0.19",
     "expo-font": "~57.0.4",
+    "expo-image-manipulator": "~57.0.20",
+    "expo-image-picker": "~57.0.20",
     "expo-status-bar": "~57.0.1",
     "lucide-react-native": "^1.37.0",
     "react": "19.2.3",

@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }) => {
         token: authToken,
         color: existing?.color || getPaletteColor(accounts.length),
         avatarIcon: existing?.avatarIcon || null,
+        avatar_url: userData.avatar_url || existing?.avatar_url || null,
         initials: getInitials(userData.name),
         user: userData,
       };
@@ -69,10 +70,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateProfileAvatar = async ({ avatarIcon, color }) => {
+  const updateProfileAvatar = async ({ avatarIcon, color, avatarUrl }) => {
     try {
       if (!user) return;
-      const updatedUser = { ...user, avatarIcon, color };
+      const updatedUser = {
+        ...user,
+        ...(avatarIcon !== undefined ? { avatarIcon } : {}),
+        ...(color !== undefined ? { color } : {}),
+        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+      };
       setUser(updatedUser);
       await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
 
@@ -84,13 +90,22 @@ export const AuthProvider = ({ children }) => {
             ...a,
             avatarIcon: avatarIcon !== undefined ? avatarIcon : a.avatarIcon,
             color: color !== undefined ? color : a.color,
-            user: { ...a.user, avatarIcon, color },
+            avatar_url: avatarUrl !== undefined ? avatarUrl : a.avatar_url,
+            user: { ...a.user, ...updatedUser },
           };
         }
         return a;
       });
       await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
       setSavedAccounts(accounts);
+
+      if (avatarUrl !== undefined) {
+        try {
+          await userService.updatePreferences({ avatar_url: avatarUrl });
+        } catch (prefErr) {
+          console.warn('Backend preferences sync failed:', prefErr);
+        }
+      }
     } catch (e) {
       console.warn('Failed to update profile avatar:', e);
     }

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -134,11 +135,19 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Profile')}
             accessibilityLabel="Profile"
           >
-            <Ionicons
-              name={user?.avatarIcon || 'person'}
-              size={18}
-              color="#FFFFFF"
-            />
+            {user?.avatar_url ? (
+              <Image
+                source={{ uri: user.avatar_url }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Ionicons
+                name={user?.avatarIcon || 'person'}
+                size={18}
+                color="#FFFFFF"
+              />
+            )}
           </Pressable>
         </View>
       </View>
@@ -362,7 +371,7 @@ export default function HomeScreen({ navigation }) {
                 style={styles.seeAllButton}
               >
                 <Text style={styles.seeAllText}>See all</Text>
-                <Ionicons name="chevron-forward" size={14} color="#eb5b78" />
+                <Ionicons name="chevron-forward" size={14} color="#F5A9C4" />
               </Pressable>
             </View>
 
@@ -393,11 +402,8 @@ export default function HomeScreen({ navigation }) {
                       navigation.navigate('DramaDetail', { tmdbId: drama.tmdb_id || drama.id })
                     }
                   >
-                    {/* Big Stylized Rank Number (Netflix / Disney+ style) */}
-                    <View style={styles.rankContainer}>
-                      <Text style={styles.giantRankShadow}>{rankNum}</Text>
-                      <Text style={styles.giantRank}>{rankNum}</Text>
-                    </View>
+                    {/* Big Stylized Rank Number (Matching Frontend Top 10 Design) */}
+                    <TrendingRankNumber rankNum={rankNum} />
 
                     {/* Poster Card */}
                     <View style={styles.trendingPosterWrapper}>
@@ -406,6 +412,11 @@ export default function HomeScreen({ navigation }) {
                         style={styles.trendingPosterImage}
                         resizeMode="cover"
                       />
+                      {rating > 0 && (
+                        <View style={styles.trendingRatingPill}>
+                          <Text style={styles.trendingRatingVal}>★ {rating.toFixed(1)}</Text>
+                        </View>
+                      )}
                       {(drama.watch_status || drama.status) ? (() => {
                         const s = String(drama.watch_status || drama.status).toLowerCase().replace(/_/g, ' ');
                         let badgeColor = '#eb5b78';
@@ -537,6 +548,34 @@ function QuickAccess({ icon, iconBackground, title, onPress }) {
   );
 }
 
+function TrendingRankNumber({ rankNum }) {
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.rankContainer} pointerEvents="none">
+        <Text style={styles.giantRankWeb}>{rankNum}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.rankContainer} pointerEvents="none">
+      {/* 2px Solid Black Drop Shadow */}
+      <Text style={styles.giantRankShadow}>{rankNum}</Text>
+      {/* 8-direction 1px pink stroke outline (#F5A9C4) */}
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: -1 }, { translateY: -1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 0 }, { translateY: -1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 1 }, { translateY: -1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: -1 }, { translateY: 0 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 1 }, { translateY: 0 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: -1 }, { translateY: 1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 0 }, { translateY: 1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 1 }, { translateY: 1 }] }]}>{rankNum}</Text>
+      {/* Center fill (#151522) */}
+      <Text style={styles.giantRankFill}>{rankNum}</Text>
+    </View>
+  );
+}
+
 function RecommendedCard({ drama, onPress }) {
   const rating = Number(drama?.rating) || 0;
   const image =
@@ -626,7 +665,7 @@ const styles = StyleSheet.create({
     height: 32,
   },
   logo: {
-    color: '#FFFFFF',
+    color: '#ed8ea4',
     fontSize: 19,
     fontWeight: '900',
     letterSpacing: -0.4,
@@ -671,6 +710,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarButtonHovered: {
     opacity: 0.9,
@@ -706,7 +750,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   korean: {
-    color: '#eb5b78',
+    color: '#F5A9C4',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -1153,7 +1197,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   seeAllButton: {
     flexDirection: 'row',
@@ -1161,7 +1206,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   seeAllText: {
-    color: '#eb5b78',
+    color: '#F5A9C4',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1183,31 +1228,51 @@ const styles = StyleSheet.create({
   },
   rankContainer: {
     position: 'absolute',
-    left: -14,
-    bottom: 36,
-    zIndex: 10,
+    left: -8,
+    bottom: 35,
+    zIndex: 2,
     pointerEvents: 'none',
     overflow: 'visible',
+  },
+  giantRankWeb: {
+    color: '#151522',
+    fontSize: 82,
+    fontWeight: '900',
+    lineHeight: 78,
+    includeFontPadding: false,
+    ...Platform.select({
+      web: {
+        WebkitTextStroke: '1px #F5A9C4',
+        textShadow: '2px 2px 0px #000000',
+        userSelect: 'none',
+      },
+    }),
   },
   giantRankShadow: {
     position: 'absolute',
     left: 2,
     top: 2,
     fontSize: 82,
-    lineHeight: 96,
+    lineHeight: 78,
     fontWeight: '900',
     color: '#000000',
-    opacity: 0.8,
     includeFontPadding: false,
   },
-  giantRank: {
+  giantRankStroke: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
     fontSize: 82,
-    lineHeight: 96,
+    lineHeight: 78,
+    fontWeight: '900',
+    color: '#F5A9C4',
+    includeFontPadding: false,
+  },
+  giantRankFill: {
+    fontSize: 82,
+    lineHeight: 78,
     fontWeight: '900',
     color: '#151522',
-    textShadowColor: '#eb5b78',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
     includeFontPadding: false,
   },
   trendingPosterWrapper: {
@@ -1217,6 +1282,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#161622',
     marginLeft: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

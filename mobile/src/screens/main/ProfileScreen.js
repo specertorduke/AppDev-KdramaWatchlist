@@ -11,12 +11,14 @@ import {
   Alert,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { userService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { pickAndCompressAvatar, takeAndCompressAvatar } from '../../services/imageService';
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -27,6 +29,9 @@ export default function ProfileScreen({ navigation }) {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(user?.avatarIcon || 'heart');
   const [selectedColor, setSelectedColor] = useState(user?.color || '#eb5b78');
+  const [customImage, setCustomImage] = useState(user?.avatar_url || null);
+  const [avatarMode, setAvatarMode] = useState(user?.avatar_url ? 'photo' : 'persona');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   const AVATAR_ICONS = [
     { id: 'heart', icon: 'heart', label: 'Romance Lead' },
@@ -57,12 +62,62 @@ export default function ProfileScreen({ navigation }) {
   useEffect(() => {
     if (user?.avatarIcon) setSelectedIcon(user.avatarIcon);
     if (user?.color) setSelectedColor(user.color);
+    setCustomImage(user?.avatar_url || null);
+    setAvatarMode(user?.avatar_url ? 'photo' : 'persona');
   }, [user]);
 
-  const handleSaveAvatar = async (icon, color) => {
-    setSelectedIcon(icon);
-    setSelectedColor(color);
-    await updateProfileAvatar({ avatarIcon: icon, color });
+  const handlePickCustomImage = async () => {
+    setIsProcessingImage(true);
+    try {
+      const result = await pickAndCompressAvatar();
+      if (result?.base64) {
+        setCustomImage(result.base64);
+      }
+    } catch (e) {
+      console.warn('Image picker error:', e);
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    setIsProcessingImage(true);
+    try {
+      const result = await takeAndCompressAvatar();
+      if (result?.base64) {
+        setCustomImage(result.base64);
+      }
+    } catch (e) {
+      console.warn('Camera error:', e);
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  const handleRemoveCustomPhoto = () => {
+    setCustomImage(null);
+  };
+
+  const handleSaveAvatar = async () => {
+    if (avatarMode === 'photo') {
+      if (!customImage) {
+        Alert.alert(
+          'No Photo Selected',
+          'Please choose a photo from your gallery or take a new one first.'
+        );
+        return;
+      }
+      await updateProfileAvatar({
+        avatarIcon: null,
+        avatarUrl: customImage,
+      });
+    } else {
+      await updateProfileAvatar({
+        avatarIcon: selectedIcon,
+        color: selectedColor,
+        avatarUrl: null,
+      });
+    }
     setShowAvatarModal(false);
   };
 
@@ -128,8 +183,7 @@ export default function ProfileScreen({ navigation }) {
       <View style={styles.profileHeader}>
         <Pressable
           style={({ pressed, hovered }) => [
-            styles.avatar,
-            { backgroundColor: activeColor },
+            styles.avatarWrapper,
             hovered && styles.avatarHovered,
             pressed && styles.buttonPressed,
           ]}
@@ -137,13 +191,21 @@ export default function ProfileScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Change profile avatar"
         >
-          {activeIcon ? (
-            <Ionicons name={activeIcon} size={24} color="#FFFFFF" />
-          ) : (
-            <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
-          )}
+          <View style={[styles.avatarCircle, { backgroundColor: activeColor }]}>
+            {user?.avatar_url ? (
+              <Image
+                source={{ uri: user.avatar_url }}
+                style={styles.avatarPhoto}
+                resizeMode="cover"
+              />
+            ) : activeIcon ? (
+              <Ionicons name={activeIcon} size={24} color="#FFFFFF" />
+            ) : (
+              <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
+            )}
+          </View>
           <View style={styles.avatarBadge}>
-            <Ionicons name="camera" size={10} color="#FFFFFF" />
+            <Ionicons name="camera" size={11} color="#FFFFFF" />
           </View>
         </Pressable>
 
@@ -374,67 +436,199 @@ export default function ProfileScreen({ navigation }) {
               </Pressable>
             </View>
 
-            {/* Current Preview */}
-            <View style={styles.previewContainer}>
-              <View style={[styles.avatarPreview, { backgroundColor: selectedColor }]}>
-                <Ionicons name={selectedIcon} size={44} color="#FFFFFF" />
-              </View>
-              <Text style={styles.previewLabel}>
-                {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
-              </Text>
+            {/* Mode Switcher: Custom Photo OR Drama Persona */}
+            <View style={styles.modeTabBar}>
+              <Pressable
+                style={[
+                  styles.modeTab,
+                  avatarMode === 'photo' && styles.modeTabActive,
+                ]}
+                onPress={() => setAvatarMode('photo')}
+              >
+                <Ionicons
+                  name="camera-outline"
+                  size={15}
+                  color={avatarMode === 'photo' ? '#FFFFFF' : '#8D8B98'}
+                />
+                <Text
+                  style={[
+                    styles.modeTabText,
+                    avatarMode === 'photo' && styles.modeTabTextActive,
+                  ]}
+                >
+                  Custom Photo
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.modeTab,
+                  avatarMode === 'persona' && styles.modeTabActive,
+                ]}
+                onPress={() => setAvatarMode('persona')}
+              >
+                <Ionicons
+                  name="happy-outline"
+                  size={15}
+                  color={avatarMode === 'persona' ? '#FFFFFF' : '#8D8B98'}
+                />
+                <Text
+                  style={[
+                    styles.modeTabText,
+                    avatarMode === 'persona' && styles.modeTabTextActive,
+                  ]}
+                >
+                  Drama Persona
+                </Text>
+              </Pressable>
             </View>
 
-            {/* Color Swatches */}
-            <Text style={styles.modalSectionHeading}>CHOOSE COLOR THEME</Text>
-            <View style={styles.colorPaletteRow}>
-              {COLOR_PALETTES.map((col) => {
-                const isSelected = selectedColor === col;
-                return (
-                  <Pressable
-                    key={col}
-                    style={[
-                      styles.colorSwatch,
-                      { backgroundColor: col },
-                      isSelected && styles.colorSwatchActive,
-                    ]}
-                    onPress={() => setSelectedColor(col)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select color ${col}`}
-                  >
-                    {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-                  </Pressable>
-                );
-              })}
-            </View>
+            {avatarMode === 'photo' ? (
+              <View style={styles.modeContent}>
+                {/* Photo Preview */}
+                <View style={styles.previewContainer}>
+                  <View style={[styles.avatarPreview, { backgroundColor: '#1E1B2D' }]}>
+                    {customImage ? (
+                      <Image
+                        source={{ uri: customImage }}
+                        style={styles.avatarPreviewPhoto}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Ionicons name="person-outline" size={40} color="#8D8B98" />
+                    )}
+                  </View>
+                  <Text style={styles.previewLabel}>
+                    {customImage ? 'Custom Photo Selected' : 'No Photo Selected'}
+                  </Text>
 
-            {/* Icon Grid */}
-            <Text style={styles.modalSectionHeading}>SELECT DRAMA PERSONA</Text>
-            <ScrollView style={styles.iconScroll} showsVerticalScrollIndicator={false}>
-              <View style={styles.iconGrid}>
-                {AVATAR_ICONS.map((item) => {
-                  const isSelected = selectedIcon === item.icon;
-                  return (
+                  {/* Photo Actions */}
+                  <View style={styles.customPhotoBtnRow}>
                     <Pressable
-                      key={item.id}
-                      style={[
-                        styles.iconTile,
-                        isSelected && [styles.iconTileActive, { borderColor: selectedColor }],
+                      style={({ pressed }) => [
+                        styles.photoActionBtn,
+                        pressed && styles.buttonPressed,
                       ]}
-                      onPress={() => setSelectedIcon(item.icon)}
+                      onPress={handlePickCustomImage}
+                      disabled={isProcessingImage}
                       accessibilityRole="button"
-                      accessibilityLabel={item.label}
+                      accessibilityLabel="Choose Photo from gallery"
                     >
-                      <View style={[styles.iconTileBg, { backgroundColor: isSelected ? selectedColor : '#1C1B2A' }]}>
-                        <Ionicons name={item.icon} size={22} color="#FFFFFF" />
-                      </View>
-                      <Text style={[styles.iconTileLabel, isSelected && styles.iconTileLabelActive]} numberOfLines={1}>
-                        {item.label}
-                      </Text>
+                      {isProcessingImage ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <>
+                          <Ionicons name="image-outline" size={14} color="#FFFFFF" />
+                          <Text style={styles.photoActionBtnText}>Choose Photo</Text>
+                        </>
+                      )}
                     </Pressable>
-                  );
-                })}
+
+                    {Platform.OS !== 'web' && (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.photoActionBtn,
+                          pressed && styles.buttonPressed,
+                        ]}
+                        onPress={handleTakePhoto}
+                        disabled={isProcessingImage}
+                        accessibilityRole="button"
+                        accessibilityLabel="Take Photo with camera"
+                      >
+                        <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
+                        <Text style={styles.photoActionBtnText}>Take Photo</Text>
+                      </Pressable>
+                    )}
+
+                    {customImage ? (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.photoRemoveBtn,
+                          pressed && styles.buttonPressed,
+                        ]}
+                        onPress={handleRemoveCustomPhoto}
+                        accessibilityRole="button"
+                        accessibilityLabel="Remove custom photo"
+                      >
+                        <Ionicons name="trash-outline" size={13} color="#EF4444" />
+                        <Text style={styles.photoRemoveBtnText}>Remove</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+
+                <View style={styles.modeNoticeBox}>
+                  <Ionicons name="information-circle-outline" size={16} color="#8D8B98" />
+                  <Text style={styles.modeNoticeText}>
+                    Using a custom photo replaces your Drama Persona icon. Your photo is automatically cropped to a square and optimized.
+                  </Text>
+                </View>
               </View>
-            </ScrollView>
+            ) : (
+              <View style={styles.modeContent}>
+                {/* Persona Preview */}
+                <View style={styles.previewContainer}>
+                  <View style={[styles.avatarPreview, { backgroundColor: selectedColor }]}>
+                    <Ionicons name={selectedIcon} size={44} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.previewLabel}>
+                    {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
+                  </Text>
+                </View>
+
+                {/* Color Swatches */}
+                <Text style={styles.modalSectionHeading}>CHOOSE COLOR THEME</Text>
+                <View style={styles.colorPaletteRow}>
+                  {COLOR_PALETTES.map((col) => {
+                    const isSelected = selectedColor === col;
+                    return (
+                      <Pressable
+                        key={col}
+                        style={[
+                          styles.colorSwatch,
+                          { backgroundColor: col },
+                          isSelected && styles.colorSwatchActive,
+                        ]}
+                        onPress={() => setSelectedColor(col)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Select color ${col}`}
+                      >
+                        {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {/* Icon Grid */}
+                <Text style={styles.modalSectionHeading}>SELECT DRAMA PERSONA</Text>
+                <ScrollView style={styles.iconScroll} showsVerticalScrollIndicator={false}>
+                  <View style={styles.iconGrid}>
+                    {AVATAR_ICONS.map((item) => {
+                      const isSelected = selectedIcon === item.icon;
+                      return (
+                        <Pressable
+                          key={item.id}
+                          style={[
+                            styles.iconTile,
+                            isSelected && [styles.iconTileActive, { borderColor: selectedColor }],
+                          ]}
+                          onPress={() => setSelectedIcon(item.icon)}
+                          accessibilityRole="button"
+                          accessibilityLabel={item.label}
+                        >
+                          <View style={[styles.iconTileBg, { backgroundColor: isSelected ? selectedColor : '#1C1B2A' }]}>
+                            <Ionicons name={item.icon} size={22} color="#FFFFFF" />
+                          </View>
+                          <Text style={[styles.iconTileLabel, isSelected && styles.iconTileLabelActive]} numberOfLines={1}>
+                            {item.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
 
             {/* Modal Actions */}
             <View style={styles.modalActions}>
@@ -446,10 +640,15 @@ export default function ProfileScreen({ navigation }) {
               </Pressable>
 
               <Pressable
-                style={[styles.saveAvatarBtn, { backgroundColor: selectedColor }]}
-                onPress={() => handleSaveAvatar(selectedIcon, selectedColor)}
+                style={[
+                  styles.saveAvatarBtn,
+                  { backgroundColor: avatarMode === 'photo' ? '#eb5b78' : selectedColor },
+                ]}
+                onPress={handleSaveAvatar}
               >
-                <Text style={styles.saveAvatarBtnText}>Save Profile Style</Text>
+                <Text style={styles.saveAvatarBtnText}>
+                  {avatarMode === 'photo' ? 'Save Custom Photo' : 'Save Drama Persona'}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -474,14 +673,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 22,
   },
-  avatar: {
+  avatarWrapper: {
+    position: 'relative',
+    width: 62,
+    height: 62,
+    marginRight: 14,
+  },
+  avatarCircle: {
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: '#eb5b78',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    overflow: 'hidden',
+  },
+  avatarPhoto: {
+    width: '100%',
+    height: '100%',
   },
   avatarText: {
     color: '#FFFFFF',
@@ -633,16 +841,68 @@ const styles = StyleSheet.create({
   },
   avatarBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: -1,
+    right: -1,
     backgroundColor: '#1E1B2E',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#07070E',
+    elevation: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+  },
+  modeTabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#0F0E1A',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 12,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  modeTabActive: {
+    backgroundColor: '#1E1B2E',
+  },
+  modeTabText: {
+    color: '#8D8B98',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  modeTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  modeContent: {
+    width: '100%',
+  },
+  modeNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#0F0E1A',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  modeNoticeText: {
+    flex: 1,
+    color: '#8D8B98',
+    fontSize: 11,
+    lineHeight: 15,
   },
   /* MODAL STYLES */
   modalBackdrop: {
@@ -704,6 +964,51 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+    overflow: 'hidden',
+  },
+  avatarPreviewPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  customPhotoBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+    flexWrap: 'wrap',
+  },
+  photoActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1E1B2D',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  photoActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  photoRemoveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  photoRemoveBtnText: {
+    color: '#EF4444',
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   previewLabel: {
     color: '#FFFFFF',
