@@ -418,11 +418,6 @@ export default function HomeScreen({ navigation }) {
                         style={styles.trendingPosterImage}
                         resizeMode="cover"
                       />
-                      {rating > 0 && (
-                        <View style={styles.trendingRatingPill}>
-                          <Text style={styles.trendingRatingVal}>★ {rating.toFixed(1)}</Text>
-                        </View>
-                      )}
                       {(drama.watch_status || drama.status) ? (() => {
                         const s = String(drama.watch_status || drama.status).toLowerCase().replace(/_/g, ' ');
                         let badgeColor = '#eb5b78';
