@@ -2,42 +2,19 @@ import api from './api.js'
 
 export const authService = {
   async sendSignupOtp({ email, name }) {
-    const payload = { email }
-    if (name) payload.name = name
-    const response = await api.post('/auth/send-signup-otp', payload)
+    const response = await api.post('/auth/send-signup-otp', { email, name })
     return response.data
   },
 
   async register({ name, email, password, password_confirmation, terms_privacy_accepted, otp, device_name }) {
-    const payload = {
+    const response = await api.post('/auth/register', {
       name,
       email,
       password,
       password_confirmation,
       terms_privacy_accepted,
-    }
-    if (otp !== undefined && otp !== null && otp !== '') {
-      payload.otp = otp
-    }
-    if (device_name) {
-      payload.device_name = device_name
-    }
-    const response = await api.post('/auth/register', payload)
-    return response.data
-  },
-
-  async verifyOtp({ email, otp, device_name = 'Web Browser' }) {
-    const response = await api.post('/auth/verify-otp', {
-      email,
       otp,
       device_name,
-    })
-    return response.data
-  },
-
-  async resendOtp({ email }) {
-    const response = await api.post('/auth/resend-otp', {
-      email,
     })
     return response.data
   },
@@ -75,8 +52,10 @@ export const authService = {
     }
   },
 
-  async updatePreferences(preferences) {
-    const response = await api.patch('/user/preferences', preferences)
+  async updateUserPreferences(favoriteGenres) {
+    const response = await api.patch('/user/preferences', {
+      favorite_genres: favoriteGenres,
+    })
     return response.data
   },
 

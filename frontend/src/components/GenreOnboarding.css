@@ -1,0 +1,225 @@
+.genre-onboarding-page {
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 34px 24px 24px;
+  background: #07070e;
+}
+
+.genre-onboarding-content {
+  width: min(100%, 900px);
+  min-height: calc(100svh - 58px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.genre-onboarding-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.genre-onboarding-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(245, 169, 196, 0.12);
+  color: #f5a9c4;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.genre-onboarding-skip {
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #8d8b98;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.genre-onboarding-skip:hover {
+  color: #f5a9c4;
+}
+
+.genre-onboarding-intro {
+  margin: 36px 0 24px;
+}
+
+.genre-onboarding-intro h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.genre-onboarding-intro p {
+  max-width: 650px;
+  margin: 12px 0 0;
+  color: #aaa8b6;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.genre-onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.genre-onboarding-card {
+  position: relative;
+  min-height: 138px;
+  padding: 20px 18px;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  background: #12111d;
+  color: #efedf2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.genre-onboarding-card:hover {
+  transform: translateY(-2px);
+  background: #181724;
+}
+
+.genre-onboarding-card.selected {
+  border-color: color-mix(in srgb, var(--genre-color) 64%, transparent);
+  background: color-mix(in srgb, var(--genre-color) 11%, #12111d);
+}
+
+.genre-onboarding-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #1c1a2a;
+  color: var(--genre-color);
+  display: grid;
+  place-items: center;
+}
+
+.genre-onboarding-card.selected .genre-onboarding-icon {
+  background: var(--genre-color);
+  color: #07070e;
+}
+
+.genre-onboarding-label {
+  max-width: 100%;
+  color: #e8e5ed;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.genre-onboarding-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #211f2e;
+  color: #07070e;
+  display: grid;
+  place-items: center;
+}
+
+.genre-onboarding-card.selected .genre-onboarding-check {
+  background: var(--genre-color);
+}
+
+.genre-onboarding-error {
+  margin: 14px 0 0;
+  color: #ff9aa9;
+  font-size: 13px;
+}
+
+.genre-onboarding-footer {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: 24px;
+  background: linear-gradient(180deg, rgba(7, 7, 14, 0), #07070e 30%);
+}
+
+.genre-onboarding-submit {
+  width: 100%;
+  min-height: 64px;
+  padding: 14px 22px;
+  border: 0;
+  border-radius: 19px;
+  background: #f5a9c4;
+  box-shadow: 0 8px 22px rgba(245, 169, 196, 0.18);
+  color: #07070e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.genre-onboarding-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #ffc0d5;
+}
+
+.genre-onboarding-submit:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+@media (max-width: 600px) {
+  .genre-onboarding-page {
+    padding: 32px 22px 18px;
+  }
+
+  .genre-onboarding-content {
+    min-height: calc(100svh - 50px);
+  }
+
+  .genre-onboarding-intro {
+    margin: 30px 0 20px;
+  }
+
+  .genre-onboarding-intro h1 {
+    font-size: 29px;
+  }
+
+  .genre-onboarding-intro p {
+    font-size: 15px;
+  }
+
+  .genre-onboarding-grid {
+    gap: 12px;
+  }
+
+  .genre-onboarding-card {
+    min-height: 139px;
+    padding: 18px 10px;
+    border-radius: 20px;
+  }
+
+  .genre-onboarding-label {
+    font-size: 14px;
+  }
+
+  .genre-onboarding-submit {
+    min-height: 60px;
+    border-radius: 17px;
+    font-size: 16px;
+  }
+}

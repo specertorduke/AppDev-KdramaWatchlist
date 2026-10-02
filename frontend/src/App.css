@@ -804,9 +804,13 @@
 /* OTP Verification Component Styles */
 .otp-container {
   width: min(480px, 100%);
+  min-height: 100vh;
+  min-height: 100svh;
   margin: 0 auto;
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   box-sizing: border-box;
   animation: modalScaleUp 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }

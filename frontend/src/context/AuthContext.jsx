@@ -2,6 +2,18 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import authService from '../services/authService.js'
 
 const AuthContext = createContext(null)
+const DEFAULT_PROFILE_AVATAR = '/default-profile.svg'
+
+const withDefaultProfileAvatar = (accountUser) => {
+  if (!accountUser) return accountUser
+
+  const avatar = accountUser.avatar || accountUser.avatar_url || DEFAULT_PROFILE_AVATAR
+  return {
+    ...accountUser,
+    avatar,
+    avatar_url: accountUser.avatar_url || avatar,
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -26,6 +38,7 @@ export function AuthProvider({ children }) {
   // Save/update an account in remembered list
   const recordAccount = (accountUser, accountToken) => {
     if (!accountUser || !accountToken) return
+    const accountUserWithAvatar = withDefaultProfileAvatar(accountUser)
     const accountKey = accountUser.id || accountUser.email
     if (!accountKey) return
 
@@ -35,11 +48,11 @@ export function AuthProvider({ children }) {
       const entry = {
         id: accountUser.id,
         email: accountUser.email,
-        name: accountUser.name || accountUser.email?.split('@')[0] || 'User',
-        avatar: accountUser.avatar || accountUser.avatar_url || '',
-        avatar_url: accountUser.avatar || accountUser.avatar_url || '',
+        name: accountUserWithAvatar.name || accountUserWithAvatar.email?.split('@')[0] || 'User',
+        avatar: accountUserWithAvatar.avatar,
+        avatar_url: accountUserWithAvatar.avatar_url,
         token: accountToken,
-        user: accountUser,
+        user: accountUserWithAvatar,
         lastActive: Date.now(),
       }
       const updated = [entry, ...filtered]
@@ -63,7 +76,7 @@ export function AuthProvider({ children }) {
               // Ignore parse errors
             }
           }
-          const merged = { ...userData, ...customFields }
+          const merged = withDefaultProfileAvatar({ ...userData, ...customFields })
           setUser(merged)
           localStorage.setItem('sarangtv_user', JSON.stringify(merged))
           recordAccount(merged, token)
@@ -135,95 +148,47 @@ export function AuthProvider({ children }) {
     return true
   }
 
-  const updateUserPreferences = async ({ favoriteGenres, avatarUrl }) => {
-    if (!user) return false
-
-    const preferences = {}
-    if (favoriteGenres !== undefined) preferences.favorite_genres = favoriteGenres
-    if (avatarUrl !== undefined) preferences.avatar_url = avatarUrl
-
-    let apiResult
+  const updateUserPreferences = async ({ favoriteGenres }) => {
     try {
-      apiResult = await authService.updatePreferences(preferences)
+      await authService.updateUserPreferences(favoriteGenres)
     } catch {
       return false
     }
 
-    const updated = {
-      ...user,
-      ...(apiResult?.user || {}),
-      ...(favoriteGenres !== undefined ? { favorite_genres: favoriteGenres } : {}),
-      ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
-    }
-    setUser(updated)
-    localStorage.setItem('sarangtv_user', JSON.stringify(updated))
-
-    const userKey = updated.id || updated.email
-    if (userKey) {
-      let savedProfile = {}
-      try {
-        savedProfile = JSON.parse(localStorage.getItem(`sarangtv_profile_${userKey}`) || '{}')
-      } catch {
-        // Ignore invalid cached profile data
-      }
-      localStorage.setItem(
-        `sarangtv_profile_${userKey}`,
-        JSON.stringify({
-          ...savedProfile,
-          ...(favoriteGenres !== undefined ? { favorite_genres: updated.favorite_genres } : {}),
-          ...(avatarUrl !== undefined ? { avatar_url: updated.avatar_url } : {}),
-        })
-      )
-    }
-    if (token) recordAccount(updated, token)
-
+    const updatedUser = { ...user, favorite_genres: favoriteGenres }
+    setUser(updatedUser)
+    localStorage.setItem('sarangtv_user', JSON.stringify(updatedUser))
+    if (token) recordAccount(updatedUser, token)
     return true
   }
 
   const login = async (credentials) => {
     const data = await authService.login(credentials)
     if (data.token) {
+      const userWithAvatar = withDefaultProfileAvatar(data.user)
       setToken(data.token)
-      setUser(data.user)
+      setUser(userWithAvatar)
       localStorage.setItem('sarangtv_token', data.token)
-      localStorage.setItem('sarangtv_user', JSON.stringify(data.user))
-      recordAccount(data.user, data.token)
+      localStorage.setItem('sarangtv_user', JSON.stringify(userWithAvatar))
+      recordAccount(userWithAvatar, data.token)
     }
     return data
   }
 
   const register = async (userData) => {
     const data = await authService.register(userData)
-    // Note: /register returns requires_verification: true without an auth token.
-    if (data?.token) {
+    if (data.token) {
+      const userWithAvatar = withDefaultProfileAvatar(data.user)
       setToken(data.token)
-      setUser(data.user)
+      setUser(userWithAvatar)
       localStorage.setItem('sarangtv_token', data.token)
-      localStorage.setItem('sarangtv_user', JSON.stringify(data.user))
-      recordAccount(data.user, data.token)
+      localStorage.setItem('sarangtv_user', JSON.stringify(userWithAvatar))
+      recordAccount(userWithAvatar, data.token)
     }
     return data
   }
 
-  const verifyOtp = async ({ email, otp, device_name }) => {
-    const data = await authService.verifyOtp({ email, otp, device_name })
-    if (data?.token) {
-      setToken(data.token)
-      setUser(data.user)
-      localStorage.setItem('sarangtv_token', data.token)
-      localStorage.setItem('sarangtv_user', JSON.stringify(data.user))
-      recordAccount(data.user, data.token)
-    }
-    return data
-  }
-
-  const sendSignupOtp = async ({ email, name }) => {
-    return await authService.sendSignupOtp({ email, name })
-  }
-
-  const resendOtp = async ({ email }) => {
-    return await authService.resendOtp({ email })
-  }
+  const sendSignupOtp = (data) => authService.sendSignupOtp(data)
 
   const switchAccount = async (targetIdOrEmail) => {
     const accounts = getStoredAccounts()
@@ -261,7 +226,7 @@ export function AuthProvider({ children }) {
         }
       }
 
-      const merged = { ...userData, ...customFields }
+      const merged = withDefaultProfileAvatar({ ...userData, ...customFields })
       setToken(target.token)
       setUser(merged)
       localStorage.setItem('sarangtv_user', JSON.stringify(merged))
@@ -270,13 +235,13 @@ export function AuthProvider({ children }) {
     } catch (err) {
       // Offline fallback for mock token
       if (!err?.response && target.token === 'mock_dev_token_2026') {
-        const targetUser = target.user || {
+        const targetUser = withDefaultProfileAvatar(target.user || {
           id: target.id,
           email: target.email,
           name: target.name,
           avatar: target.avatar,
           avatar_url: target.avatar,
-        }
+        })
         localStorage.setItem('sarangtv_token', target.token)
         localStorage.setItem('sarangtv_user', JSON.stringify(targetUser))
         setToken(target.token)
@@ -357,11 +322,12 @@ export function AuthProvider({ children }) {
   }
 
   const setSession = (newToken, newUser) => {
+    const userWithAvatar = withDefaultProfileAvatar(newUser)
     setToken(newToken)
-    setUser(newUser)
+    setUser(userWithAvatar)
     localStorage.setItem('sarangtv_token', newToken)
-    localStorage.setItem('sarangtv_user', JSON.stringify(newUser))
-    recordAccount(newUser, newToken)
+    localStorage.setItem('sarangtv_user', JSON.stringify(userWithAvatar))
+    recordAccount(userWithAvatar, newToken)
   }
 
   const value = {
@@ -372,8 +338,6 @@ export function AuthProvider({ children }) {
     login,
     register,
     sendSignupOtp,
-    verifyOtp,
-    resendOtp,
     logout,
     updateProfile,
     updateUserPreferences,

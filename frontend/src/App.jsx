@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, FileText, Loader2, ShieldCheck, X } from 'lucide-react'
-import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
-import OtpVerification from './components/OtpVerification.jsx'
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
 import StatsHistoryPage from './components/StatsHistoryPage.jsx'
 import AccountSwitcher from './components/AccountSwitcher.jsx'
+import OtpVerification from './components/OtpVerification.jsx'
+import GenreOnboarding from './components/GenreOnboarding.jsx'
 import './App.css'
 
 function LandingPage() {
@@ -42,21 +43,15 @@ function LandingPage() {
 
 function AuthPage({ mode }) {
   const isSignup = mode === 'signup'
-  const isDirectOtp = mode === 'otp'
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const { login, sendSignupOtp, setSession } = useAuth()
+  const { login, sendSignupOtp, savedAccounts, setSession } = useAuth()
   const [showLoginForm, setShowLoginForm] = useState(false)
-
-  // Auth sub-step: 'form' or 'otp'
-  const [authStep, setAuthStep] = useState(isDirectOtp ? 'otp' : 'form')
-  const [otpEmail, setOtpEmail] = useState(searchParams.get('email') || '')
+  const [showOtpVerification, setShowOtpVerification] = useState(false)
   const [otpNotice, setOtpNotice] = useState('')
-  const [otpCooldown, setOtpCooldown] = useState(60)
 
   const [formData, setFormData] = useState({
     name: '',
-    email: searchParams.get('email') || '',
+    email: '',
     password: '',
     password_confirmation: '',
   })
@@ -67,63 +62,15 @@ function AuthPage({ mode }) {
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
 
-  // If in OTP verification step, render the OTP screen
-  if (authStep === 'otp') {
+  if (isSignup && showOtpVerification) {
     return (
-      <main className="auth-page">
-        <div className="auth-container login-container">
-          <div className="auth-nav-bar">
-            <button
-              type="button"
-              className="back-link"
-              onClick={() => {
-                if (isDirectOtp) {
-                  navigate('/')
-                } else {
-                  setAuthStep('form')
-                  setErrorMessage('')
-                }
-              }}
-              aria-label="Back"
-            >
-              <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
-              {isSignup ? 'Back to Sign Up' : 'Back to Log In'}
-            </button>
-            <Link className="auth-brand" to="/" aria-label="SarangTV home">
-              <img src="/logo.png" alt="SarangTV logo" className="brand-logo-img" />
-              <span>Sarang<span className="brand-tv-accent">TV</span></span>
-            </Link>
-            <div className="auth-nav-spacer" aria-hidden="true" />
-          </div>
-
-          <OtpVerification
-            email={otpEmail || formData.email}
-            initialCooldown={otpCooldown}
-            notice={otpNotice}
-            mode={isSignup ? 'signup' : 'login'}
-            registrationData={
-              isSignup
-                ? { ...formData, terms_privacy_accepted: termsAccepted }
-                : null
-            }
-            onEmailChange={(newEmail) => {
-              setOtpEmail(newEmail)
-              setFormData((prev) => ({ ...prev, email: newEmail }))
-            }}
-            onSuccess={() => {
-              navigate('/dashboard')
-            }}
-            onCancel={() => {
-              if (isDirectOtp) {
-                navigate('/')
-              } else {
-                setAuthStep('form')
-                setErrorMessage('')
-              }
-            }}
-          />
-        </div>
-      </main>
+      <OtpVerification
+        email={formData.email}
+        registrationData={{ ...formData, terms_privacy_accepted: true }}
+        notice={otpNotice}
+        onCancel={() => setShowOtpVerification(false)}
+        onSuccess={() => navigate('/onboarding', { replace: true })}
+      />
     )
   }
 
@@ -155,109 +102,56 @@ function AuthPage({ mode }) {
     setFieldErrors({})
 
     // Client verification: user must agree to Terms and Privacy Policy before proceeding
-    if (isSignup) {
-      const clientErrors = {}
-      if (!formData.name?.trim()) {
-        clientErrors.name = ['Please enter your name.']
-      }
-      if (!formData.email?.trim()) {
-        clientErrors.email = ['Please enter your email address.']
-      }
-      if (!formData.password) {
-        clientErrors.password = ['Please enter a password.']
-      } else if (formData.password.length < 8) {
-        clientErrors.password = ['The password must be at least 8 characters.']
-      }
-      if (formData.password !== formData.password_confirmation) {
-        clientErrors.password_confirmation = ['The password confirmation does not match.']
-      }
-      if (!termsAccepted) {
-        clientErrors.terms_privacy_accepted = ['You must agree to the Terms and Data Privacy Policy to create an account.']
-      }
-      if (Object.keys(clientErrors).length > 0) {
-        setFieldErrors(clientErrors)
-        return
-      }
+    if (isSignup && !termsAccepted) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        terms_privacy_accepted: ['You must agree to the Terms and Data Privacy Policy to create an account.'],
+      }))
+      return
     }
 
     setIsSubmitting(true)
 
     try {
       if (isSignup) {
-        const result = await sendSignupOtp({
+        const response = await sendSignupOtp({
           email: formData.email,
           name: formData.name,
         })
-
-        // Verification code sent to user's email prior to registration
-        setOtpEmail(formData.email)
-        setOtpNotice(result?.message || 'Verification code sent to your email.')
-        setOtpCooldown(60)
-        setAuthStep('otp')
-      } else {
-        await login({
-          email: formData.email,
-          password: formData.password,
-        })
-        navigate('/dashboard')
+        setOtpNotice(response?.message || 'A verification code has been sent to your email.')
+        setShowOtpVerification(true)
+        return
       }
+
+      await login({
+        email: formData.email,
+        password: formData.password,
+      })
+      navigate('/dashboard')
     } catch (err) {
       if (err.response) {
-        const status = err.response.status
-        const data = err.response.data
-
-        if (status === 429) {
-          setErrorMessage('Too many requests. Rate limit exceeded. Please wait a minute before trying again.')
-          return
-        }
-
-        const emailErr = data?.errors?.email?.[0] || ''
-        const generalMsg = data?.message || ''
-        const combinedErr = (emailErr + ' ' + generalMsg).toLowerCase()
-
-        // Check if unverified user is attempting to log in
-        const isUnverified =
-          combinedErr.includes('not been verified') ||
-          combinedErr.includes('verify your email') ||
-          combinedErr.includes('otp code')
-
-        if (!isSignup && isUnverified) {
-          setOtpEmail(formData.email)
-          setOtpNotice('Your email has not been verified yet. Please enter the 6-digit OTP sent to your email to activate your account.')
-          setOtpCooldown(0)
-          setAuthStep('otp')
-          return
-        }
-
-        if (status === 422 && data?.errors) {
-          setFieldErrors(data.errors)
+        if (err.response.status === 422 && err.response.data?.errors) {
+          setFieldErrors(err.response.data.errors)
         }
         setErrorMessage(
-          data?.message ||
-          (isSignup ? 'Unable to send verification code. Please check your inputs.' : 'Invalid credentials. Please try again.')
+          err.response.data?.message ||
+          (isSignup ? 'Registration failed. Please check the inputs.' : 'Invalid credentials. Please try again.')
         )
       } else {
         // Dev fallback if backend API server is offline
-        if (isSignup) {
-          setOtpEmail(formData.email || 'user@example.com')
-          setOtpNotice('Dev fallback: Please enter test verification code (e.g. 123456).')
-          setOtpCooldown(60)
-          setAuthStep('otp')
-        } else {
-          const demoUser = {
-            id: 1,
-            name: formData.name || formData.email?.split('@')[0] || 'Ji-young',
-            email: formData.email || 'user@sarangtv.app',
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=96&q=80',
-          }
-          if (setSession) {
-            setSession('mock_dev_token_2026', demoUser)
-          } else {
-            localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
-            localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
-          }
-          navigate('/dashboard')
+        const demoUser = {
+          id: 1,
+          name: formData.name || formData.email?.split('@')[0] || 'Ji-young',
+          email: formData.email || 'user@sarangtv.app',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=96&q=80',
         }
+        if (setSession) {
+          setSession('mock_dev_token_2026', demoUser)
+        } else {
+          localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
+          localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
+        }
+        navigate(isSignup ? '/onboarding' : '/dashboard')
       }
     } finally {
       setIsSubmitting(false)
@@ -420,23 +314,7 @@ function AuthPage({ mode }) {
             </div>
           )}
 
-          {!isSignup && (
-            <div className="auth-login-aux-links">
-              <button
-                type="button"
-                className="auth-link-btn"
-                onClick={() => {
-                  setOtpEmail(formData.email)
-                  setOtpNotice('Enter your email and the 6-digit verification code to activate your account.')
-                  setOtpCooldown(0)
-                  setAuthStep('otp')
-                }}
-              >
-                Verify email with OTP
-              </button>
-              <Link className="forgot-link" to="/login">Forgot password?</Link>
-            </div>
-          )}
+          {!isSignup && <Link className="forgot-link" to="/login">Forgot password?</Link>}
 
           {/* Terms & Data Privacy Policy agreement checkbox (registration only) */}
           {isSignup && (
@@ -491,7 +369,7 @@ function AuthPage({ mode }) {
             {isSubmitting ? (
               <span className="submit-loading">
                 <Loader2 className="spinner-icon" size={16} />
-                {isSignup ? 'Sending Code...' : 'Logging In...'}
+                {isSignup ? 'Creating Account...' : 'Logging In...'}
               </span>
             ) : (
               isSignup ? 'Create Account' : 'Log In'
@@ -685,8 +563,15 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/signup" element={<AuthPage mode="signup" />} />
-            <Route path="/verify-otp" element={<AuthPage mode="otp" />} />
             <Route path="/switch-account" element={<AuthPage mode="login" />} />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <GenreOnboarding />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={

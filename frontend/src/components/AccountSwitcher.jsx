@@ -111,7 +111,13 @@ export default function AccountSwitcher({ onAddAccount }) {
             const isSwitching = switchingId === (acc.id || acc.email)
             const theme = TILE_THEMES[index % TILE_THEMES.length]
             const ThemeIcon = theme.Icon
-            const hasCustomPhoto = Boolean(acc.avatar && acc.avatar.startsWith('http'))
+            const hasCustomPhoto = Boolean(
+              acc.avatar && (
+                acc.avatar.startsWith('http') ||
+                acc.avatar.startsWith('data:image/') ||
+                acc.avatar === '/default-profile.svg'
+              )
+            )
 
             return (
               <div
