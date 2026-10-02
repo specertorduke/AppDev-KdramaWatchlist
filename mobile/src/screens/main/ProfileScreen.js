@@ -191,18 +191,20 @@ export default function ProfileScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Change profile avatar"
         >
-          <View style={[styles.avatarCircle, { backgroundColor: activeColor }]}>
-            {user?.avatar_url ? (
-              <Image
-                source={{ uri: user.avatar_url }}
-                style={styles.avatarPhoto}
-                resizeMode="cover"
-              />
-            ) : activeIcon ? (
-              <Ionicons name={activeIcon} size={24} color="#FFFFFF" />
-            ) : (
-              <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
-            )}
+          <View style={styles.avatarBorderRing}>
+            <View style={[styles.avatarCircle, { backgroundColor: activeColor }]}>
+              {user?.avatar_url ? (
+                <Image
+                  source={{ uri: user.avatar_url }}
+                  style={styles.avatarPhoto}
+                  resizeMode="cover"
+                />
+              ) : activeIcon ? (
+                <Ionicons name={activeIcon} size={24} color="#FFFFFF" />
+              ) : (
+                <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
+              )}
+            </View>
           </View>
           <View style={styles.avatarBadge}>
             <Ionicons name="camera" size={11} color="#FFFFFF" />
@@ -487,16 +489,18 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.modeContent}>
                 {/* Photo Preview */}
                 <View style={styles.previewContainer}>
-                  <View style={[styles.avatarPreview, { backgroundColor: '#1E1B2D' }]}>
-                    {customImage ? (
-                      <Image
-                        source={{ uri: customImage }}
-                        style={styles.avatarPreviewPhoto}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Ionicons name="person-outline" size={40} color="#8D8B98" />
-                    )}
+                  <View style={styles.avatarPreview}>
+                    <View style={[styles.avatarPreviewInner, { backgroundColor: '#1E1B2D' }]}>
+                      {customImage ? (
+                        <Image
+                          source={{ uri: customImage }}
+                          style={styles.avatarPreviewPhoto}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Ionicons name="person-outline" size={40} color="#8D8B98" />
+                      )}
+                    </View>
                   </View>
                   <Text style={styles.previewLabel}>
                     {customImage ? 'Custom Photo Selected' : 'No Photo Selected'}
@@ -568,8 +572,10 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.modeContent}>
                 {/* Persona Preview */}
                 <View style={styles.previewContainer}>
-                  <View style={[styles.avatarPreview, { backgroundColor: selectedColor }]}>
-                    <Ionicons name={selectedIcon} size={44} color="#FFFFFF" />
+                  <View style={styles.avatarPreview}>
+                    <View style={[styles.avatarPreviewInner, { backgroundColor: selectedColor }]}>
+                      <Ionicons name={selectedIcon} size={42} color="#FFFFFF" />
+                    </View>
                   </View>
                   <Text style={styles.previewLabel}>
                     {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
@@ -675,14 +681,26 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     position: 'relative',
-    width: 62,
-    height: 62,
+    width: 66,
+    height: 66,
     marginRight: 14,
   },
+  avatarBorderRing: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    borderWidth: 2,
+    borderColor: '#61374c',
+    padding: 2.5,
+    backgroundColor: '#07070E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   avatarCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -954,9 +972,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   avatarPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    borderWidth: 2.5,
+    borderColor: '#61374c',
+    padding: 3,
+    backgroundColor: '#07070E',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -964,6 +986,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+    overflow: 'hidden',
+  },
+  avatarPreviewInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 39,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
   },
   avatarPreviewPhoto: {

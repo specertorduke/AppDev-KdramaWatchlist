@@ -128,26 +128,32 @@ export default function HomeScreen({ navigation }) {
           <Pressable
             style={({ pressed, hovered }) => [
               styles.avatarButton,
-              { backgroundColor: user?.color || '#292546' },
               hovered && styles.avatarButtonHovered,
               pressed && styles.avatarButtonPressed,
             ]}
             onPress={() => navigation.navigate('Profile')}
             accessibilityLabel="Profile"
           >
-            {user?.avatar_url ? (
-              <Image
-                source={{ uri: user.avatar_url }}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <Ionicons
-                name={user?.avatarIcon || 'person'}
-                size={18}
-                color="#FFFFFF"
-              />
-            )}
+            <View
+              style={[
+                styles.avatarInner,
+                { backgroundColor: user?.color || '#292546' },
+              ]}
+            >
+              {user?.avatar_url ? (
+                <Image
+                  source={{ uri: user.avatar_url }}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Ionicons
+                  name={user?.avatarIcon || 'person'}
+                  size={16}
+                  color="#FFFFFF"
+                />
+              )}
+            </View>
           </Pressable>
         </View>
       </View>
@@ -700,9 +706,13 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.94 }],
   },
   avatarButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#61374c',
+    padding: 2,
+    backgroundColor: '#07070E',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
@@ -710,6 +720,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  avatarInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
   },
   avatarImage: {
