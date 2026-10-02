@@ -1,26 +1,37 @@
 import {
   Bookmark,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
   ClipboardList,
   BarChart3,
+  Coffee,
   Edit3,
+  Eye,
+  Flame,
+  Grid2X2,
+  House,
+  List,
   Pause,
   Play,
   Plus,
   Search,
-  Send,
+  ShieldCheck,
   LogOut,
   X,
   Sparkles,
   Film,
+  Smile,
   Star,
   CheckCircle2,
   Heart,
+  Ticket,
+  UsersRound,
+  UserRound,
+  Zap,
   Loader2,
+  Settings,
   Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -41,7 +52,18 @@ import EditProfileModal from './EditProfileModal.jsx'
 import Chatbot from './Chatbot.jsx'
 
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
-const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Send }
+const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Ticket }
+
+const profileGenres = [
+  { id: 'Romance', label: 'Romance', Icon: Heart, color: '#F5A9C4' },
+  { id: 'Comedy', label: 'Comedy', Icon: Smile, color: '#FFD166' },
+  { id: 'Drama', label: 'Drama', Icon: Film, color: '#B8A5FF' },
+  { id: 'Mystery', label: 'Mystery & Thriller', Icon: Eye, color: '#70D6FF' },
+  { id: 'Action', label: 'Action & Adventure', Icon: Zap, color: '#FF70A6' },
+  { id: 'Sci-Fi & Fantasy', label: 'Fantasy & Sci-Fi', Icon: Sparkles, color: '#9B5DE5' },
+  { id: 'Crime', label: 'Crime & Law', Icon: ShieldCheck, color: '#06D6A0' },
+  { id: 'Family', label: 'Slice of Life & Family', Icon: Coffee, color: '#F39C12' },
+]
 
 function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
   const { addToWatchlist, isInWatchlist } = useWatchlist()
@@ -305,10 +327,10 @@ function DashboardHeader({ activeTab, onOpenAddDrama }) {
         <span>Sarang<span className="brand-tv-accent">TV</span></span>
       </Link>
       <nav className="dashboard-nav" aria-label="Dashboard navigation">
-        <Link className={activeTab === 'home' ? 'active' : ''} to="/dashboard">Home</Link>
-        <Link className={activeTab === 'discover' ? 'active' : ''} to="/discover">Discover</Link>
-        <Link className={activeTab === 'tracker' ? 'active' : ''} to="/tracker">Tracker</Link>
-        <Link className={activeTab === 'profile' ? 'active' : ''} to="/profile">Profile</Link>
+        <Link className={activeTab === 'home' ? 'active' : ''} to="/dashboard"><House size={19} /><span>Home</span></Link>
+        <Link className={activeTab === 'discover' ? 'active' : ''} to="/discover"><Search size={19} /><span>Discover</span></Link>
+        <Link className={activeTab === 'tracker' ? 'active' : ''} to="/tracker"><Bookmark size={19} /><span>Tracker</span></Link>
+        <Link className={activeTab === 'profile' ? 'active' : ''} to="/profile"><UserRound size={19} /><span>Profile</span></Link>
       </nav>
       <div className="dashboard-actions">
         <button type="button" aria-label="Search dramas" onClick={onOpenAddDrama}>
@@ -342,6 +364,7 @@ function ProfileMenu({ onClose }) {
       <Link to="/tracker" onClick={onClose}>My Tracker</Link>
       <Link to="/stats" onClick={onClose}>Stats & History</Link>
       <Link to="/profile" onClick={onClose}>Profile</Link>
+      <Link to="/login" onClick={onClose}>Switch Account</Link>
       <button type="button" onClick={handleLogout}>
         <LogOut size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
         Sign Out
@@ -356,7 +379,7 @@ function StatCard({ stat }) {
     <article className={`dashboard-stat stat-${stat.tone}`}>
       <div className="dashboard-stat-top">
         <strong>{stat.value}</strong>
-        <Icon className="stat-icon" size={18} />
+        <Icon className="stat-icon" size={18} color={stat.iconColor} />
       </div>
       <div className="dashboard-stat-bottom">
         <span>{stat.label}</span>
@@ -533,16 +556,18 @@ function QuickAccess({ onOpenAddDrama }) {
   )
 }
 
-function DramaCard({ drama }) {
+function TrendingCard({ drama, index, onClick }) {
+  const poster = drama.poster || drama.image || drama.backdrop || DEFAULT_POSTER_IMAGE
+
   return (
-    <article className="drama-card">
-      <div className="drama-poster" style={{ backgroundImage: `url(${drama.image})` }}>
-        <span className={`rank rank-${drama.tone}`}>{drama.rank}</span>
-        <strong className="drama-rating">★ {drama.rating}</strong>
-      </div>
-      <h3>{drama.title}</h3>
-      <p>{drama.meta}</p>
-    </article>
+    <button className="trending-card" type="button" onClick={onClick}>
+      <span className="trending-rank" aria-hidden="true">{index + 1}</span>
+      <span className="trending-poster" style={{ backgroundImage: `url(${poster})` }}>
+        {Number(drama.rating) > 0 && <span className="trending-rating">★ {Number(drama.rating).toFixed(1)}</span>}
+      </span>
+      <span className="trending-title">{drama.title}</span>
+      <span className="trending-meta">{drama.meta || drama.genres || 'K-Drama'}</span>
+    </button>
   )
 }
 
@@ -1222,6 +1247,7 @@ function TrackerPage() {
   const { watchlist, stats, updateWatchlist } = useWatchlist()
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [selectedDrama, setSelectedDrama] = useState(null)
+  const [viewMode, setViewMode] = useState('list')
 
   const urlParam = searchParams.get('filter')?.toLowerCase()
   const initialFilter = urlParam && FILTER_SLUG_MAP[urlParam] ? FILTER_SLUG_MAP[urlParam] : 'All'
@@ -1330,9 +1356,21 @@ function TrackerPage() {
         <>
           <section className="tracker-heading">
             <h1>My Tracker</h1>
-            <button className="tracker-add" type="button" onClick={() => setIsAddDramaOpen(true)}>
-              <Plus size={15} /> Add Drama
-            </button>
+            <div className="tracker-header-actions">
+              <button
+                className="tracker-view-toggle"
+                type="button"
+                onClick={() => setViewMode((mode) => (mode === 'list' ? 'grid' : 'list'))}
+                aria-label={viewMode === 'list' ? 'Switch to grid view' : 'Switch to list view'}
+                title={viewMode === 'list' ? 'Grid view' : 'List view'}
+              >
+                {viewMode === 'list' ? <Grid2X2 size={17} /> : <List size={18} />}
+              </button>
+              <button className="tracker-add" type="button" onClick={() => setIsAddDramaOpen(true)}>
+                <span className="tracker-add-icon"><Plus size={15} /></span>
+                <span className="tracker-add-label">Add Drama</span>
+              </button>
+            </div>
           </section>
 
           <div className="tracker-filters" role="tablist" aria-label="Tracker status filters">
@@ -1350,7 +1388,7 @@ function TrackerPage() {
             ))}
           </div>
 
-          <section className="tracker-list">
+          <section className={`tracker-list ${viewMode === 'grid' ? 'tracker-grid' : ''}`}>
             {displayedDramas.length > 0 ? (
               displayedDramas.map((drama) => (
                 <div
@@ -1361,7 +1399,7 @@ function TrackerPage() {
                   tabIndex={0}
                   onKeyDown={(e) => e.key === 'Enter' && handleDramaClick(drama)}
                 >
-                  <TrackerRow drama={drama} />
+                  {viewMode === 'grid' ? <TrackerPosterCard drama={drama} /> : <TrackerRow drama={drama} />}
                 </div>
               ))
             ) : (
@@ -1374,7 +1412,10 @@ function TrackerPage() {
                     : `You don't have any K-dramas marked as ${activeFilter}.`}
                 </p>
                 <button className="tracker-add" type="button" onClick={() => setIsAddDramaOpen(true)}>
-                  <Plus size={15} /> {stats.totalTracked === 0 ? 'Add Your First Drama' : 'Add Drama'}
+                  <span className="tracker-add-icon"><Plus size={15} /></span>
+                  <span className="tracker-add-label">
+                    {stats.totalTracked === 0 ? 'Add Your First Drama' : 'Add Drama'}
+                  </span>
                 </button>
               </div>
             )}
@@ -1413,12 +1454,33 @@ function TrackerRow({ drama }) {
   )
 }
 
+function TrackerPosterCard({ drama }) {
+  const poster = drama.poster || drama.image || DEFAULT_POSTER_IMAGE
+  const watched = drama.current_episode || drama.watchedCount || 0
+  const episodes = drama.episodes || 16
+
+  return (
+    <article className="tracker-poster-card">
+      <div className="tracker-poster" style={{ backgroundImage: `url(${poster})` }}>
+        <span className={`tracker-poster-status status-${drama.tone || 'blue'}`}>{drama.status || 'Plan to Watch'}</span>
+        <span className="tracker-poster-progress"><i style={{ width: `${drama.progress || 0}%` }} /></span>
+      </div>
+      <h2>{drama.title}</h2>
+      <div className="tracker-poster-meta">
+        <span>{watched}/{episodes} eps</span>
+        {Number(drama.rating) > 0 ? <b>★ {Number(drama.rating).toFixed(1)}</b> : <b>{drama.progress || 0}%</b>}
+      </div>
+    </article>
+  )
+}
+
 function ProfilePage() {
   const { user, logout } = useAuth()
   const { stats } = useWatchlist()
   const navigate = useNavigate()
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
 
   const handleLogout = async () => {
     await logout()
@@ -1449,12 +1511,125 @@ function ProfilePage() {
       <section className="profile-links">
         <Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>{stats.totalTracked} dramas tracked</small></span><ChevronRight /></Link>
         <Link to="/stats"><BarChart3 /> <span><b>Stats & History</b><small>{stats.totalEpisodesWatched} episodes · {stats.hoursWatched}h</small></span><ChevronRight /></Link>
+        <button
+          className="profile-link-button"
+          type="button"
+          onClick={() => navigate('/favorite-genres')}
+        >
+          <Sparkles />
+          <span>
+            <b>Favorite Genres</b>
+            <small>{favoriteGenres.length > 0 ? favoriteGenres.join(', ') : 'Select your preferred genres'}</small>
+          </span>
+          <ChevronRight />
+        </button>
+        <button
+          className="profile-link-button"
+          type="button"
+          onClick={() => navigate('/settings')}
+        >
+          <Settings size={18} />
+          <span>
+            <b>Settings</b>
+            <small>Notifications and preferences</small>
+          </span>
+          <ChevronRight />
+        </button>
+        <Link to="/login"><UsersRound /> <span><b>Switch Account</b><small>Change active profile</small></span><ChevronRight /></Link>
       </section>
       <button className="signout-button" type="button" onClick={handleLogout}>
         <LogOut size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Sign Out
       </button>
       <AddDramaModal isOpen={isAddDramaOpen} onClose={() => setIsAddDramaOpen(false)} />
       <EditProfileModal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} />
+    </DashboardLayout>
+  )
+}
+
+function FavoriteGenresPage() {
+  const navigate = useNavigate()
+  const { user, updateUserPreferences } = useAuth()
+  const [selectedGenres, setSelectedGenres] = useState(() => (
+    Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
+  ))
+  const [isSavingGenres, setIsSavingGenres] = useState(false)
+  const [genreSaveError, setGenreSaveError] = useState('')
+
+  useEffect(() => {
+    setSelectedGenres(Array.isArray(user?.favorite_genres) ? user.favorite_genres : [])
+  }, [user?.favorite_genres])
+
+  const handleSaveGenres = async () => {
+    setIsSavingGenres(true)
+    setGenreSaveError('')
+    const saved = await updateUserPreferences({ favoriteGenres: selectedGenres })
+    setIsSavingGenres(false)
+
+    if (saved) {
+      navigate('/profile')
+    } else {
+      setGenreSaveError('Could not save your favorite genres. Please try again.')
+    }
+  }
+
+  const toggleGenre = (genreId) => {
+    setSelectedGenres((current) => (
+      current.includes(genreId)
+        ? current.filter((genre) => genre !== genreId)
+        : [...current, genreId]
+    ))
+  }
+
+  return (
+    <DashboardLayout activeTab="profile" onOpenAddDrama={() => {}}>
+      <section className="settings-page">
+        <div className="settings-header">
+          <button type="button" className="detail-back-btn" onClick={() => navigate('/profile')}>
+            <ChevronLeft size={16} /> Back
+          </button>
+          <h1>Favorite Genres</h1>
+        </div>
+
+        <div className="profile-genres">
+          <div className="profile-genres-heading">
+            <div>
+              <h2>Choose your favorite genres</h2>
+              <p>Select every genre you enjoy</p>
+            </div>
+          </div>
+
+          <div className="profile-genre-options">
+            {profileGenres.map(({ id, label, Icon, color }) => {
+              const selected = selectedGenres.includes(id)
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`profile-genre-option ${selected ? 'selected' : ''}`}
+                  style={{ '--genre-color': color }}
+                  aria-pressed={selected}
+                  onClick={() => toggleGenre(id)}
+                >
+                  <Icon size={17} /> {label}
+                  {selected && <Check size={14} className="profile-genre-check" aria-hidden="true" />}
+                </button>
+              )
+            })}
+          </div>
+
+          {genreSaveError && <p className="profile-genre-error" role="alert">{genreSaveError}</p>}
+
+          <div className="profile-genre-actions">
+            <button className="profile-genre-cancel" type="button" onClick={() => navigate('/profile')}>
+              Cancel
+            </button>
+            <button className="profile-genre-save" type="button" onClick={handleSaveGenres} disabled={isSavingGenres}>
+              {isSavingGenres ? <Loader2 size={15} className="spinner-icon" /> : <Check size={15} />}
+              {isSavingGenres ? 'Saving...' : 'Save preferences'}
+            </button>
+          </div>
+        </div>
+      </section>
     </DashboardLayout>
   )
 }
@@ -1469,12 +1644,123 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
   )
 }
 
+function SettingsPage() {
+  const navigate = useNavigate()
+  const [settings, setSettings] = useState({
+    episodeAlerts: true,
+    progressReminders: true,
+    autoMarkWatched: false,
+    highQualityPosters: true,
+  })
+
+  const toggleSetting = (key) => {
+    setSettings((current) => ({ ...current, [key]: !current[key] }))
+  }
+
+  return (
+    <DashboardLayout activeTab="profile" onOpenAddDrama={() => {}}>
+      <section className="settings-page">
+        <div className="settings-header">
+          <button type="button" className="detail-back-btn" onClick={() => navigate('/profile')}>
+            <ChevronLeft size={16} /> Back
+          </button>
+          <h1>Settings</h1>
+        </div>
+
+        <div className="profile-settings-panel settings-page-panel">
+          <div className="profile-settings-group">
+            <p className="profile-settings-title">NOTIFICATIONS</p>
+            <div className="profile-setting-row">
+              <div className="profile-setting-copy">
+                <strong>New Episode Alerts</strong>
+                <small>Notify when tracked dramas air new episodes</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.episodeAlerts ? 'on' : ''}`}
+                aria-label="Toggle New Episode Alerts"
+                aria-pressed={settings.episodeAlerts}
+                onClick={() => toggleSetting('episodeAlerts')}
+              >
+                <span />
+              </button>
+            </div>
+            <div className="profile-setting-row last">
+              <div className="profile-setting-copy">
+                <strong>Progress Reminders</strong>
+                <small>Remind me to log episodes I may have missed</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.progressReminders ? 'on' : ''}`}
+                aria-label="Toggle Progress Reminders"
+                aria-pressed={settings.progressReminders}
+                onClick={() => toggleSetting('progressReminders')}
+              >
+                <span />
+              </button>
+            </div>
+          </div>
+
+          <div className="profile-settings-group">
+            <p className="profile-settings-title">PREFERENCES</p>
+            <div className="profile-setting-row">
+              <div className="profile-setting-copy">
+                <strong>Auto-Mark Completed</strong>
+                <small>Mark drama as completed when final episode is logged</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.autoMarkWatched ? 'on' : ''}`}
+                aria-label="Toggle Auto-Mark Completed"
+                aria-pressed={settings.autoMarkWatched}
+                onClick={() => toggleSetting('autoMarkWatched')}
+              >
+                <span />
+              </button>
+            </div>
+            <div className="profile-setting-row last">
+              <div className="profile-setting-copy">
+                <strong>High Quality Posters</strong>
+                <small>Load HD banners and posters over WiFi</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.highQualityPosters ? 'on' : ''}`}
+                aria-label="Toggle High Quality Posters"
+                aria-pressed={settings.highQualityPosters}
+                onClick={() => toggleSetting('highQualityPosters')}
+              >
+                <span />
+              </button>
+            </div>
+          </div>
+
+          <div className="profile-settings-group">
+            <p className="profile-settings-title">ABOUT</p>
+            <div className="profile-about-row">
+              <span>Version</span>
+              <strong>1.0.0 (SarangTV)</strong>
+            </div>
+            <div className="profile-about-row last">
+              <span>Theme</span>
+              <strong>Dark Cinematic</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+    </DashboardLayout>
+  )
+}
+
 function Dashboard() {
   const { user } = useAuth()
   const { stats } = useWatchlist()
   const firstName = user?.name ? user.name.split(' ')[0] : 'Fan'
+  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [recommendedList, setRecommendedList] = useState([])
+  const [discoverList, setDiscoverList] = useState([])
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(true)
 
@@ -1484,17 +1770,69 @@ function Dashboard() {
       try {
         const res = await discoverService.getDiscover({ page: 1 })
         if (res?.data && res.data.length > 0) {
-          const mapped = res.data.slice(0, 4).map((d, index) => mapDramaCard(d, index))
-          setRecommendedList(mapped)
+          const mapped = res.data.map((d, index) => mapDramaCard(d, index))
+          setRecommendedList(mapped.slice(0, 10))
+          setDiscoverList(mapped)
+        } else {
+          setRecommendedList([])
+          setDiscoverList([])
         }
       } catch {
-        // API offline
+        setRecommendedList([])
+        setDiscoverList([])
       } finally {
         setIsLoadingRecommended(false)
       }
     }
     loadRecommended()
   }, [])
+
+  const normalizeGenre = (value) => String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const recommendedForYou = useMemo(() => {
+    if (!favoriteGenres.length) return []
+
+    const preferredGenres = favoriteGenres.map((genre) => normalizeGenre(genre))
+
+    return discoverList.filter((drama) => {
+      const rawGenres = Array.isArray(drama.genres)
+        ? drama.genres
+        : typeof drama.genres === 'string'
+          ? drama.genres.split(/[|,&/]/)
+          : []
+
+      const dramaGenres = rawGenres
+        .map((genre) => String(genre).trim())
+        .filter(Boolean)
+
+      return dramaGenres.some((genre) => {
+        const normalized = normalizeGenre(genre)
+
+        return preferredGenres.some((preferred) => {
+          if (preferred === 'mystery and thriller') {
+            return normalized.includes('mystery') || normalized.includes('thriller')
+          }
+          if (preferred === 'action and adventure') {
+            return normalized.includes('action') || normalized.includes('adventure')
+          }
+          if (preferred === 'sci fi and fantasy' || preferred === 'science fiction and fantasy' || preferred === 'scifi and fantasy') {
+            return normalized.includes('sci') || normalized.includes('fantasy') || normalized.includes('science fiction')
+          }
+          if (preferred === 'slice of life and family') {
+            return normalized.includes('family') || normalized.includes('slice of life')
+          }
+
+          return normalized === preferred || normalized.includes(preferred)
+        })
+      })
+    }).slice(0, 8)
+  }, [discoverList, favoriteGenres])
 
   const handleDramaClick = async (drama) => {
     const tmdbId = drama.tmdb_id || drama.id
@@ -1532,10 +1870,10 @@ function Dashboard() {
 
   // Dynamic user-specific stats
   const dynamicStats = [
-    { label: 'Total Tracked', value: stats.totalTracked.toString(), detail: `${stats.watchingCount} watching`, icon: 'bookmark', tone: 'orange' },
-    { label: 'Episodes Watched', value: stats.totalEpisodesWatched.toString(), detail: `${stats.completedCount} completed`, icon: 'play', tone: 'cyan' },
-    { label: 'Plan to Watch', value: stats.planCount.toString(), detail: `${stats.onHoldCount} on hold`, icon: 'check', tone: 'green' },
-    { label: 'Hours Watched', value: `${stats.hoursWatched}h`, detail: 'Total watch time', icon: 'clock', tone: 'purple' },
+    { label: 'Total Tracked', value: stats.totalTracked.toString(), detail: `${stats.watchingCount} watching`, icon: 'bookmark', iconColor: '#7C6DAA', tone: 'purple' },
+    { label: 'Episodes Watched', value: stats.totalEpisodesWatched.toString(), detail: `${stats.completedCount} completed`, icon: 'play', iconColor: '#6C85B4', tone: 'blue' },
+    { label: 'Plan to Watch', value: stats.planCount.toString(), detail: `${stats.onHoldCount} on hold`, icon: 'check', iconColor: '#4FA477', tone: 'green' },
+    { label: 'Hours Watched', value: `${stats.hoursWatched}h`, detail: 'Total watch time', icon: 'clock', iconColor: '#C59B4A', tone: 'yellow' },
   ]
 
   return (
@@ -1550,7 +1888,7 @@ function Dashboard() {
           <>
             <section className="dashboard-welcome" aria-labelledby="welcome-heading">
               <h1 id="welcome-heading">Annyeong, {firstName}! <span>♡</span></h1>
-              <p>무슨 드라마 볼까? <em>What drama should we watch?</em></p>
+              <p><span className="welcome-korean">무슨 드라마 볼까?</span> <em>What drama should we watch?</em></p>
             </section>
 
             <section className="dashboard-overview" aria-label="Watchlist overview">
@@ -1565,30 +1903,30 @@ function Dashboard() {
 
             <QuickAccess onOpenAddDrama={() => setIsAddDramaOpen(true)} />
 
-            <section className="dashboard-section recommended-section" aria-labelledby="recommended-heading">
-              <h2 id="recommended-heading">Recommended</h2>
-              <div className="drama-grid">
+            <section className="dashboard-section trending-section" aria-labelledby="trending-heading">
+              <div className="trending-header">
+                <h2 id="trending-heading"><Flame size={18} aria-hidden="true" /> Top 10 Trending Today</h2>
+                <Link to="/discover">See all <ChevronRight size={14} aria-hidden="true" /></Link>
+              </div>
+              <div className="trending-rail">
                 {isLoadingRecommended && recommendedList.length === 0 ? (
-                  <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
+                  <div className="tracker-empty-state">
                     <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
-                    <p>Loading recommendations...</p>
+                    <p>Loading trending dramas...</p>
                   </div>
                 ) : (
-                  recommendedList.map((drama) => (
-                    <div
+                  recommendedList.slice(0, 10).map((drama, index) => (
+                    <TrendingCard
                       key={drama.id || drama.title}
+                      drama={drama}
+                      index={index}
                       onClick={() => handleDramaClick(drama)}
-                      style={{ cursor: 'pointer' }}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && handleDramaClick(drama)}
-                    >
-                      <DramaCard drama={drama} />
-                    </div>
+                    />
                   ))
                 )}
               </div>
             </section>
+
           </>
         )}
       </div>
@@ -1603,5 +1941,5 @@ function Dashboard() {
   )
 }
 
-export { Chatbot, DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, ProfilePage, TrackerPage }
+export { Chatbot, DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage }
 export default Dashboard

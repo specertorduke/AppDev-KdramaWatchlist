@@ -3,9 +3,11 @@ import { ArrowLeft, Eye, EyeOff, FileText, Loader2, ShieldCheck, X } from 'lucid
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
-import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
+import Dashboard, { DiscoverPage, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage } from './components/Dashboard.jsx'
 import StatsHistoryPage from './components/StatsHistoryPage.jsx'
 import AccountSwitcher from './components/AccountSwitcher.jsx'
+import OtpVerification from './components/OtpVerification.jsx'
+import GenreOnboarding from './components/GenreOnboarding.jsx'
 import './App.css'
 
 function LandingPage() {
@@ -42,8 +44,10 @@ function LandingPage() {
 function AuthPage({ mode }) {
   const isSignup = mode === 'signup'
   const navigate = useNavigate()
-  const { login, register, savedAccounts, setSession } = useAuth()
+  const { login, sendSignupOtp, savedAccounts, setSession } = useAuth()
   const [showLoginForm, setShowLoginForm] = useState(false)
+  const [showOtpVerification, setShowOtpVerification] = useState(false)
+  const [otpNotice, setOtpNotice] = useState('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -57,6 +61,18 @@ function AuthPage({ mode }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
+
+  if (isSignup && showOtpVerification) {
+    return (
+      <OtpVerification
+        email={formData.email}
+        registrationData={{ ...formData, terms_privacy_accepted: true }}
+        notice={otpNotice}
+        onCancel={() => setShowOtpVerification(false)}
+        onSuccess={() => navigate('/onboarding', { replace: true })}
+      />
+    )
+  }
 
   if (!isSignup && !showLoginForm) {
     return (
@@ -98,19 +114,19 @@ function AuthPage({ mode }) {
 
     try {
       if (isSignup) {
-        await register({
+        const response = await sendSignupOtp({
+          email: formData.email,
           name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          password_confirmation: formData.password_confirmation,
-          terms_privacy_accepted: true,
         })
-      } else {
-        await login({
-          email: formData.email,
-          password: formData.password,
-        })
+        setOtpNotice(response?.message || 'A verification code has been sent to your email.')
+        setShowOtpVerification(true)
+        return
       }
+
+      await login({
+        email: formData.email,
+        password: formData.password,
+      })
       navigate('/dashboard')
     } catch (err) {
       if (err.response) {
@@ -135,7 +151,7 @@ function AuthPage({ mode }) {
           localStorage.setItem('sarangtv_token', 'mock_dev_token_2026')
           localStorage.setItem('sarangtv_user', JSON.stringify(demoUser))
         }
-        navigate('/dashboard')
+        navigate(isSignup ? '/onboarding' : '/dashboard')
       }
     } finally {
       setIsSubmitting(false)
@@ -549,6 +565,14 @@ function App() {
             <Route path="/signup" element={<AuthPage mode="signup" />} />
             <Route path="/switch-account" element={<AuthPage mode="login" />} />
             <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <GenreOnboarding />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
@@ -585,6 +609,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StatsHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/favorite-genres"
+              element={
+                <ProtectedRoute>
+                  <FavoriteGenresPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />

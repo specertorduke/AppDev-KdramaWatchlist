@@ -1,13 +1,20 @@
 import api from './api.js'
 
 export const authService = {
-  async register({ name, email, password, password_confirmation, terms_privacy_accepted }) {
+  async sendSignupOtp({ email, name }) {
+    const response = await api.post('/auth/send-signup-otp', { email, name })
+    return response.data
+  },
+
+  async register({ name, email, password, password_confirmation, terms_privacy_accepted, otp, device_name }) {
     const response = await api.post('/auth/register', {
       name,
       email,
       password,
       password_confirmation,
       terms_privacy_accepted,
+      otp,
+      device_name,
     })
     return response.data
   },
@@ -43,6 +50,13 @@ export const authService = {
       // Backend may not have an active profile update endpoint; return payload
       return payload
     }
+  },
+
+  async updateUserPreferences(favoriteGenres) {
+    const response = await api.patch('/user/preferences', {
+      favorite_genres: favoriteGenres,
+    })
+    return response.data
   },
 
   async logoutAll() {
