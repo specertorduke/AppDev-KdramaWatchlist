@@ -31,6 +31,7 @@ import {
   UserRound,
   Zap,
   Loader2,
+  Settings,
   Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -1474,45 +1475,16 @@ function TrackerPosterCard({ drama }) {
 }
 
 function ProfilePage() {
-  const { user, logout, updateUserPreferences } = useAuth()
+  const { user, logout } = useAuth()
   const { stats } = useWatchlist()
   const navigate = useNavigate()
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
-  const [isEditingGenres, setIsEditingGenres] = useState(false)
-  const [favoriteGenres, setFavoriteGenres] = useState(() => (
-    Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
-  ))
-  const [isSavingGenres, setIsSavingGenres] = useState(false)
-  const [genreSaveError, setGenreSaveError] = useState('')
-
-  useEffect(() => {
-    setFavoriteGenres(Array.isArray(user?.favorite_genres) ? user.favorite_genres : [])
-  }, [user?.favorite_genres])
+  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
 
   const handleLogout = async () => {
     await logout()
     navigate('/')
-  }
-
-  const handleSaveGenres = async () => {
-    setIsSavingGenres(true)
-    setGenreSaveError('')
-    const saved = await updateUserPreferences({ favoriteGenres })
-    setIsSavingGenres(false)
-    if (saved) {
-      setIsEditingGenres(false)
-    } else {
-      setGenreSaveError('Could not save your favorite genres. Please try again.')
-    }
-  }
-
-  const handleToggleGenres = () => {
-    setGenreSaveError('')
-    if (isEditingGenres) {
-      setFavoriteGenres(Array.isArray(user?.favorite_genres) ? user.favorite_genres : [])
-    }
-    setIsEditingGenres((editing) => !editing)
   }
 
   return (
@@ -1540,11 +1512,9 @@ function ProfilePage() {
         <Link to="/tracker"><ClipboardList /> <span><b>My Tracker</b><small>{stats.totalTracked} dramas tracked</small></span><ChevronRight /></Link>
         <Link to="/stats"><BarChart3 /> <span><b>Stats & History</b><small>{stats.totalEpisodesWatched} episodes · {stats.hoursWatched}h</small></span><ChevronRight /></Link>
         <button
-          className={`profile-link-button ${isEditingGenres ? 'expanded' : ''}`}
+          className="profile-link-button"
           type="button"
-          aria-expanded={isEditingGenres}
-          aria-controls="favorite-genres-editor"
-          onClick={handleToggleGenres}
+          onClick={() => navigate('/favorite-genres')}
         >
           <Sparkles />
           <span>
@@ -1553,51 +1523,113 @@ function ProfilePage() {
           </span>
           <ChevronRight />
         </button>
+        <button
+          className="profile-link-button"
+          type="button"
+          onClick={() => navigate('/settings')}
+        >
+          <Settings size={18} />
+          <span>
+            <b>Settings</b>
+            <small>Notifications and preferences</small>
+          </span>
+          <ChevronRight />
+        </button>
         <Link to="/login"><UsersRound /> <span><b>Switch Account</b><small>Change active profile</small></span><ChevronRight /></Link>
       </section>
-      {isEditingGenres && <section className="profile-genres" id="favorite-genres-editor" aria-labelledby="favorite-genres-heading">
-        <div className="profile-genres-heading">
-          <div>
-            <h2 id="favorite-genres-heading">Choose your favorite genres</h2>
-            <p>Select every genre you enjoy</p>
-          </div>
-        </div>
-        <div className="profile-genre-options">
-          {profileGenres.map(({ id, label, Icon, color }) => {
-            const selected = favoriteGenres.includes(id)
-            return (
-              <button
-                key={id}
-                type="button"
-                className={`profile-genre-option ${selected ? 'selected' : ''}`}
-                style={{ '--genre-color': color }}
-                aria-pressed={selected}
-                onClick={() => setFavoriteGenres((genres) => (
-                  selected ? genres.filter((genre) => genre !== id) : [...genres, id]
-                ))}
-              >
-                <Icon size={17} /> {label}
-                {selected && <Check size={14} className="profile-genre-check" aria-hidden="true" />}
-              </button>
-            )
-          })}
-        </div>
-        {genreSaveError && <p className="profile-genre-error" role="alert">{genreSaveError}</p>}
-        <div className="profile-genre-actions">
-          <button className="profile-genre-cancel" type="button" onClick={handleToggleGenres}>
-            Cancel
-          </button>
-          <button className="profile-genre-save" type="button" onClick={handleSaveGenres} disabled={isSavingGenres}>
-            {isSavingGenres ? <Loader2 size={15} className="spinner-icon" /> : <Check size={15} />}
-            {isSavingGenres ? 'Saving...' : 'Save preferences'}
-          </button>
-        </div>
-      </section>}
       <button className="signout-button" type="button" onClick={handleLogout}>
         <LogOut size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Sign Out
       </button>
       <AddDramaModal isOpen={isAddDramaOpen} onClose={() => setIsAddDramaOpen(false)} />
       <EditProfileModal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} />
+    </DashboardLayout>
+  )
+}
+
+function FavoriteGenresPage() {
+  const navigate = useNavigate()
+  const { user, updateUserPreferences } = useAuth()
+  const [selectedGenres, setSelectedGenres] = useState(() => (
+    Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
+  ))
+  const [isSavingGenres, setIsSavingGenres] = useState(false)
+  const [genreSaveError, setGenreSaveError] = useState('')
+
+  useEffect(() => {
+    setSelectedGenres(Array.isArray(user?.favorite_genres) ? user.favorite_genres : [])
+  }, [user?.favorite_genres])
+
+  const handleSaveGenres = async () => {
+    setIsSavingGenres(true)
+    setGenreSaveError('')
+    const saved = await updateUserPreferences({ favoriteGenres: selectedGenres })
+    setIsSavingGenres(false)
+
+    if (saved) {
+      navigate('/profile')
+    } else {
+      setGenreSaveError('Could not save your favorite genres. Please try again.')
+    }
+  }
+
+  const toggleGenre = (genreId) => {
+    setSelectedGenres((current) => (
+      current.includes(genreId)
+        ? current.filter((genre) => genre !== genreId)
+        : [...current, genreId]
+    ))
+  }
+
+  return (
+    <DashboardLayout activeTab="profile" onOpenAddDrama={() => {}}>
+      <section className="settings-page">
+        <div className="settings-header">
+          <button type="button" className="detail-back-btn" onClick={() => navigate('/profile')}>
+            <ChevronLeft size={16} /> Back
+          </button>
+          <h1>Favorite Genres</h1>
+        </div>
+
+        <div className="profile-genres">
+          <div className="profile-genres-heading">
+            <div>
+              <h2>Choose your favorite genres</h2>
+              <p>Select every genre you enjoy</p>
+            </div>
+          </div>
+
+          <div className="profile-genre-options">
+            {profileGenres.map(({ id, label, Icon, color }) => {
+              const selected = selectedGenres.includes(id)
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`profile-genre-option ${selected ? 'selected' : ''}`}
+                  style={{ '--genre-color': color }}
+                  aria-pressed={selected}
+                  onClick={() => toggleGenre(id)}
+                >
+                  <Icon size={17} /> {label}
+                  {selected && <Check size={14} className="profile-genre-check" aria-hidden="true" />}
+                </button>
+              )
+            })}
+          </div>
+
+          {genreSaveError && <p className="profile-genre-error" role="alert">{genreSaveError}</p>}
+
+          <div className="profile-genre-actions">
+            <button className="profile-genre-cancel" type="button" onClick={() => navigate('/profile')}>
+              Cancel
+            </button>
+            <button className="profile-genre-save" type="button" onClick={handleSaveGenres} disabled={isSavingGenres}>
+              {isSavingGenres ? <Loader2 size={15} className="spinner-icon" /> : <Check size={15} />}
+              {isSavingGenres ? 'Saving...' : 'Save preferences'}
+            </button>
+          </div>
+        </div>
+      </section>
     </DashboardLayout>
   )
 }
@@ -1612,12 +1644,123 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
   )
 }
 
+function SettingsPage() {
+  const navigate = useNavigate()
+  const [settings, setSettings] = useState({
+    episodeAlerts: true,
+    progressReminders: true,
+    autoMarkWatched: false,
+    highQualityPosters: true,
+  })
+
+  const toggleSetting = (key) => {
+    setSettings((current) => ({ ...current, [key]: !current[key] }))
+  }
+
+  return (
+    <DashboardLayout activeTab="profile" onOpenAddDrama={() => {}}>
+      <section className="settings-page">
+        <div className="settings-header">
+          <button type="button" className="detail-back-btn" onClick={() => navigate('/profile')}>
+            <ChevronLeft size={16} /> Back
+          </button>
+          <h1>Settings</h1>
+        </div>
+
+        <div className="profile-settings-panel settings-page-panel">
+          <div className="profile-settings-group">
+            <p className="profile-settings-title">NOTIFICATIONS</p>
+            <div className="profile-setting-row">
+              <div className="profile-setting-copy">
+                <strong>New Episode Alerts</strong>
+                <small>Notify when tracked dramas air new episodes</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.episodeAlerts ? 'on' : ''}`}
+                aria-label="Toggle New Episode Alerts"
+                aria-pressed={settings.episodeAlerts}
+                onClick={() => toggleSetting('episodeAlerts')}
+              >
+                <span />
+              </button>
+            </div>
+            <div className="profile-setting-row last">
+              <div className="profile-setting-copy">
+                <strong>Progress Reminders</strong>
+                <small>Remind me to log episodes I may have missed</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.progressReminders ? 'on' : ''}`}
+                aria-label="Toggle Progress Reminders"
+                aria-pressed={settings.progressReminders}
+                onClick={() => toggleSetting('progressReminders')}
+              >
+                <span />
+              </button>
+            </div>
+          </div>
+
+          <div className="profile-settings-group">
+            <p className="profile-settings-title">PREFERENCES</p>
+            <div className="profile-setting-row">
+              <div className="profile-setting-copy">
+                <strong>Auto-Mark Completed</strong>
+                <small>Mark drama as completed when final episode is logged</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.autoMarkWatched ? 'on' : ''}`}
+                aria-label="Toggle Auto-Mark Completed"
+                aria-pressed={settings.autoMarkWatched}
+                onClick={() => toggleSetting('autoMarkWatched')}
+              >
+                <span />
+              </button>
+            </div>
+            <div className="profile-setting-row last">
+              <div className="profile-setting-copy">
+                <strong>High Quality Posters</strong>
+                <small>Load HD banners and posters over WiFi</small>
+              </div>
+              <button
+                type="button"
+                className={`toggle-switch ${settings.highQualityPosters ? 'on' : ''}`}
+                aria-label="Toggle High Quality Posters"
+                aria-pressed={settings.highQualityPosters}
+                onClick={() => toggleSetting('highQualityPosters')}
+              >
+                <span />
+              </button>
+            </div>
+          </div>
+
+          <div className="profile-settings-group">
+            <p className="profile-settings-title">ABOUT</p>
+            <div className="profile-about-row">
+              <span>Version</span>
+              <strong>1.0.0 (SarangTV)</strong>
+            </div>
+            <div className="profile-about-row last">
+              <span>Theme</span>
+              <strong>Dark Cinematic</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+    </DashboardLayout>
+  )
+}
+
 function Dashboard() {
   const { user } = useAuth()
   const { stats } = useWatchlist()
   const firstName = user?.name ? user.name.split(' ')[0] : 'Fan'
+  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [recommendedList, setRecommendedList] = useState([])
+  const [discoverList, setDiscoverList] = useState([])
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(true)
 
@@ -1627,17 +1770,69 @@ function Dashboard() {
       try {
         const res = await discoverService.getDiscover({ page: 1 })
         if (res?.data && res.data.length > 0) {
-          const mapped = res.data.slice(0, 10).map((d, index) => mapDramaCard(d, index))
-          setRecommendedList(mapped)
+          const mapped = res.data.map((d, index) => mapDramaCard(d, index))
+          setRecommendedList(mapped.slice(0, 10))
+          setDiscoverList(mapped)
+        } else {
+          setRecommendedList([])
+          setDiscoverList([])
         }
       } catch {
-        // API offline
+        setRecommendedList([])
+        setDiscoverList([])
       } finally {
         setIsLoadingRecommended(false)
       }
     }
     loadRecommended()
   }, [])
+
+  const normalizeGenre = (value) => String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const recommendedForYou = useMemo(() => {
+    if (!favoriteGenres.length) return []
+
+    const preferredGenres = favoriteGenres.map((genre) => normalizeGenre(genre))
+
+    return discoverList.filter((drama) => {
+      const rawGenres = Array.isArray(drama.genres)
+        ? drama.genres
+        : typeof drama.genres === 'string'
+          ? drama.genres.split(/[|,&/]/)
+          : []
+
+      const dramaGenres = rawGenres
+        .map((genre) => String(genre).trim())
+        .filter(Boolean)
+
+      return dramaGenres.some((genre) => {
+        const normalized = normalizeGenre(genre)
+
+        return preferredGenres.some((preferred) => {
+          if (preferred === 'mystery and thriller') {
+            return normalized.includes('mystery') || normalized.includes('thriller')
+          }
+          if (preferred === 'action and adventure') {
+            return normalized.includes('action') || normalized.includes('adventure')
+          }
+          if (preferred === 'sci fi and fantasy' || preferred === 'science fiction and fantasy' || preferred === 'scifi and fantasy') {
+            return normalized.includes('sci') || normalized.includes('fantasy') || normalized.includes('science fiction')
+          }
+          if (preferred === 'slice of life and family') {
+            return normalized.includes('family') || normalized.includes('slice of life')
+          }
+
+          return normalized === preferred || normalized.includes(preferred)
+        })
+      })
+    }).slice(0, 8)
+  }, [discoverList, favoriteGenres])
 
   const handleDramaClick = async (drama) => {
     const tmdbId = drama.tmdb_id || drama.id
@@ -1731,6 +1926,7 @@ function Dashboard() {
                 )}
               </div>
             </section>
+
           </>
         )}
       </div>
@@ -1745,5 +1941,5 @@ function Dashboard() {
   )
 }
 
-export { Chatbot, DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, ProfilePage, TrackerPage }
+export { Chatbot, DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage }
 export default Dashboard

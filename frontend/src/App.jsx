@@ -3,7 +3,7 @@ import { ArrowLeft, Eye, EyeOff, FileText, Loader2, ShieldCheck, X } from 'lucid
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
-import Dashboard, { DiscoverPage, ProfilePage, TrackerPage } from './components/Dashboard.jsx'
+import Dashboard, { DiscoverPage, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage } from './components/Dashboard.jsx'
 import StatsHistoryPage from './components/StatsHistoryPage.jsx'
 import AccountSwitcher from './components/AccountSwitcher.jsx'
 import OtpVerification from './components/OtpVerification.jsx'
@@ -609,6 +609,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StatsHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/favorite-genres"
+              element={
+                <ProtectedRoute>
+                  <FavoriteGenresPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />

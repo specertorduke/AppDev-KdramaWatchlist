@@ -1891,7 +1891,7 @@
 .profile-menu a:hover { color: #f09ab0; background: #171620; }
 .profile-menu button { margin-top: 8px; padding-top: 18px; border-top: 1px solid #25242e; color: #ef667d; }
 
-.dashboard-subpage { padding-top: 0; }
+.dashboard-subpage { padding-top: 18px; }
 
 .discover-hero {
   position: relative;
@@ -2806,8 +2806,30 @@
 .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); padding: 5px 0; border: 1px solid #20202d; border-radius: 17px; background: #11111b; }
 .profile-stats div { padding: 16px; text-align: center; border-right: 1px solid #24232d; }.profile-stats div:last-child { border-right: 0; }
 .profile-stats strong, .profile-stats span { display: block; }.profile-stats strong { font-family: Georgia, 'Times New Roman', serif; font-size: 25px; }.profile-stats span { margin-top: 3px; color: #9b94ad; font-size: 12px; font-weight: 700; }
+.profile-stats div:last-child strong,
+.profile-stats div:last-child span { color: #FFD76A; }
 .profile-links { margin-top: 26px; border: 1px solid #20202d; border-radius: 17px; overflow: hidden; background: #11111b; }
 .profile-links a { min-height: 79px; padding: 16px 24px; display: flex; align-items: center; gap: 18px; border-bottom: 1px solid #20202d; color: #85808c; }.profile-links a:last-child { border-bottom: 0; }.profile-links a:hover { background: #171720; color: #ed8ca4; }.profile-links a > span { flex: 1; }.profile-links b, .profile-links small { display: block; }.profile-links b { color: #ded9e0; font-size: 14px; }.profile-links small { margin-top: 3px; color: #77727e; font-size: 12px; }
+.profile-settings { margin-top: 18px; }
+.profile-settings-panel { background: #161424; border: 1px solid #20202d; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18); }
+.profile-settings-group + .profile-settings-group { margin-top: 18px; }
+.profile-settings-title { margin: 0 0 12px; color: #8d8b98; font-size: 11px; font-weight: 900; letter-spacing: 1px; }
+.profile-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.profile-setting-row.last { border-bottom: 0; }
+.profile-setting-copy { flex: 1; padding-right: 12px; }
+.profile-setting-copy strong { display: block; color: #f0eee8; font-size: 14px; font-weight: 800; }
+.profile-setting-copy small { display: block; margin-top: 3px; color: #8d8b98; font-size: 12px; line-height: 16px; }
+.toggle-switch { position: relative; width: 42px; height: 24px; border: 0; border-radius: 999px; background: #262534; cursor: pointer; transition: background 180ms ease; }
+.toggle-switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #ffffff; transition: transform 180ms ease; }
+.toggle-switch.on { background: #f5a9c4; }
+.toggle-switch.on span { transform: translateX(18px); }
+.profile-about-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: #8d8b98; font-size: 13px; }
+.profile-about-row.last { border-bottom: 0; }
+.profile-about-row strong { color: #f0eee8; font-size: 13px; font-weight: 700; }
+.settings-page { width: 100%; }
+.settings-header { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.settings-header h1 { margin: 0; color: #f0eee8; font-size: 24px; font-weight: 800; }
+.settings-page-panel { margin-top: 0; }
 .signout-button { width: 100%; height: 54px; margin-top: 22px; border: 1px solid #4b202f; border-radius: 16px; background: #1b0e16; color: #ef657d; font-size: 14px; font-weight: 800; cursor: pointer; }
 
 /* ==========================================================================
