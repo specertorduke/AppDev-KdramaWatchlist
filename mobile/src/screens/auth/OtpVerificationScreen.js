@@ -246,7 +246,9 @@ export default function OtpVerificationScreen({ navigation, route }) {
           <View style={styles.iconBubble}>
             <Ionicons name="key-outline" size={28} color="#EB5B78" />
           </View>
-          <Text style={styles.brand}>SARANGTV</Text>
+          <Text style={styles.brand}>
+            SARANG<Text style={styles.brandTv}>TV</Text>
+          </Text>
           <Text style={styles.title}>Enter Verification Code</Text>
           <Text style={styles.subtitle}>We sent a 6-digit verification code to:</Text>
 
@@ -431,11 +433,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   brand: {
-    color: '#F5A9C4',
+    color: '#ed8ea4',
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 2,
     marginBottom: 8,
+  },
+  brandTv: {
+    color: '#eb5b78',
   },
   title: {
     color: '#F7F0F0',

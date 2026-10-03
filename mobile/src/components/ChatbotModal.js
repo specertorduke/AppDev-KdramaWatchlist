@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { Keyboard } from 'react-native';
 import { useChatbot, QUICK_PROMPTS } from '../context/ChatbotContext';
 import { colors } from '../theme';
@@ -104,7 +104,9 @@ export default function ChatbotModal() {
               </View>
               <View>
                 <View style={styles.titleRow}>
-                  <Text style={styles.titleText}>SarangTV </Text>
+                  <Text style={styles.titleText}>
+                    Sarang<Text style={styles.titleTv}>TV</Text>{' '}
+                  </Text>
                   <Text style={styles.titleAccent}>AI</Text>
                 </View>
                 <View style={styles.statusRow}>
@@ -213,7 +215,7 @@ export default function ChatbotModal() {
                   />
                 </View>
                 <View style={[styles.bubble, styles.bubbleAi, styles.typingBubble]}>
-                  <ActivityIndicator size="small" color="#F5A9C4" />
+                  <ActivityIndicator size="small" color="#eb5b78" />
                   <Text style={styles.typingText}>Finding recommendations...</Text>
                 </View>
               </View>
@@ -276,7 +278,7 @@ export default function ChatbotModal() {
               <Ionicons
                 name="send"
                 size={16}
-                color={isInputValid ? '#07070E' : '#5A5866'}
+                color={isInputValid ? '#FFFFFF' : '#5A5866'}
               />
             </Pressable>
           </View>
@@ -304,12 +306,14 @@ export function ChatbotFloatingTrigger() {
       accessibilityLabel="Open SarangTV K-Drama AI Chatbot"
     >
       <View style={styles.triggerInner}>
-        <Ionicons
-          name={isOpen ? 'close' : 'sparkles'}
-          size={22}
-          color={isOpen ? '#07070E' : '#F5A9C4'}
-        />
-        {!isOpen && <View style={styles.triggerBadge} />}
+        {isOpen ? (
+          <Ionicons name="close" size={24} color="#FFFFFF" />
+        ) : (
+          <View style={styles.triggerIconWrapper}>
+            <Feather name="message-square" size={22} color="#eb5b78" />
+            <Ionicons name="sparkles" size={11} color="#FACC15" style={styles.triggerSparkleBadge} />
+          </View>
+        )}
       </View>
     </Pressable>
   );
@@ -357,7 +361,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: 'rgba(245, 169, 196, 0.15)',
+    backgroundColor: 'rgba(235, 91, 120, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -370,12 +374,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titleText: {
-    color: '#FFFFFF',
+    color: '#ed8ea4',
     fontSize: 15,
     fontWeight: '900',
   },
+  titleTv: {
+    color: '#eb5b78',
+  },
   titleAccent: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontSize: 15,
     fontWeight: '900',
   },
@@ -439,7 +446,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: 'rgba(245, 169, 196, 0.15)',
+    backgroundColor: 'rgba(235, 91, 120, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -457,7 +464,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   bubbleUser: {
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
     borderBottomRightRadius: 4,
   },
   bubbleAi: {
@@ -479,7 +486,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   bubbleTextUser: {
-    color: '#07070E',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   bubbleTextAi: {
@@ -487,7 +494,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   bubbleTextBold: {
-    color: '#F5A9C4',
+    color: '#eb5b78',
     fontWeight: '700',
   },
   bubbleTextError: {
@@ -593,8 +600,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnActive: {
-    backgroundColor: '#F5A9C4',
-    shadowColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
+    shadowColor: '#eb5b78',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -609,18 +616,21 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#1E1B30',
+    backgroundColor: '#171624',
+    borderWidth: 2,
+    borderColor: '#eb5b78',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowColor: '#eb5b78',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
     zIndex: 999,
   },
   floatingTriggerActive: {
-    backgroundColor: '#F5A9C4',
+    backgroundColor: '#eb5b78',
+    borderColor: '#eb5b78',
   },
   floatingTriggerPressed: {
     transform: [{ scale: 0.94 }],
@@ -632,13 +642,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  triggerBadge: {
+  triggerIconWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 28,
+  },
+  triggerSparkleBadge: {
     position: 'absolute',
-    top: 9,
-    right: 10,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#F5A9C4',
+    top: -2,
+    right: -3,
   },
 });
