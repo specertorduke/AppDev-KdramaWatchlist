@@ -54,6 +54,43 @@ import Chatbot from './Chatbot.jsx'
 
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
 const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Ticket }
+const statusColors = {
+  watching: '#60A5FA',
+  completed: '#10B981',
+  plan: '#FFD76A',
+  'plan to watch': '#FFD76A',
+  favorites: '#EF4444',
+  'on hold': '#F59E0B',
+  dropped: '#EF4444',
+}
+
+function getStatusKey(status) {
+  return String(status || '').trim().toLowerCase().replace(/[_-]+/g, ' ')
+}
+
+function getStatusColor(status) {
+  return statusColors[getStatusKey(status)] || '#9A94A6'
+}
+
+function getPersonalRating(value) {
+  const rating = Number(value)
+  return Number.isInteger(rating) && rating >= 1 && rating <= 10 ? rating : 0
+}
+
+function getRemainingWatchTime(duration, remainingEpisodes) {
+  if (remainingEpisodes <= 0) return 'All episodes watched'
+
+  const episodeDurations = String(duration || '').match(/\d+(?:\.\d+)?/g)?.map(Number) || []
+  const averageMinutes = episodeDurations.length
+    ? episodeDurations.reduce((total, minutes) => total + minutes, 0) / episodeDurations.length
+    : 60
+  const remainingMinutes = Math.round(averageMinutes * remainingEpisodes)
+  const hours = Math.floor(remainingMinutes / 60)
+  const minutes = remainingMinutes % 60
+  const estimate = [hours ? `${hours}h` : '', minutes ? `${minutes}m` : ''].filter(Boolean).join(' ')
+
+  return `~${estimate} remaining`
+}
 
 const profileGenres = [
   { id: 'Romance', label: 'Romance', Icon: Heart, color: '#F5A9C4' },
@@ -314,9 +351,10 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
   )
 }
 
-function DashboardHeader({ activeTab, onOpenAddDrama }) {
+function DashboardHeader({ activeTab }) {
   const [profileOpen, setProfileOpen] = useState(false)
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const displayName = user?.name || dashboardUser.name
   const avatarUrl = user?.avatar || dashboardUser.avatar
@@ -334,7 +372,7 @@ function DashboardHeader({ activeTab, onOpenAddDrama }) {
         <Link className={activeTab === 'profile' ? 'active' : ''} to="/profile"><UserRound size={19} /><span>Profile</span></Link>
       </nav>
       <div className="dashboard-actions">
-        <button type="button" aria-label="Search dramas" onClick={onOpenAddDrama}>
+        <button type="button" aria-label="Search dramas" onClick={() => navigate('/discover')}>
           <Search size={20} />
         </button>
         <button className="profile-avatar" type="button" aria-label="Open profile" onClick={() => setProfileOpen((open) => !open)}>
@@ -588,15 +626,16 @@ function DramaDetailView({ drama, onBack }) {
   const isTracked = Boolean(savedItem) || isInWatchlist(dramaId)
 
   const [status, setStatus] = useState(savedItem?.status || (isTracked ? (drama.status || 'Plan to Watch') : null))
-  const [myRating, setMyRating] = useState(savedItem?.rating || drama.myRating || 0)
+  const [myRating, setMyRating] = useState(getPersonalRating(savedItem?.rating ?? drama.myRating))
   const [hoverRating, setHoverRating] = useState(0)
   const [isFavorite, setIsFavorite] = useState(savedItem?.is_favorite || false)
   const [myNotes, setMyNotes] = useState(savedItem?.notes || drama.myNotes || '')
   const [noteSaved, setNoteSaved] = useState(false)
+  const [showAllEpisodes, setShowAllEpisodes] = useState(false)
   const [episodesList, setEpisodesList] = useState(() => {
-    const total = drama.episodes || 16
-    const watched = savedItem?.watchedCount || (savedItem?.status === 'Watching' ? 1 : 0)
-    return Array.from({ length: Math.min(total, 32) }, (_, i) => ({
+    const total = Number(drama.episodes) || 16
+    const watched = savedItem?.current_episode ?? savedItem?.watchedCount ?? drama.current_episode ?? drama.watchedCount ?? (savedItem?.status === 'Watching' ? 1 : 0)
+    return Array.from({ length: total }, (_, i) => ({
       number: i + 1,
       title: `Episode ${i + 1}`,
       watched: i < watched,
@@ -604,8 +643,10 @@ function DramaDetailView({ drama, onBack }) {
   })
 
   const watchedCount = episodesList.filter((ep) => ep.watched).length
-  const totalEpisodes = drama.episodes || episodesList.length || 16
+  const totalEpisodes = Number(drama.episodes) || episodesList.length || 16
   const progressPct = totalEpisodes > 0 ? Math.round((watchedCount / totalEpisodes) * 100) : 0
+  const remainingWatchTime = getRemainingWatchTime(drama.duration, totalEpisodes - watchedCount)
+  const displayedEpisodes = showAllEpisodes ? episodesList : episodesList.slice(0, 30)
 
   const handleAddToWatchlist = (initialStatus = 'Plan to Watch') => {
     addToWatchlist(drama, initialStatus)
@@ -633,8 +674,9 @@ function DramaDetailView({ drama, onBack }) {
 
   const toggleEpisode = (epNum) => {
     setEpisodesList((prev) => {
-      const updated = prev.map((ep) => (ep.number === epNum ? { ...ep, watched: !ep.watched } : ep))
-      const newWatchedCount = updated.filter((ep) => ep.watched).length
+      const episodeIsWatched = prev.find((ep) => ep.number === epNum)?.watched
+      const newWatchedCount = episodeIsWatched ? epNum - 1 : epNum
+      const updated = prev.map((ep) => ({ ...ep, watched: ep.number <= newWatchedCount }))
       const newStatus = newWatchedCount === totalEpisodes ? 'Completed' : (newWatchedCount > 0 ? 'Watching' : (status || 'Plan to Watch'))
       setStatus(newStatus)
 
@@ -696,8 +738,10 @@ function DramaDetailView({ drama, onBack }) {
 
         <div className="detail-header-info">
           <div className="detail-badges-row">
-            <span className="detail-badge-rank">{drama.rankBadge || `TOP ${drama.rank || 1}`}</span>
-            <span className={`detail-badge-status ${!isTracked ? 'status-catalog' : ''}`}>
+            <span
+              className={`detail-badge-status ${!isTracked ? 'status-catalog' : ''}`}
+              style={isTracked ? { color: getStatusColor(status), backgroundColor: `${getStatusColor(status)}22` } : undefined}
+            >
               {isTracked ? (status || 'In Watchlist') : 'Not in Watchlist'}
             </span>
           </div>
@@ -713,9 +757,20 @@ function DramaDetailView({ drama, onBack }) {
             <span>{drama.network}</span>
             <span className="meta-dot">·</span>
             <span>{totalEpisodes} Episodes</span>
-            <span className="meta-dot">·</span>
-            <span className="meta-star-rating">★ {drama.rating} <em>/ 10</em></span>
           </div>
+
+          {Number(drama.rating) > 0 && (
+            <div className="detail-tmdb-row">
+              <span className="detail-tmdb-pill">
+                <Star size={12} fill="currentColor" />
+                <strong>{Number(drama.rating).toFixed(1)}</strong>
+                <span>TMDB</span>
+              </span>
+              {Number(drama.voteCount) > 0 && (
+                <span className="detail-tmdb-votes">{Number(drama.voteCount).toLocaleString()} ratings</span>
+              )}
+            </div>
+          )}
 
           <p className="detail-available-on">Available on {drama.availableOn || drama.network}</p>
 
@@ -730,20 +785,8 @@ function DramaDetailView({ drama, onBack }) {
               </button>
             ) : (
               <>
-                <button
-                  className="detail-update-status-button"
-                  type="button"
-                  onClick={() => handleStatusChange(status === 'Completed' ? 'Watching' : 'Completed')}
-                >
-                  {status === 'Completed' ? (
-                    <>
-                      <Play size={15} /> Set as Watching
-                    </>
-                  ) : (
-                    <>
-                      <Check size={16} /> Mark Completed
-                    </>
-                  )}
+                <button className="detail-update-status-button detail-added-button" type="button" disabled>
+                  <CheckCircle2 size={16} /> In Watchlist
                 </button>
                 <button
                   className="detail-remove-button"
@@ -856,7 +899,7 @@ function DramaDetailView({ drama, onBack }) {
               <div className="detail-progress-bar" style={{ width: `${progressPct}%` }} />
             </div>
             <div className="detail-progress-info-row">
-              <span className="progress-remaining">{drama.remainingTime || `~${Math.max(1, totalEpisodes - watchedCount)}h remaining`}</span>
+              <span className="progress-remaining">{remainingWatchTime}</span>
               <span className="progress-pct-text">{progressPct}%</span>
             </div>
 
@@ -869,6 +912,11 @@ function DramaDetailView({ drama, onBack }) {
                     key={st}
                     type="button"
                     className={`status-option-pill ${status === st ? 'active' : ''}`}
+                    style={{
+                      '--status-color': getStatusColor(st),
+                      color: getStatusColor(st),
+                      backgroundColor: `${getStatusColor(st)}${status === st ? '22' : '12'}`,
+                    }}
                     onClick={() => handleStatusChange(st)}
                   >
                     {st}
@@ -926,23 +974,36 @@ function DramaDetailView({ drama, onBack }) {
             </div>
 
             <div className="episodes-list-group">
-              {episodesList.map((ep) => (
-                <div
+              {displayedEpisodes.map((ep) => (
+                <button
                   key={ep.number}
+                  type="button"
                   className={`episode-item-row ${ep.watched ? 'watched' : ''}`}
                   onClick={() => toggleEpisode(ep.number)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && toggleEpisode(ep.number)}
+                  aria-pressed={ep.watched}
                 >
-                  <span className={`episode-check-circle ${ep.watched ? 'checked' : ''}`}>
-                    {ep.watched && <Check size={13} strokeWidth={3} />}
+                  <span className="episode-number-badge">{ep.number}</span>
+                  <span className="episode-copy">
+                    <span className="episode-item-title">{ep.title}</span>
+                    <span className="episode-item-subtitle">{ep.watched ? 'Watched' : 'Mark as watched'}</span>
                   </span>
-                  <span className="episode-item-title">{ep.title}</span>
-                  <span className="episode-item-num">Ep {ep.number}</span>
-                </div>
+                  <span className={`episode-check-circle ${ep.watched ? 'checked' : ''}`}>
+                    {ep.watched ? <Check size={14} strokeWidth={3} /> : <Play size={12} fill="currentColor" />}
+                  </span>
+                </button>
               ))}
             </div>
+            {episodesList.length > 30 && (
+              <button
+                className="episodes-show-more"
+                type="button"
+                onClick={() => setShowAllEpisodes((shown) => !shown)}
+              >
+                {showAllEpisodes
+                  ? 'Show Fewer Episodes'
+                  : `View All ${episodesList.length} Episodes (${episodesList.length - 30} more)`}
+              </button>
+            )}
           </article>
         </div>
       </div>
@@ -1220,11 +1281,19 @@ function DiscoverPage() {
 }
 
 function DiscoverCard({ drama }) {
+  const statusClass = getStatusKey(drama.status).replace(/\s+/g, '-')
+
   return (
     <article className="discover-card">
       <div className="discover-poster" style={{ backgroundImage: `url(${drama.image})` }}>
-        <span className={`rank rank-${drama.tone}`}>{drama.rank}</span>
-        {drama.status && <b className={`show-status status-${drama.tone}`}>{drama.status}</b>}
+        {drama.status && (
+          <b
+            className={`show-status status-${statusClass}`}
+            style={{ color: getStatusColor(drama.status), backgroundColor: `${getStatusColor(drama.status)}22` }}
+          >
+            {drama.status}
+          </b>
+        )}
       </div>
       <h3>{drama.title}</h3>
       <p>{drama.meta} <strong>★ {drama.rating}</strong></p>
@@ -1283,11 +1352,35 @@ function TrackerPage() {
     }
   }
 
+  const handleTrackerStatusChange = (drama, nextStatus) => {
+    updateWatchlist(drama.tmdb_id || drama.id, { status: nextStatus })
+  }
+
+  const handleQuickIncrement = (drama, event) => {
+    event.stopPropagation()
+    const totalEpisodes = Number(drama.episodes) || 16
+    const watched = Number(drama.current_episode ?? drama.watchedCount) || 0
+    const nextWatched = Math.min(totalEpisodes, watched + 1)
+    updateWatchlist(drama.tmdb_id || drama.id, {
+      current_episode: nextWatched,
+      watchedCount: nextWatched,
+      status: nextWatched >= totalEpisodes ? 'Completed' : 'Watching',
+    })
+  }
+
+  const handleToggleTrackerFavorite = (drama, event) => {
+    event.stopPropagation()
+    updateWatchlist(drama.tmdb_id || drama.id, { is_favorite: !drama.is_favorite })
+  }
+
   const handleDramaClick = async (drama) => {
     const tmdbId = drama.tmdb_id || drama.id
 
     // Immediately render the detail view with the tracked item data and correct poster
-    const initialDetail = mapDramaDetail(drama)
+    const initialDetail = {
+      ...mapDramaDetail(drama),
+      myRating: drama.myRating ?? drama.rating ?? null,
+    }
     setSelectedDrama(initialDetail)
     window.scrollTo({ top: 0, behavior: 'smooth' })
 
@@ -1306,7 +1399,7 @@ function TrackerPage() {
               ...fullDetail,
               cast: (fullDetail.cast && fullDetail.cast.length > 0) ? fullDetail.cast : prev.cast,
               status: drama.status || prev.status,
-              myRating: drama.myRating || drama.rating || prev.myRating,
+              myRating: drama.myRating ?? prev.myRating,
               myNotes: drama.notes || drama.myNotes || prev.myNotes,
               is_favorite: drama.is_favorite ?? prev.is_favorite,
               current_episode: drama.current_episode ?? prev.current_episode,
@@ -1384,18 +1477,30 @@ function TrackerPage() {
           </section>
 
           <div className="tracker-filters" role="tablist" aria-label="Tracker status filters">
-            {filterTabs.map((tab) => (
-              <button
-                className={activeFilter === tab.key ? 'selected' : ''}
-                type="button"
-                key={tab.key}
-                role="tab"
-                aria-selected={activeFilter === tab.key}
-                onClick={() => handleFilterClick(tab.key)}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {filterTabs.map((tab) => {
+              const isSelected = activeFilter === tab.key
+              const tabColor = tab.key === 'All' ? '#EB5B78' : getStatusColor(tab.key)
+
+              return (
+                <button
+                  className={isSelected ? 'selected' : ''}
+                  style={isSelected
+                    ? {
+                        borderColor: `${tabColor}66`,
+                        backgroundColor: `${tabColor}22`,
+                        color: tabColor,
+                      }
+                    : undefined}
+                  type="button"
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() => handleFilterClick(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
           </div>
 
           <section className={`tracker-list ${viewMode === 'grid' ? 'tracker-grid' : ''}`}>
@@ -1407,9 +1512,25 @@ function TrackerPage() {
                   style={{ cursor: 'pointer' }}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && handleDramaClick(drama)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.target.closest('button, select, input')) handleDramaClick(drama)
+                  }}
                 >
-                  {viewMode === 'grid' ? <TrackerPosterCard drama={drama} /> : <TrackerRow drama={drama} />}
+                  {viewMode === 'grid' ? (
+                    <TrackerPosterCard
+                      drama={drama}
+                      onStatusChange={(nextStatus) => handleTrackerStatusChange(drama, nextStatus)}
+                      onQuickIncrement={(event) => handleQuickIncrement(drama, event)}
+                      onToggleFavorite={(event) => handleToggleTrackerFavorite(drama, event)}
+                    />
+                  ) : (
+                    <TrackerRow
+                      drama={drama}
+                      onStatusChange={(nextStatus) => handleTrackerStatusChange(drama, nextStatus)}
+                      onQuickIncrement={(event) => handleQuickIncrement(drama, event)}
+                      onToggleFavorite={(event) => handleToggleTrackerFavorite(drama, event)}
+                    />
+                  )}
                 </div>
               ))
             ) : (
@@ -1441,45 +1562,202 @@ function TrackerPage() {
   )
 }
 
-function TrackerRow({ drama }) {
+const TRACKER_STATUS_OPTIONS = ['Watching', 'Completed', 'Plan to Watch', 'On Hold', 'Dropped']
+
+function TrackerActions({ drama, onStatusChange, onQuickIncrement, onToggleFavorite }) {
+  const statusKey = getStatusKey(drama.status)
+  const currentStatus = statusKey === 'plan' || statusKey === 'plan to watch'
+    ? 'Plan to Watch'
+    : statusKey === 'done'
+      ? 'Completed'
+      : TRACKER_STATUS_OPTIONS.find((option) => getStatusKey(option) === statusKey) || 'Plan to Watch'
+  const statusColor = getStatusColor(currentStatus)
+
+  return (
+    <div className="tracker-actions" onClick={(event) => event.stopPropagation()}>
+      <label className="tracker-status-select-wrap" style={{ '--tracker-status-color': statusColor }}>
+        <select
+          aria-label={`Change ${drama.title} status`}
+          value={currentStatus}
+          onChange={(event) => onStatusChange(event.target.value)}
+        >
+          {TRACKER_STATUS_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+        <ChevronRight size={14} aria-hidden="true" />
+      </label>
+      {currentStatus === 'Watching' && (
+        <button
+          className="tracker-episode-increment"
+          type="button"
+          onClick={onQuickIncrement}
+          aria-label={`Mark next episode watched for ${drama.title}`}
+        >
+          <Plus size={13} /> 1 Episode
+        </button>
+      )}
+      <button
+        className={`tracker-favorite-toggle ${drama.is_favorite ? 'active' : ''}`}
+        type="button"
+        onClick={onToggleFavorite}
+        aria-label={drama.is_favorite ? `Remove ${drama.title} from favorites` : `Add ${drama.title} to favorites`}
+        aria-pressed={Boolean(drama.is_favorite)}
+      >
+        <Heart size={15} fill={drama.is_favorite ? 'currentColor' : 'none'} />
+      </button>
+    </div>
+  )
+}
+
+function TrackerStatusDropdown({ drama, onStatusChange }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef(null)
+  const statusKey = getStatusKey(drama.status)
+  const currentStatus = statusKey === 'plan' || statusKey === 'plan to watch'
+    ? 'Plan to Watch'
+    : statusKey === 'done'
+      ? 'Completed'
+      : TRACKER_STATUS_OPTIONS.find((option) => getStatusKey(option) === statusKey) || 'Plan to Watch'
+  const statusColor = getStatusColor(currentStatus)
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    const handlePointerDown = (event) => {
+      if (!dropdownRef.current?.contains(event.target)) setIsOpen(false)
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
+  return (
+    <div className="tracker-status-dropdown" ref={dropdownRef} onClick={(event) => event.stopPropagation()}>
+      <button
+        className="tracker-mobile-status"
+        style={{ '--tracker-status-color': statusColor }}
+        type="button"
+        aria-label={`Change ${drama.title} status`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        <span className="tracker-status-dot" />
+        <span className="tracker-mobile-status-label">{currentStatus}</span>
+        <ChevronRight size={12} aria-hidden="true" />
+      </button>
+      {isOpen && (
+        <div className="tracker-status-menu" role="listbox" aria-label={`${drama.title} status options`}>
+          {TRACKER_STATUS_OPTIONS.map((option) => {
+            const optionColor = getStatusColor(option)
+            const selected = option === currentStatus
+            return (
+              <button
+                key={option}
+                className={`tracker-status-option ${selected ? 'selected' : ''}`}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onStatusChange(option)
+                  setIsOpen(false)
+                }}
+              >
+                <span className="tracker-status-dot" style={{ backgroundColor: optionColor }} />
+                <span>{option}</span>
+                {selected && <Check size={15} style={{ color: optionColor }} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TrackerRow({ drama, onStatusChange, onQuickIncrement }) {
+  const statusColor = getStatusColor(drama.status)
+  const watched = Number(drama.current_episode ?? drama.watchedCount) || 0
+  const episodes = Number(drama.episodes) || 16
+  const progress = Math.min(100, Math.round((watched / episodes) * 100))
+  const genreText = Array.isArray(drama.genres)
+    ? drama.genres.map((genre) => typeof genre === 'string' ? genre : genre?.name || '').filter(Boolean).join(' · ')
+    : typeof drama.genres === 'string'
+      ? drama.genres
+      : String(drama.meta || '').split(' · ').slice(0, -1).join(' · ') || 'Drama'
+
   return (
     <article className="tracker-row">
       <img src={drama.poster || drama.image || DEFAULT_POSTER_IMAGE} alt={drama.title} />
       <div className="tracker-info">
-        <h2>{drama.title}</h2>
-        <p>{drama.meta || `${drama.year || '2025'}`}</p>
-        <span>{drama.current_episode || drama.watchedCount || 0}/{drama.episodes || 16} eps</span>
-        <div className={`tracker-progress progress-${drama.tone || 'blue'}`}>
-          <i style={{ width: `${drama.progress || 0}%` }} />
+        <div className="tracker-card-header">
+          <h2>{drama.title}</h2>
+          <TrackerStatusDropdown drama={drama} onStatusChange={onStatusChange} />
         </div>
-        {drama.rating && (
-          <b className="tracker-rating">
-            ★ {drama.rating} <em>{drama.notes ? `"${drama.notes.slice(0, 30)}..."` : ''}</em>
-          </b>
-        )}
+        <p>{genreText}</p>
+        <div className="tracker-episode-progress-row">
+          <span className="tracker-episodes"><strong>{watched}</strong> / {episodes} eps</span>
+          <div className="tracker-progress-actions">
+            {getStatusKey(drama.status) === 'watching' && (
+              <button
+                className="tracker-episode-increment"
+                type="button"
+                onClick={onQuickIncrement}
+                aria-label={`Mark next episode watched for ${drama.title}`}
+              >
+                <Plus size={12} /> 1 ep
+              </button>
+            )}
+            <span className="tracker-percent" style={{ color: statusColor }}>{progress}%</span>
+          </div>
+        </div>
+        <div className="tracker-progress" aria-label={`${progress}% complete`}>
+          <i style={{ width: `${progress}%`, backgroundColor: statusColor }} />
+        </div>
+        <div className="tracker-row-bottom">
+          {getPersonalRating(drama.rating) > 0 && (
+            <b className="tracker-rating-chip">
+              <Star size={12} fill="currentColor" /> {getPersonalRating(drama.rating)}/10
+            </b>
+          )}
+          {drama.notes && <span className="tracker-row-review">"{drama.notes}"</span>}
+        </div>
       </div>
-      <strong className={`tracker-status status-${drama.tone || 'blue'}`}>{drama.status}</strong>
-      <b className={`tracker-percent percent-${drama.tone || 'blue'}`}>{drama.progress || 0}%</b>
     </article>
   )
 }
 
-function TrackerPosterCard({ drama }) {
+function TrackerPosterCard({ drama, onStatusChange, onQuickIncrement, onToggleFavorite }) {
   const poster = drama.poster || drama.image || DEFAULT_POSTER_IMAGE
   const watched = drama.current_episode || drama.watchedCount || 0
   const episodes = drama.episodes || 16
+  const statusColor = getStatusColor(drama.status)
 
   return (
     <article className="tracker-poster-card">
       <div className="tracker-poster" style={{ backgroundImage: `url(${poster})` }}>
-        <span className={`tracker-poster-status status-${drama.tone || 'blue'}`}>{drama.status || 'Plan to Watch'}</span>
-        <span className="tracker-poster-progress"><i style={{ width: `${drama.progress || 0}%` }} /></span>
+        <span className={`tracker-poster-status status-${drama.tone || 'blue'}`} style={{ color: statusColor, backgroundColor: `${statusColor}22` }}>{drama.status || 'Plan to Watch'}</span>
+        <span className="tracker-poster-progress"><i style={{ width: `${drama.progress || 0}%`, backgroundColor: statusColor }} /></span>
       </div>
       <h2>{drama.title}</h2>
       <div className="tracker-poster-meta">
         <span>{watched}/{episodes} eps</span>
-        {Number(drama.rating) > 0 ? <b>★ {Number(drama.rating).toFixed(1)}</b> : <b>{drama.progress || 0}%</b>}
+        {getPersonalRating(drama.rating) > 0
+          ? <b><Star size={12} fill="currentColor" /> My Rating {getPersonalRating(drama.rating)}/10</b>
+          : <b>{drama.progress || 0}%</b>}
       </div>
+      <TrackerActions
+        drama={drama}
+        onStatusChange={onStatusChange}
+        onQuickIncrement={onQuickIncrement}
+        onToggleFavorite={onToggleFavorite}
+      />
     </article>
   )
 }
@@ -1854,7 +2132,10 @@ function Dashboard() {
 
   const handleDramaClick = async (drama) => {
     const tmdbId = drama.tmdb_id || drama.id
-    const initialDetail = mapDramaDetail(drama)
+    const initialDetail = {
+      ...mapDramaDetail(drama),
+      myRating: drama.myRating ?? drama.rating ?? null,
+    }
     setSelectedDrama(initialDetail)
     window.scrollTo({ top: 0, behavior: 'smooth' })
 
@@ -1872,7 +2153,7 @@ function Dashboard() {
               ...fullDetail,
               cast: (fullDetail.cast && fullDetail.cast.length > 0) ? fullDetail.cast : prev.cast,
               status: drama.status || prev.status,
-              myRating: drama.myRating || drama.rating || prev.myRating,
+              myRating: drama.myRating ?? prev.myRating,
               myNotes: drama.notes || drama.myNotes || prev.myNotes,
               is_favorite: drama.is_favorite ?? prev.is_favorite,
               current_episode: drama.current_episode ?? prev.current_episode,

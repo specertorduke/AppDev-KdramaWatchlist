@@ -119,7 +119,7 @@ export function WatchlistProvider({ children }) {
       status,
       tone: status === 'Watching' ? 'blue' : status === 'Completed' ? 'green' : status === 'On Hold' ? 'orange' : 'purple',
       meta: `${(Array.isArray(drama.genres) ? drama.genres : []).slice(0, 2).join(' · ') || 'Drama'} · ${drama.year || 2025}`,
-      rating: drama.myRating || drama.rating || null,
+      rating: drama.myRating ?? null,
       notes: drama.myNotes || '',
       is_favorite: false,
       addedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
