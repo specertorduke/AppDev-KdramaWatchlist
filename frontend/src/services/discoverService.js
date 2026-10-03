@@ -178,6 +178,14 @@ export const discoverService = {
   },
 
   /**
+   * Fetch home dashboard data (recommended, currently watching, stats).
+   */
+  async getHome() {
+    const response = await api.get('/home')
+    return response.data
+  },
+
+  /**
    * Fetch detailed drama information by TMDB ID.
    */
   async getDramaDetails(tmdbId) {

@@ -619,6 +619,29 @@ function TrendingCard({ drama, index, onClick }) {
   )
 }
 
+function RecommendedCard({ drama, onClick }) {
+  const poster = drama.poster || drama.image || drama.poster_url || drama.backdrop || DEFAULT_POSTER_IMAGE
+  const status = drama.status || drama.watch_status
+  const genresText = Array.isArray(drama.genres)
+    ? drama.genres.slice(0, 2).join(' · ')
+    : drama.meta || drama.genre || 'K-Drama'
+
+  return (
+    <button className="recommended-card" type="button" onClick={onClick} title={drama.title}>
+      <span className="recommended-poster" style={{ backgroundImage: `url(${poster})` }}>
+        {status && (
+          <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
+            <span className="recommended-status-dot" />
+            {status}
+          </span>
+        )}
+      </span>
+      <span className="recommended-title">{drama.title}</span>
+      <span className="recommended-meta">{genresText}</span>
+    </button>
+  )
+}
+
 function DramaDetailView({ drama, onBack }) {
   const { getWatchlistItem, updateWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist()
   const dramaId = drama.tmdb_id || drama.id
@@ -2057,21 +2080,36 @@ function Dashboard() {
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [recommendedList, setRecommendedList] = useState([])
   const [discoverList, setDiscoverList] = useState([])
+  const [curatedRecommended, setCuratedRecommended] = useState([])
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(true)
 
   useEffect(() => {
-    async function loadRecommended() {
+    async function loadDashboardData() {
       setIsLoadingRecommended(true)
       try {
-        const res = await discoverService.getDiscover({ page: 1 })
-        if (res?.data && res.data.length > 0) {
-          const mapped = res.data.map((d, index) => mapDramaCard(d, index))
+        const [homeRes, discoverRes] = await Promise.allSettled([
+          discoverService.getHome(),
+          discoverService.getDiscover({ page: 1 }),
+        ])
+
+        if (discoverRes.status === 'fulfilled' && discoverRes.value?.data?.length > 0) {
+          const mapped = discoverRes.value.data.map((d, index) => mapDramaCard(d, index))
           setRecommendedList(mapped.slice(0, 10))
           setDiscoverList(mapped)
         } else {
           setRecommendedList([])
           setDiscoverList([])
+        }
+
+        if (
+          homeRes.status === 'fulfilled' &&
+          homeRes.value?.data?.recommended &&
+          Array.isArray(homeRes.value.data.recommended) &&
+          homeRes.value.data.recommended.length > 0
+        ) {
+          const mappedHome = homeRes.value.data.recommended.map((d, index) => mapDramaCard(d, index))
+          setCuratedRecommended(mappedHome)
         }
       } catch {
         setRecommendedList([])
@@ -2080,7 +2118,7 @@ function Dashboard() {
         setIsLoadingRecommended(false)
       }
     }
-    loadRecommended()
+    loadDashboardData()
   }, [])
 
   const normalizeGenre = (value) => String(value ?? '')
@@ -2127,8 +2165,18 @@ function Dashboard() {
           return normalized === preferred || normalized.includes(preferred)
         })
       })
-    }).slice(0, 8)
+    }).slice(0, 10)
   }, [discoverList, favoriteGenres])
+
+  const displayRecommended = useMemo(() => {
+    if (curatedRecommended.length > 0) {
+      return curatedRecommended
+    }
+    if (recommendedForYou.length > 0) {
+      return recommendedForYou
+    }
+    return discoverList.slice(0, 10)
+  }, [curatedRecommended, recommendedForYou, discoverList])
 
   const handleDramaClick = async (drama) => {
     const tmdbId = drama.tmdb_id || drama.id
@@ -2222,6 +2270,40 @@ function Dashboard() {
                       onClick={() => handleDramaClick(drama)}
                     />
                   ))
+                )}
+              </div>
+            </section>
+
+            {/* Recommended For You */}
+            <section className="dashboard-section recommended-section" aria-labelledby="recommended-heading">
+              <div className="recommended-header">
+                <div className="recommended-title-group">
+                  <h2 id="recommended-heading">RECOMMENDED FOR YOU</h2>
+                  {favoriteGenres.length > 0 && (
+                    <span className="recommended-genre-pill">
+                      <Sparkles size={11} aria-hidden="true" />
+                      {favoriteGenres.slice(0, 2).join(' · ')}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="recommended-rail">
+                {isLoadingRecommended && displayRecommended.length === 0 ? (
+                  <div className="tracker-empty-state">
+                    <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
+                    <p>Loading recommendations...</p>
+                  </div>
+                ) : displayRecommended.length > 0 ? (
+                  displayRecommended.map((drama, index) => (
+                    <RecommendedCard
+                      key={drama.tmdb_id || drama.id || index}
+                      drama={drama}
+                      onClick={() => handleDramaClick(drama)}
+                    />
+                  ))
+                ) : (
+                  <p className="recommended-empty-text">No recommendations available right now.</p>
                 )}
               </div>
             </section>
