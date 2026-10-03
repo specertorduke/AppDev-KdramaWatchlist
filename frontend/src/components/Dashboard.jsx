@@ -48,6 +48,7 @@ import {
   dashboardUser,
   quickAccess,
 } from '../data/dashboardData.js'
+import DramaPersonaAvatar from './DramaPersonaAvatar.jsx'
 import EditProfileModal from './EditProfileModal.jsx'
 import Chatbot from './Chatbot.jsx'
 
@@ -337,7 +338,16 @@ function DashboardHeader({ activeTab, onOpenAddDrama }) {
           <Search size={20} />
         </button>
         <button className="profile-avatar" type="button" aria-label="Open profile" onClick={() => setProfileOpen((open) => !open)}>
-          <img src={avatarUrl} alt={displayName} />
+          {user?.avatarType === 'persona' || (!user?.avatarType && user?.avatarIcon) ? (
+            <DramaPersonaAvatar
+              className="dashboard-persona-avatar"
+              personaId={user.avatarIcon}
+              color={user.color}
+              iconSize={18}
+            />
+          ) : (
+            <img src={avatarUrl} alt={displayName} />
+          )}
         </button>
       </div>
       {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} />}
@@ -1490,7 +1500,15 @@ function ProfilePage() {
   return (
     <DashboardLayout activeTab="profile" onOpenAddDrama={() => setIsAddDramaOpen(true)}>
       <section className="profile-summary">
-        <img src={user?.avatar || user?.avatar_url || dashboardUser.avatar} alt="" />
+        {user?.avatarType === 'persona' || (!user?.avatarType && user?.avatarIcon) ? (
+          <DramaPersonaAvatar
+            personaId={user.avatarIcon}
+            color={user.color}
+            iconSize={32}
+          />
+        ) : (
+          <img src={user?.avatar || user?.avatar_url || dashboardUser.avatar} alt="" />
+        )}
         <div>
           <h1>{user?.name || 'Kim Ji-young'}</h1>
           <p>{user?.email || 'kdramaaddict@email.com'}</p>
