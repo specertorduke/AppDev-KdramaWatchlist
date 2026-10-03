@@ -1286,6 +1286,7 @@ function DiscoverCard({ drama }) {
   return (
     <article className="discover-card">
       <div className="discover-poster" style={{ backgroundImage: `url(${drama.image})` }}>
+<<<<<<< HEAD
         {drama.status && (
           <b
             className={`show-status status-${statusClass}`}
@@ -1294,6 +1295,9 @@ function DiscoverCard({ drama }) {
             {drama.status}
           </b>
         )}
+=======
+        {drama.status && <b className={`show-status status-${drama.tone}`}>{drama.status}</b>}
+>>>>>>> aa0a10fae4818138301b1d2b27d7dd2d0acb53e3
       </div>
       <h3>{drama.title}</h3>
       <p>{drama.meta} <strong>★ {drama.rating}</strong></p>
