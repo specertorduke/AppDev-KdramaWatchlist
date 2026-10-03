@@ -51,17 +51,20 @@ export function mapDramaDetail(item) {
   const tmdbId = item.tmdb_id || item.id
   const image = item.backdrop_url || item.poster_url || DEFAULT_BACKDROP_IMAGE
   const poster = item.poster_url || item.backdrop_url || DEFAULT_POSTER_IMAGE
-  const totalEps = item.number_of_episodes || 16
+  const totalEps = item.number_of_episodes || item.episodes || item.total_episodes || 16
   const genresList = Array.isArray(item.genres) ? item.genres : []
   const genresString = genresList.length > 0 ? genresList.join(' · ') : 'Romance · Drama'
   const releaseYear = item.release_year || 2025
-  const rating = item.rating ? Number(item.rating).toFixed(1) : '9.0'
+  const numericRating = Number(item.rating)
+  const rating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : null
 
-  // Generate dynamic episode checklist items matching total episodes count (up to 32)
-  const epCount = Math.min(Math.max(totalEps, 1), 32)
-  const isCurrentlyWatching = item.watch_status === 'Watching'
-  const isCompleted = item.watch_status === 'Completed'
-  const watchedCount = isCompleted ? epCount : (isCurrentlyWatching ? 1 : 0)
+  const epCount = Math.max(totalEps, 1)
+  const status = item.watch_status || item.status
+  const isCurrentlyWatching = status === 'Watching'
+  const isCompleted = status === 'Completed'
+  const watchedCount = isCompleted
+    ? epCount
+    : (item.current_episode ?? item.watchedCount ?? (isCurrentlyWatching ? 1 : 0))
   const episodeList = Array.from({ length: epCount }, (_, i) => ({
     number: i + 1,
     title: `Episode ${i + 1}`,
@@ -114,8 +117,6 @@ export function mapDramaDetail(item) {
   return {
     id: tmdbId,
     tmdb_id: tmdbId,
-    rank: 1,
-    rankBadge: 'TOP 1',
     title: item.title || 'Untitled Drama',
     nativeTitle: item.original_title || item.title || '',
     year: releaseYear,
@@ -123,12 +124,12 @@ export function mapDramaDetail(item) {
     episodes: totalEps,
     duration: '60–70 min / ep',
     rating,
+    voteCount: Number(item.vote_count) || 0,
     myRating: item.myRating || null,
-    status: item.watch_status || null,
+    status: status || null,
     progress: epCount > 0 ? Math.round((watchedCount / epCount) * 100) : 0,
     watchedCount,
     addedDate: 'Recently',
-    remainingTime: `~${Math.max(0, epCount - watchedCount)}h remaining`,
     tone: 'pink',
     image,
     poster,
@@ -186,4 +187,3 @@ export const discoverService = {
 }
 
 export default discoverService
-
