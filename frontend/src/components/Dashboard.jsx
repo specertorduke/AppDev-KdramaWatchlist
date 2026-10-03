@@ -1213,7 +1213,6 @@ function DiscoverCard({ drama }) {
   return (
     <article className="discover-card">
       <div className="discover-poster" style={{ backgroundImage: `url(${drama.image})` }}>
-        <span className={`rank rank-${drama.tone}`}>{drama.rank}</span>
         {drama.status && <b className={`show-status status-${drama.tone}`}>{drama.status}</b>}
       </div>
       <h3>{drama.title}</h3>
