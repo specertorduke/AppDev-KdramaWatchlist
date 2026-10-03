@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,63 +7,17 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Alert,
-  Platform,
-  Modal,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { userService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileScreen({ navigation }) {
-  const insets = useSafeAreaInsets();
-  const { user, logout, openAccountChooser, updateProfileAvatar } = useAuth();
+  const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [selectedIcon, setSelectedIcon] = useState(user?.avatarIcon || 'heart');
-  const [selectedColor, setSelectedColor] = useState(user?.color || '#F5A9C4');
-
-  const AVATAR_ICONS = [
-    { id: 'heart', icon: 'heart', label: 'Romance Lead' },
-    { id: 'sparkles', icon: 'sparkles', label: 'K-Drama Star' },
-    { id: 'film', icon: 'film', label: 'Binge Watcher' },
-    { id: 'flame', icon: 'flame', label: 'Plot Twist' },
-    { id: 'ribbon', icon: 'ribbon', label: 'Award Winner' },
-    { id: 'glasses', icon: 'glasses', label: 'Chaebol Heir' },
-    { id: 'planet', icon: 'planet', label: 'Fantasy / Sci-Fi' },
-    { id: 'flash', icon: 'flash', label: 'Action Hero' },
-    { id: 'cafe', icon: 'cafe', label: 'Coffee Prince' },
-    { id: 'happy', icon: 'happy', label: 'Second Lead' },
-    { id: 'musical-notes', icon: 'musical-notes', label: 'OST Lover' },
-    { id: 'paw', icon: 'paw', label: 'Drama Mascot' },
-  ];
-
-  const COLOR_PALETTES = [
-    '#F5A9C4', // Signature Pink
-    '#E085A6', // Deep Rose
-    '#6B2638', // Wine
-    '#29234D', // Midnight Plum
-    '#3A315A', // Royal Violet
-    '#19313B', // Deep Teal
-    '#2D4B3E', // Forest Sage
-    '#D97706', // Sunset Amber
-  ];
-
-  useEffect(() => {
-    if (user?.avatarIcon) setSelectedIcon(user.avatarIcon);
-    if (user?.color) setSelectedColor(user.color);
-  }, [user]);
-
-  const handleSaveAvatar = async (icon, color) => {
-    setSelectedIcon(icon);
-    setSelectedColor(color);
-    await updateProfileAvatar({ avatarIcon: icon, color });
-    setShowAvatarModal(false);
-  };
 
   const fetchProfileStats = async () => {
     try {
@@ -80,11 +33,9 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfileStats();
-    }, [])
-  );
+  useEffect(() => {
+    fetchProfileStats();
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -92,370 +43,97 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const getInitials = (name) => {
-    if (!name) return 'KJ';
+    if (!name) return 'KD';
     const parts = name.trim().split(' ');
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
   };
 
-  const handleSignOut = async () => {
-    await logout();
-  };
-
-  const activeColor = user?.color || selectedColor || '#F5A9C4';
-  const activeIcon = user?.avatarIcon || selectedIcon;
-
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.content,
-        {
-          paddingTop: (insets.top > 0 ? insets.top : 12) + 6,
-          paddingBottom: Math.max(insets.bottom, 16) + 85,
-        },
-      ]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.redBright}
-        />
-      }
-    >
-      {/* Profile Header */}
-      <View style={styles.profileHeader}>
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.avatar,
-            { backgroundColor: activeColor },
-            hovered && styles.avatarHovered,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => setShowAvatarModal(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Change profile avatar"
-        >
-          {activeIcon ? (
-            <Ionicons name={activeIcon} size={24} color="#FFFFFF" />
-          ) : (
+    <View style={styles.screen}>
+      <View style={styles.topBar}>
+        <Text style={styles.headerTitle}>Profile</Text>
+      </View>
+
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.red} />
+        }
+      >
+        {/* Profile Card */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatar}>
             <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
-          )}
-          <View style={styles.avatarBadge}>
-            <Ionicons name="camera" size={10} color="#FFFFFF" />
           </View>
-        </Pressable>
-
-        <View style={styles.profileInfo}>
-          <Text style={styles.name}>{user?.name || 'Kim Ji-young'}</Text>
-          <Text style={styles.email}>{user?.email || 'kdramaaddict@email.com'}</Text>
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{user?.name || 'K-Drama Fan'}</Text>
+            <Text style={styles.email}>{user?.email || 'user@sarangtv.app'}</Text>
+          </View>
         </View>
 
-        <View style={styles.headerActions}>
+        {/* Stats Row */}
+        <View style={styles.stats}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats?.total_dramas ?? 0}</Text>
+            <Text style={styles.statLabel}>Dramas</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats?.episodes_watched ?? 0}</Text>
+            <Text style={styles.statLabel}>Episodes</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.gold }]}>
+              {Math.round(stats?.hours_watched ?? 0)}h
+            </Text>
+            <Text style={styles.statLabel}>Watched</Text>
+          </View>
+        </View>
+
+        {/* Menu Section */}
+        <View style={styles.menu}>
           <Pressable
-            style={({ pressed, hovered }) => [
-              styles.headerActionBtn,
-              hovered && styles.headerActionBtnHovered,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => setShowAvatarModal(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Choose Avatar"
+            style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+            onPress={() => navigation.navigate('Tracker')}
           >
-            <Ionicons name="color-palette-outline" size={15} color={colors.text} />
+            <View style={styles.menuItemLeft}>
+              <Ionicons name="bookmark-outline" size={20} color={colors.text} />
+              <Text style={styles.menuItemText}>My Watchlist</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
           </Pressable>
 
           <Pressable
-            style={({ pressed, hovered }) => [
-              styles.headerActionBtn,
-              hovered && styles.headerActionBtnHovered,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={openAccountChooser}
-            accessibilityRole="button"
-            accessibilityLabel="Switch Profile"
+            style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+            onPress={() => navigation.navigate('Discover')}
           >
-            <Ionicons name="people-outline" size={15} color={colors.text} />
+            <View style={styles.menuItemLeft}>
+              <Ionicons name="compass-outline" size={20} color={colors.text} />
+              <Text style={styles.menuItemText}>Discover Dramas</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
           </Pressable>
 
           <Pressable
-            style={({ pressed, hovered }) => [
-              styles.headerActionBtn,
-              hovered && styles.headerActionBtnHovered,
-              pressed && styles.buttonPressed,
+            style={({ pressed }) => [
+              styles.menuItem,
+              styles.logoutItem,
+              pressed && styles.menuItemPressed,
             ]}
-            onPress={() => navigation.navigate('Settings')}
-            accessibilityRole="button"
-            accessibilityLabel="Edit profile"
+            onPress={logout}
           >
-            <Ionicons name="settings-outline" size={15} color={colors.text} />
+            <View style={styles.menuItemLeft}>
+              <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+              <Text style={[styles.menuItemText, { color: colors.danger }]}>Sign Out</Text>
+            </View>
           </Pressable>
         </View>
-      </View>
-
-      {/* Profile Summary */}
-      <View style={styles.stats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats?.total_dramas ?? 4}</Text>
-          <Text style={styles.statLabel}>Dramas</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats?.episodes_watched ?? 18}</Text>
-          <Text style={styles.statLabel}>Episodes</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, styles.gold]}>
-            {Math.round(stats?.hours_watched ?? 17)}h
-          </Text>
-          <Text style={[styles.statLabel, styles.gold]}>Watched</Text>
-        </View>
-      </View>
-
-      {/* Profile Menu */}
-      <View style={styles.menu}>
-        {/* My Tracker */}
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.menuItem,
-            hovered && styles.menuItemHovered,
-            pressed && styles.menuItemPressed,
-          ]}
-          onPress={() => navigation.navigate('Tracker')}
-          accessibilityRole="button"
-          accessibilityLabel="My Tracker"
-        >
-          <View style={styles.menuIcon}>
-            <Ionicons name="clipboard-outline" size={15} color={colors.muted} />
-          </View>
-          <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>My Tracker</Text>
-            <Text style={styles.menuSubtitle}>
-              {stats?.total_dramas ?? 4} dramas tracked
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
-        </Pressable>
-
-        {/* Stats & History */}
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.menuItem,
-            hovered && styles.menuItemHovered,
-            pressed && styles.menuItemPressed,
-          ]}
-          onPress={() => navigation.navigate('Stats')}
-          accessibilityRole="button"
-          accessibilityLabel="Stats and History"
-        >
-          <View style={styles.menuIcon}>
-            <Ionicons name="bar-chart-outline" size={15} color={colors.muted} />
-          </View>
-          <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Stats & History</Text>
-            <Text style={styles.menuSubtitle}>
-              {stats?.episodes_watched ?? 18} episodes · {Math.round(stats?.hours_watched ?? 17)}h
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
-        </Pressable>
-
-        {/* Favorite Genres & Taste */}
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.menuItem,
-            hovered && styles.menuItemHovered,
-            pressed && styles.menuItemPressed,
-          ]}
-          onPress={() => navigation.navigate('GenreSelection', { isEditing: true })}
-          accessibilityRole="button"
-          accessibilityLabel="Favorite Genres"
-        >
-          <View style={styles.menuIcon}>
-            <Ionicons name="sparkles-outline" size={15} color="#F5A9C4" />
-          </View>
-          <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Favorite Genres</Text>
-            <Text style={styles.menuSubtitle}>
-              {Array.isArray(user?.favorite_genres) && user.favorite_genres.length > 0
-                ? user.favorite_genres.join(', ')
-                : 'Select your preferred genres'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
-        </Pressable>
-
-        {/* Settings */}
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.menuItem,
-            hovered && styles.menuItemHovered,
-            pressed && styles.menuItemPressed,
-          ]}
-          onPress={() => navigation.navigate('Settings')}
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-        >
-          <View style={styles.menuIcon}>
-            <Ionicons name="settings-outline" size={15} color={colors.muted} />
-          </View>
-          <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Settings</Text>
-            <Text style={styles.menuSubtitle}>Notifications, quality, account</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
-        </Pressable>
-
-        {/* Switch Account */}
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.menuItem,
-            styles.menuItemLast,
-            hovered && styles.menuItemHovered,
-            pressed && styles.menuItemPressed,
-          ]}
-          onPress={openAccountChooser}
-          accessibilityRole="button"
-          accessibilityLabel="Switch Account"
-        >
-          <View style={styles.menuIcon}>
-            <Ionicons name="people-outline" size={15} color={colors.muted} />
-          </View>
-          <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Switch Account</Text>
-            <Text style={styles.menuSubtitle}>Who's tracking? · Change active profile</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
-        </Pressable>
-      </View>
-
-      {/* Sign Out Button */}
-      <Pressable
-        style={({ pressed, hovered }) => [
-          styles.signOut,
-          hovered && styles.signOutHovered,
-          pressed && styles.signOutPressed,
-        ]}
-        onPress={handleSignOut}
-        accessibilityRole="button"
-        accessibilityLabel="Sign out"
-      >
-        <Ionicons name="log-out-outline" size={14} color={colors.redBright} />
-        <Text style={styles.signOutText}>Sign Out</Text>
-      </Pressable>
-
-      {/* Netflix-Style Profile Avatar Chooser Modal */}
-      <Modal
-        visible={showAvatarModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowAvatarModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Choose Profile Style</Text>
-                <Text style={styles.modalSubtitle}>Pick an icon and theme for your profile</Text>
-              </View>
-              <Pressable
-                style={styles.modalCloseBtn}
-                onPress={() => setShowAvatarModal(false)}
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-              >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
-              </Pressable>
-            </View>
-
-            {/* Current Preview */}
-            <View style={styles.previewContainer}>
-              <View style={[styles.avatarPreview, { backgroundColor: selectedColor }]}>
-                <Ionicons name={selectedIcon} size={44} color="#FFFFFF" />
-              </View>
-              <Text style={styles.previewLabel}>
-                {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
-              </Text>
-            </View>
-
-            {/* Color Swatches */}
-            <Text style={styles.modalSectionHeading}>CHOOSE COLOR THEME</Text>
-            <View style={styles.colorPaletteRow}>
-              {COLOR_PALETTES.map((col) => {
-                const isSelected = selectedColor === col;
-                return (
-                  <Pressable
-                    key={col}
-                    style={[
-                      styles.colorSwatch,
-                      { backgroundColor: col },
-                      isSelected && styles.colorSwatchActive,
-                    ]}
-                    onPress={() => setSelectedColor(col)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select color ${col}`}
-                  >
-                    {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Icon Grid */}
-            <Text style={styles.modalSectionHeading}>SELECT DRAMA PERSONA</Text>
-            <ScrollView style={styles.iconScroll} showsVerticalScrollIndicator={false}>
-              <View style={styles.iconGrid}>
-                {AVATAR_ICONS.map((item) => {
-                  const isSelected = selectedIcon === item.icon;
-                  return (
-                    <Pressable
-                      key={item.id}
-                      style={[
-                        styles.iconTile,
-                        isSelected && [styles.iconTileActive, { borderColor: selectedColor }],
-                      ]}
-                      onPress={() => setSelectedIcon(item.icon)}
-                      accessibilityRole="button"
-                      accessibilityLabel={item.label}
-                    >
-                      <View style={[styles.iconTileBg, { backgroundColor: isSelected ? selectedColor : '#1C1B2A' }]}>
-                        <Ionicons name={item.icon} size={22} color="#FFFFFF" />
-                      </View>
-                      <Text style={[styles.iconTileLabel, isSelected && styles.iconTileLabelActive]} numberOfLines={1}>
-                        {item.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </ScrollView>
-
-            {/* Modal Actions */}
-            <View style={styles.modalActions}>
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={() => setShowAvatarModal(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.saveAvatarBtn, { backgroundColor: selectedColor }]}
-                onPress={() => handleSaveAvatar(selectedIcon, selectedColor)}
-              >
-                <Text style={styles.saveAvatarBtnText}>Save Profile Style</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -464,347 +142,118 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  content: {
-    padding: 19,
+  topBar: {
+    paddingHorizontal: 16,
     paddingTop: 48,
-    paddingBottom: 40,
+    paddingBottom: 12,
+    backgroundColor: colors.nav,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.text,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 32,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 22,
+    backgroundColor: colors.panel,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    marginBottom: 16,
   },
   avatar: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: '#F5A9C4',
-    alignItems: 'center',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: colors.redBright,
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 14,
   },
   avatarText: {
-    color: '#07070E',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
+    color: colors.white,
   },
   profileInfo: {
     flex: 1,
   },
   name: {
-    color: colors.text,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '900',
+    color: colors.text,
+    marginBottom: 2,
   },
   email: {
+    fontSize: 12,
     color: colors.muted,
-    fontSize: 13,
-    marginTop: 4,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerActionBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#161424',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  headerActionBtnHovered: {
-    backgroundColor: '#1E1B30',
-  },
-  buttonPressed: {
-    opacity: 0.7,
   },
   stats: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#161424',
-    borderRadius: 16,
-    paddingVertical: 18,
+    backgroundColor: colors.panel,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingVertical: 14,
     marginBottom: 20,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  },
   statValue: {
-    color: colors.text,
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '900',
+    color: colors.text,
+    marginBottom: 2,
   },
   statLabel: {
-    color: colors.muted,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
-    marginTop: 4,
+    color: colors.muted,
   },
-  gold: {
-    color: colors.gold,
+  divider: {
+    width: 1,
+    backgroundColor: colors.line,
   },
   menu: {
-    backgroundColor: '#161424',
-    borderRadius: 16,
+    backgroundColor: colors.panel,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
     overflow: 'hidden',
-    marginBottom: 22,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  menuItemLast: {
-    borderBottomWidth: 0,
-  },
-  menuItemHovered: {
-    backgroundColor: '#1C192E',
+    borderBottomColor: colors.line,
   },
   menuItemPressed: {
-    opacity: 0.7,
+    backgroundColor: colors.panel2,
   },
-  menuIcon: {
-    width: 28,
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  menuText: {
-    flex: 1,
-  },
-  menuTitle: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  menuSubtitle: {
-    color: colors.muted,
-    fontSize: 12,
-    marginTop: 3,
-  },
-  signOut: {
+  menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(232, 33, 63, 0.12)',
+    gap: 12,
   },
-  signOutHovered: {
-    backgroundColor: 'rgba(232, 33, 63, 0.18)',
-  },
-  signOutPressed: {
-    opacity: 0.7,
-  },
-  signOutText: {
-    color: colors.redBright,
+  menuItemText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
+    color: colors.text,
   },
-  avatarHovered: {
-    opacity: 0.9,
-    transform: [{ scale: 1.05 }],
-  },
-  avatarBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: '#1E1B2E',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#07070E',
-  },
-  /* MODAL STYLES */
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 440,
-    backgroundColor: '#161424',
-    borderRadius: 20,
-    padding: 22,
-    maxHeight: '90%',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  modalSubtitle: {
-    color: '#8D8B98',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  modalCloseBtn: {
-    padding: 4,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  previewContainer: {
-    alignItems: 'center',
-    marginVertical: 12,
-    paddingVertical: 12,
-    backgroundColor: '#0F0E1A',
-    borderRadius: 14,
-  },
-  avatarPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  previewLabel: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-    marginTop: 8,
-  },
-  modalSectionHeading: {
-    color: '#8D8B98',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
-    marginTop: 14,
-    marginBottom: 8,
-  },
-  colorPaletteRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 10,
-  },
-  colorSwatch: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorSwatchActive: {
-    borderColor: '#FFFFFF',
-    transform: [{ scale: 1.1 }],
-  },
-  iconScroll: {
-    maxHeight: 180,
-  },
-  iconGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  iconTile: {
-    width: '31%',
-    backgroundColor: '#141322',
-    borderRadius: 10,
-    padding: 8,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  iconTileActive: {
-    backgroundColor: '#1E1A2C',
-  },
-  iconTileBg: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  iconTileLabel: {
-    color: '#A19EA9',
-    fontSize: 10,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  iconTileLabelActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 18,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  cancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  cancelBtnText: {
-    color: '#D7D4DC',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  saveAvatarBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-  },
-  saveAvatarBtnText: {
-    color: '#07070E',
-    fontSize: 12,
-    fontWeight: '900',
+  logoutItem: {
+    borderBottomWidth: 0,
   },
 });

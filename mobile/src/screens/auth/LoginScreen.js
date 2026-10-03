@@ -10,59 +10,41 @@ import {
   Platform,
   ScrollView,
   Pressable,
-  Image,
 } from 'react-native';
 import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function LoginScreen({ navigation, route }) {
-  const insets = useSafeAreaInsets();
-  const { login, savedAccounts } = useAuth();
-  const [email, setEmail] = useState(route?.params?.email || '');
+export default function LoginScreen({ navigation }) {
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(route?.params?.message || '');
+  const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
-
-  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
     setErrorMessage('');
     setFieldErrors({});
-    setNeedsVerification(false);
 
     try {
       // Backend handles validation (422)
-      await login(email, password, rememberMe);
+      await login(email, password);
     } catch (err) {
       if (err.response) {
         if (err.response.status === 422) {
           const data = err.response.data;
-          const msg = data.message || 'Validation failed.';
-          setErrorMessage(msg);
+          setErrorMessage(data.message || 'Validation failed.');
           setFieldErrors(data.errors || {});
-
-          if (
-            msg.toLowerCase().includes('not been verified') ||
-            msg.toLowerCase().includes('verify your email') ||
-            data.errors?.email?.[0]?.toLowerCase()?.includes('verify')
-          ) {
-            setNeedsVerification(true);
-          }
         } else {
           setErrorMessage(
             err.response.data?.message || 'Invalid credentials. Please try again.'
           );
         }
       } else {
-        setErrorMessage(
-          err.friendlyMessage || 'Unable to connect. Please check your internet connection and try again.'
-        );
+        setErrorMessage('Cannot connect to the backend server. Please ensure the API is running.');
       }
     } finally {
       setLoading(false);
@@ -74,40 +56,9 @@ export default function LoginScreen({ navigation, route }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingTop: (insets.top > 0 ? insets.top : 20) + 12,
-            paddingBottom: (insets.bottom > 0 ? insets.bottom : 20) + 16,
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        {savedAccounts && savedAccounts.length > 0 && (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              if (navigation?.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation?.navigate('AccountChooser');
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={16} color={colors.text} />
-            <Text style={styles.backButtonText}>Profiles</Text>
-          </TouchableOpacity>
-        )}
-
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Brand Header */}
         <View style={styles.header}>
-          <Image
-            source={require('../../../assets/sarangtv-logo.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
           <Text style={styles.brand}>SARANGTV</Text>
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Log in to your watchlist.</Text>
@@ -117,25 +68,7 @@ export default function LoginScreen({ navigation, route }) {
         {errorMessage ? (
           <View style={styles.alertError}>
             <Ionicons name="alert-circle" size={18} color="#EF4444" />
-            <View style={styles.alertErrorContent}>
-              <Text style={styles.alertErrorText}>{errorMessage}</Text>
-              {needsVerification && (
-                <TouchableOpacity
-                  style={styles.verifyActionBtn}
-                  onPress={() => {
-                    navigation.navigate('OtpVerification', {
-                      email: email.trim(),
-                      message: errorMessage,
-                      rememberMe,
-                      mode: 'login',
-                    });
-                  }}
-                >
-                  <Text style={styles.verifyActionText}>Enter Verification Code</Text>
-                  <Ionicons name="arrow-forward" size={12} color="#FCA5A5" />
-                </TouchableOpacity>
-              )}
-            </View>
+            <Text style={styles.alertErrorText}>{errorMessage}</Text>
           </View>
         ) : null}
 
@@ -195,19 +128,6 @@ export default function LoginScreen({ navigation, route }) {
             )}
           </View>
 
-          {/* Remember Profile Option */}
-          <Pressable
-            style={styles.rememberRow}
-            onPress={() => setRememberMe(!rememberMe)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: rememberMe }}
-          >
-            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-              {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-            </View>
-            <Text style={styles.rememberText}>Save login as a profile</Text>
-          </Pressable>
-
           {/* Submit Button */}
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
@@ -253,33 +173,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  backButtonText: {
-    color: '#D7D4DC',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  logoImage: {
-    width: 80,
-    height: 80,
-    marginBottom: 10,
-  },
   brand: {
-    color: '#F5A9C4',
+    color: '#EB5B78',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 2,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   title: {
     color: '#F7F0F0',
@@ -295,7 +194,7 @@ const styles = StyleSheet.create({
   },
   alertError: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.4)',
@@ -304,29 +203,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 8,
   },
-  alertErrorContent: {
-    flex: 1,
-  },
   alertErrorText: {
     color: '#F87171',
     fontSize: 13,
     fontWeight: '500',
-  },
-  verifyActionBtn: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(239, 68, 68, 0.22)',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-  },
-  verifyActionText: {
-    color: '#FCA5A5',
-    fontSize: 12,
-    fontWeight: '700',
+    flex: 1,
   },
   form: {
     width: '100%',
@@ -368,40 +249,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontWeight: '500',
   },
-  rememberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 20,
-    marginTop: 2,
-    alignSelf: 'flex-start',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: '#3D3C4E',
-    backgroundColor: '#12121A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#EB5B78',
-    borderColor: '#EB5B78',
-  },
-  rememberText: {
-    color: '#D7D4DC',
-    fontSize: 13,
-    fontWeight: '500',
-  },
   submitButton: {
     backgroundColor: '#EB5B78',
     borderRadius: 12,
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
     shadowColor: '#EB5B78',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,

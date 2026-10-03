@@ -37,7 +37,6 @@ export const setOnUnauthorizedCallback = (callback) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // 401 Unauthorized handling
     if (error.response && error.response.status === 401) {
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('auth_user');
@@ -45,23 +44,6 @@ api.interceptors.response.use(
         onUnauthorizedCallback();
       }
     }
-
-    // Graceful network / connection failure handling
-    if (!error.response) {
-      if (__DEV__) {
-        console.warn('[Network Error] Failed to reach backend URL:', error.config?.baseURL || error.config?.url);
-        console.warn('[Network Tip] If testing on physical phone, ensure Laravel is running with: php artisan serve --host=0.0.0.0');
-      }
-
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        error.friendlyMessage = 'Connection timed out. Please check your network and try again.';
-      } else {
-        error.friendlyMessage = 'Unable to connect. Please check your internet connection and try again.';
-      }
-    } else {
-      error.friendlyMessage = error.response.data?.message || 'Something went wrong. Please try again.';
-    }
-
     return Promise.reject(error);
   }
 );
@@ -72,9 +54,6 @@ api.interceptors.response.use(
 export const authService = {
   login: (data) => api.post('/auth/login', data),
   register: (data) => api.post('/auth/register', data),
-  sendSignupOtp: (data) => api.post('/auth/send-signup-otp', data),
-  verifyOtp: (data) => api.post('/auth/verify-otp', data),
-  resendOtp: (data) => api.post('/auth/resend-otp', data),
   getMe: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
   logoutAll: () => api.post('/auth/logout-all'),
@@ -87,7 +66,6 @@ export const authService = {
 export const userService = {
   getProfile: () => api.get('/user/profile'),
   getStats: () => api.get('/user/stats'),
-  updatePreferences: (data) => api.patch('/user/preferences', data),
   deleteAccount: (data) => api.delete('/user', { data }),
 };
 
@@ -112,11 +90,6 @@ export const trackerService = {
   updateProgress: (tmdbId, data) => api.patch(`/tracker/${tmdbId}`, data),
   incrementEpisode: (tmdbId) => api.post(`/tracker/${tmdbId}/increment`),
   deleteDrama: (tmdbId) => api.delete(`/tracker/${tmdbId}`),
-};
-
-// Chatbot AI
-export const chatbotService = {
-  sendMessage: (message) => api.post('/discover/chatbot', { message }),
 };
 
 export default api;

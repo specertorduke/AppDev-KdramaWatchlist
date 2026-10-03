@@ -7,7 +7,7 @@ import AppNavigator from './AppNavigator';
 import { colors } from '../theme';
 
 export default function RootNavigator() {
-  const { isAuthenticated, isLoading, isChoosingAccount, needsOnboarding } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -19,11 +19,7 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated && !isChoosingAccount ? (
-        <AppNavigator initialRouteName={needsOnboarding ? 'GenreSelection' : 'MainTabs'} />
-      ) : (
-        <AuthNavigator />
-      )}
+      {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 }

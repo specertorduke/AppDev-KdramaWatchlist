@@ -25,7 +25,6 @@ export default function DramaCard({ drama, onPress }) {
     ? drama.genres.join(', ') 
     : drama.genre || 'Drama';
   const episodes = drama.total_episodes || drama.episodes;
-  const status = drama.watch_status || drama.status;
 
   return (
     <Pressable
@@ -49,60 +48,21 @@ export default function DramaCard({ drama, onPress }) {
               <View style={[styles.posterFallback, hovered && styles.posterFallbackHover]} />
             )}
 
-            {/* Top Left Badge if any */}
-            {drama.badge ? (
-              <View style={[styles.badge, hovered && styles.badgeHover]}>
-                <Text style={[styles.badgeText, hovered && styles.badgeTextHover]}>
-                  {drama.badge}
+            {/* Status / Badge */}
+            {drama.watch_status || drama.status ? (
+              <View style={[styles.statusBadge, hovered && styles.statusBadgeHover]}>
+                <Text style={[styles.statusText, hovered && styles.statusTextHover]}>
+                  {String(drama.watch_status || drama.status).replace(/_/g, ' ').toUpperCase()}
                 </Text>
               </View>
             ) : null}
 
-            {/* Top Right Status Badge */}
-            {status ? (() => {
-              const s = String(status).toLowerCase().replace(/_/g, ' ');
-              let badgeColor = '#F5A9C4';
-              let badgeBg = 'rgba(245, 169, 196, 0.22)';
-              if (s.includes('watch') && !s.includes('plan')) {
-                badgeColor = '#60A5FA';
-                badgeBg = 'rgba(96, 165, 250, 0.22)';
-              } else if (s.includes('complet')) {
-                badgeColor = '#10B981';
-                badgeBg = 'rgba(16, 185, 129, 0.22)';
-              } else if (s.includes('plan')) {
-                badgeColor = '#FFD76A';
-                badgeBg = 'rgba(255, 215, 106, 0.22)';
-              } else if (s.includes('hold')) {
-                badgeColor = '#F59E0B';
-                badgeBg = 'rgba(245, 158, 11, 0.22)';
-              } else if (s.includes('drop')) {
-                badgeColor = '#EF4444';
-                badgeBg = 'rgba(239, 68, 68, 0.22)';
-              }
-
-              const formattedText = String(status)
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, (c) => c.toUpperCase());
-
-              return (
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: 'rgba(12, 11, 20, 0.94)' },
-                    hovered && styles.statusBadgeHover,
-                  ]}
-                >
-                  <View style={[styles.statusDot, { backgroundColor: badgeColor }]} />
-                  <Text
-                    style={[styles.statusText, { color: badgeColor }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {formattedText}
-                  </Text>
-                </View>
-              );
-            })() : null}
+            {/* Rating */}
+            {rating > 0 ? (
+              <View style={[styles.ratingBadge, hovered && styles.ratingBadgeHover]}>
+                <Text style={styles.ratingText}>★ {rating.toFixed(1)}</Text>
+              </View>
+            ) : null}
 
             {hovered && <View pointerEvents="none" style={styles.hoverOverlay} />}
           </View>
@@ -124,7 +84,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     minWidth: 0,
-    marginBottom: 0,
     borderRadius: 12,
   },
   cardHover: {
@@ -170,71 +129,37 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(232,33,63,0.055)',
     borderRadius: 10,
   },
-  badge: {
-    position: 'absolute',
-    top: 7,
-    left: 7,
-    backgroundColor: 'rgba(7,7,14,0.88)',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-  },
-  badgeHover: {
-    backgroundColor: 'rgba(232,33,63,0.88)',
-    transform: [{ scale: 1.05 }],
-  },
-  badgeText: {
-    color: '#F0EEE8',
-    fontSize: 10,
-    lineHeight: 12,
-    fontWeight: '900',
-  },
-  badgeTextHover: {
-    color: '#FFFFFF',
-  },
   statusBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    borderRadius: 999,
-    paddingHorizontal: 9,
+    top: 7,
+    right: 7,
+    backgroundColor: 'rgba(20,20,30,0.88)',
+    borderRadius: 5,
+    paddingHorizontal: 6,
     paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
+    maxWidth: '55%',
   },
   statusBadgeHover: {
-    transform: [{ scale: 1.05 }],
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    flexShrink: 0,
+    backgroundColor: 'rgba(232,33,63,0.18)',
+    borderWidth: 1,
+    borderColor: colors.redBright,
   },
   statusText: {
-    fontSize: 10,
-    lineHeight: 13,
-    fontWeight: '900',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    flexShrink: 0,
-    letterSpacing: 0.3,
+    color: '#BBA8FF',
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '800',
   },
-  statusTextHover: {},
+  statusTextHover: {
+    color: colors.redBright,
+  },
   ratingBadge: {
     position: 'absolute',
     left: 7,
     bottom: 7,
-    backgroundColor: 'rgba(7,7,14,0.88)',
-    borderRadius: 6,
-    paddingHorizontal: 7,
+    backgroundColor: 'rgba(7,7,14,0.82)',
+    borderRadius: 5,
+    paddingHorizontal: 6,
     paddingVertical: 4,
   },
   ratingBadgeHover: {
@@ -243,20 +168,17 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     color: colors.gold,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '900',
-  },
-  ratingTextHover: {
+    fontSize: 9,
+    lineHeight: 11,
     fontWeight: '900',
   },
   title: {
     width: '100%',
     color: colors.text,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 15,
     fontWeight: '900',
-    marginTop: 4,
+    marginTop: 1,
   },
   titleHover: {
     color: colors.redBright,
@@ -264,8 +186,8 @@ const styles = StyleSheet.create({
   meta: {
     width: '100%',
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 10,
+    lineHeight: 13,
     marginTop: 2,
   },
   metaHover: {
