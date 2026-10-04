@@ -419,4 +419,128 @@ class AuthService
             'status_breakdown' => $statusBreakdown,
         ];
     }
+
+    /**
+     * Initiate email change request with password verification and OTP to new email.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{message: string}
+     *
+     * @throws ValidationException
+     */
+    public function requestEmailChange(User $user, array $data): array
+    {
+        // 1. Password check (re-authentication)
+        if (! Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['The provided password does not match your current password.'],
+            ]);
+        }
+
+        if (strtolower($data['new_email']) === strtolower($user->email)) {
+            throw ValidationException::withMessages([
+                'new_email' => ['The new email must be different from your current email.'],
+            ]);
+        }
+
+        // 2. Check if new email is already registered by another account
+        $alreadyExists = User::where('email', $data['new_email'])
+            ->where('id', '!=', $user->id)
+            ->exists();
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'new_email' => ['An account with this email address already exists.'],
+            ]);
+        }
+
+        // 3. Rate limit: 60s cooldown
+        $latestOtp = EmailOtp::where('email', $data['new_email'])->first();
+        if ($latestOtp && $latestOtp->updated_at && $latestOtp->updated_at->gt(now()->subSeconds(60))) {
+            $secondsRemaining = 60 - (int) now()->diffInSeconds($latestOtp->updated_at);
+            throw ValidationException::withMessages([
+                'new_email' => ["Please wait {$secondsRemaining} seconds before requesting a new code."],
+            ]);
+        }
+
+        // 4. Generate 6-digit OTP
+        $otp = (string) random_int(100000, 999999);
+
+        EmailOtp::updateOrCreate(
+            ['email' => $data['new_email']],
+            [
+                'code_hash'  => Hash::make($otp),
+                'attempts'   => 0,
+                'expires_at' => now()->addMinutes(10),
+            ]
+        );
+
+        try {
+            Mail::to($data['new_email'])->send(new VerifyEmailOtpMail($otp, $user->name));
+        } catch (\Throwable $e) {
+            \Log::warning("Email change OTP send failed: " . $e->getMessage() . " OTP was: {$otp}");
+        }
+
+        return [
+            'message' => "Verification code sent to {$data['new_email']}.",
+        ];
+    }
+
+    /**
+     * Verify OTP and finalize email change.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{message: string, user: User}
+     *
+     * @throws ValidationException
+     */
+    public function verifyEmailChange(User $user, array $data): array
+    {
+        // 1. Double check unique
+        $alreadyExists = User::where('email', $data['new_email'])
+            ->where('id', '!=', $user->id)
+            ->exists();
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'new_email' => ['This email address is already in use by another account.'],
+            ]);
+        }
+
+        // 2. Validate OTP
+        $otpRecord = EmailOtp::where('email', $data['new_email'])->first();
+
+        if (! $otpRecord || $otpRecord->isExpired()) {
+            throw ValidationException::withMessages([
+                'otp' => ['The verification code has expired or does not exist. Please request a new one.'],
+            ]);
+        }
+
+        if ($otpRecord->hasExceededMaxAttempts()) {
+            $otpRecord->delete();
+
+            throw ValidationException::withMessages([
+                'otp' => ['Too many invalid attempts. This code has been invalidated. Please request a new one.'],
+            ]);
+        }
+
+        $otpRecord->increment('attempts');
+
+        if (! Hash::check($data['otp'], $otpRecord->code_hash)) {
+            throw ValidationException::withMessages([
+                'otp' => ['The verification code is incorrect.'],
+            ]);
+        }
+
+        // 3. OTP verified! Update user email
+        $otpRecord->delete();
+
+        $user->update([
+            'email'             => $data['new_email'],
+            'email_verified_at' => now(),
+        ]);
+
+        return [
+            'message' => 'Email updated successfully.',
+            'user'    => $user,
+        ];
+    }
 }

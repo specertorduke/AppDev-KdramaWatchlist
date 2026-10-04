@@ -96,6 +96,49 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name'       => 'nullable|string|max:50',
+            'avatar_url' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $user->update(array_filter($validated, fn ($val) => $val !== null));
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user'    => new UserResource($user),
+        ]);
+    }
+
+    public function requestEmailChange(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'new_email' => 'required|email|max:255',
+            'password'  => 'required|string',
+        ]);
+
+        $result = $this->authService->requestEmailChange($request->user(), $validated);
+
+        return response()->json($result);
+    }
+
+    public function verifyEmailChange(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'new_email' => 'required|email|max:255',
+            'otp'       => 'required|string|size:6',
+        ]);
+
+        $result = $this->authService->verifyEmailChange($request->user(), $validated);
+
+        return response()->json([
+            'message' => $result['message'],
+            'user'    => new UserResource($result['user']),
+        ]);
+    }
+
     public function updatePreferences(Request $request): JsonResponse
     {
         $validated = $request->validate([

@@ -12,6 +12,8 @@ import {
   Platform,
   Modal,
   Image,
+  TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,16 +24,41 @@ import { pickAndCompressAvatar, takeAndCompressAvatar } from '../../services/ima
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { user, logout, openAccountChooser, updateProfileAvatar } = useAuth();
+  const {
+    user,
+    logout,
+    openAccountChooser,
+    updateProfileAvatar,
+    updateProfileName,
+    updateUserEmail,
+  } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
+
+  // Edit Profile Modal States
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Avatar States
   const [selectedIcon, setSelectedIcon] = useState(user?.avatarIcon || 'heart');
   const [selectedColor, setSelectedColor] = useState(user?.color || '#eb5b78');
   const [customImage, setCustomImage] = useState(user?.avatar_url || null);
   const [avatarMode, setAvatarMode] = useState(user?.avatar_url ? 'photo' : 'persona');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+
+  // Email Change Flow States (Industry Standard: Password Re-auth + New Email OTP Verification)
+  const [showEmailFlow, setShowEmailFlow] = useState(false);
+  const [emailStep, setEmailStep] = useState('input'); // 'input' | 'otp'
+  const [newEmail, setNewEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailOtp, setEmailOtp] = useState('');
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailSuccess, setEmailSuccess] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
 
   const AVATAR_ICONS = [
     { id: 'heart', icon: 'heart', label: 'Romance Lead' },
@@ -60,11 +87,41 @@ export default function ProfileScreen({ navigation }) {
   ];
 
   useEffect(() => {
+    if (user?.name) setEditName(user.name);
     if (user?.avatarIcon) setSelectedIcon(user.avatarIcon);
     if (user?.color) setSelectedColor(user.color);
     setCustomImage(user?.avatar_url || null);
     setAvatarMode(user?.avatar_url ? 'photo' : 'persona');
   }, [user]);
+
+  // Resend Countdown Timer
+  useEffect(() => {
+    let interval = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
+
+  const handleOpenEditModal = () => {
+    setEditName(user?.name || '');
+    setSelectedIcon(user?.avatarIcon || 'heart');
+    setSelectedColor(user?.color || '#eb5b78');
+    setCustomImage(user?.avatar_url || null);
+    setAvatarMode(user?.avatar_url ? 'photo' : 'persona');
+    setShowEmailFlow(false);
+    setEmailStep('input');
+    setNewEmail('');
+    setPassword('');
+    setEmailOtp('');
+    setEmailError('');
+    setEmailSuccess('');
+    setShowEditModal(true);
+  };
 
   const handlePickCustomImage = async () => {
     setIsProcessingImage(true);
@@ -98,27 +155,131 @@ export default function ProfileScreen({ navigation }) {
     setCustomImage(null);
   };
 
-  const handleSaveAvatar = async () => {
-    if (avatarMode === 'photo') {
-      if (!customImage) {
-        Alert.alert(
-          'No Photo Selected',
-          'Please choose a photo from your gallery or take a new one first.'
-        );
-        return;
-      }
-      await updateProfileAvatar({
-        avatarIcon: null,
-        avatarUrl: customImage,
-      });
-    } else {
-      await updateProfileAvatar({
-        avatarIcon: selectedIcon,
-        color: selectedColor,
-        avatarUrl: null,
-      });
+  // Step 1: Request Email Change (validates password & sends OTP to new email)
+  const handleRequestEmailChange = async () => {
+    const trimmedEmail = newEmail.trim().toLowerCase();
+    if (!trimmedEmail) {
+      setEmailError('Please enter your new email address.');
+      return;
     }
-    setShowAvatarModal(false);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+    if (trimmedEmail === user?.email?.toLowerCase()) {
+      setEmailError('New email must be different from current email.');
+      return;
+    }
+    if (!password) {
+      setEmailError('Please enter your current password to continue.');
+      return;
+    }
+
+    setIsRequestingOtp(true);
+    setEmailError('');
+    setEmailSuccess('');
+
+    try {
+      await userService.requestEmailChange({
+        new_email: trimmedEmail,
+        password: password,
+      });
+      setEmailStep('otp');
+      setResendTimer(60);
+      setEmailOtp('');
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors?.new_email?.[0] ||
+        e?.response?.data?.errors?.password?.[0] ||
+        'Failed to request email change. Please check your password.';
+      setEmailError(msg);
+    } finally {
+      setIsRequestingOtp(false);
+    }
+  };
+
+  // Step 2: Verify 6-digit OTP and update email in database & local state
+  const handleVerifyEmailChange = async () => {
+    const trimmedOtp = emailOtp.trim();
+    if (!trimmedOtp || trimmedOtp.length !== 6) {
+      setEmailError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setEmailError('');
+
+    try {
+      const trimmedEmail = newEmail.trim().toLowerCase();
+      await userService.verifyEmailChange({
+        new_email: trimmedEmail,
+        otp: trimmedOtp,
+      });
+
+      // Update user state and AsyncStorage in auth context
+      await updateUserEmail(trimmedEmail);
+
+      setEmailSuccess('Email updated successfully!');
+      setShowEmailFlow(false);
+      setEmailStep('input');
+      setNewEmail('');
+      setPassword('');
+      setEmailOtp('');
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        'Verification failed. The code may be invalid or expired.';
+      setEmailError(msg);
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  // Save changes to Name and Avatar
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      // 1. Update Name if changed
+      if (editName.trim() && editName.trim() !== user?.name) {
+        const nameRes = await updateProfileName(editName.trim());
+        if (!nameRes.success) {
+          Alert.alert('Error', nameRes.error || 'Failed to update name.');
+          setIsSavingProfile(false);
+          return;
+        }
+      }
+
+      // 2. Update Avatar
+      if (avatarMode === 'photo') {
+        if (customImage !== user?.avatar_url) {
+          await updateProfileAvatar({
+            avatarIcon: null,
+            avatarUrl: customImage,
+          });
+        }
+      } else {
+        if (
+          selectedIcon !== user?.avatarIcon ||
+          selectedColor !== user?.color ||
+          user?.avatar_url
+        ) {
+          await updateProfileAvatar({
+            avatarIcon: selectedIcon,
+            color: selectedColor,
+            avatarUrl: null,
+          });
+        }
+      }
+
+      setShowEditModal(false);
+    } catch (e) {
+      console.warn('Failed to save profile:', e);
+      Alert.alert('Error', 'Failed to save profile changes.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const fetchProfileStats = async () => {
@@ -187,9 +348,9 @@ export default function ProfileScreen({ navigation }) {
             hovered && styles.avatarHovered,
             pressed && styles.buttonPressed,
           ]}
-          onPress={() => setShowAvatarModal(true)}
+          onPress={handleOpenEditModal}
           accessibilityRole="button"
-          accessibilityLabel="Change profile avatar"
+          accessibilityLabel="Edit profile and avatar"
         >
           <View style={styles.avatarBorderRing}>
             <View style={[styles.avatarCircle, { backgroundColor: activeColor }]}>
@@ -206,9 +367,6 @@ export default function ProfileScreen({ navigation }) {
               )}
             </View>
           </View>
-          <View style={styles.avatarBadge}>
-            <Ionicons name="camera" size={11} color="#FFFFFF" />
-          </View>
         </Pressable>
 
         <View style={styles.profileInfo}>
@@ -216,46 +374,18 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.email}>{user?.email || 'kdramaaddict@email.com'}</Text>
         </View>
 
-        <View style={styles.headerActions}>
-          <Pressable
-            style={({ pressed, hovered }) => [
-              styles.headerActionBtn,
-              hovered && styles.headerActionBtnHovered,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => setShowAvatarModal(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Choose Avatar"
-          >
-            <Ionicons name="color-palette-outline" size={15} color={colors.text} />
-          </Pressable>
-
-          <Pressable
-            style={({ pressed, hovered }) => [
-              styles.headerActionBtn,
-              hovered && styles.headerActionBtnHovered,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={openAccountChooser}
-            accessibilityRole="button"
-            accessibilityLabel="Switch Profile"
-          >
-            <Ionicons name="people-outline" size={15} color={colors.text} />
-          </Pressable>
-
-          <Pressable
-            style={({ pressed, hovered }) => [
-              styles.headerActionBtn,
-              hovered && styles.headerActionBtnHovered,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => navigation.navigate('Settings')}
-            accessibilityRole="button"
-            accessibilityLabel="Edit profile"
-          >
-            <Ionicons name="settings-outline" size={15} color={colors.text} />
-          </Pressable>
-        </View>
+        <Pressable
+          style={({ pressed, hovered }) => [
+            styles.pencilEditButton,
+            hovered && styles.pencilEditButtonHovered,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={handleOpenEditModal}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+        >
+          <Ionicons name="pencil" size={17} color="#a6a1b2" />
+        </Pressable>
       </View>
 
       {/* Profile Summary */}
@@ -414,23 +544,26 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.signOutText}>Sign Out</Text>
       </Pressable>
 
-      {/* Netflix-Style Profile Avatar Chooser Modal */}
+      {/* Comprehensive Edit Profile Modal: Avatar, Name & Industry-Standard Email Flow */}
       <Modal
-        visible={showAvatarModal}
+        visible={showEditModal}
         animationType="fade"
         transparent={true}
-        onRequestClose={() => setShowAvatarModal(false)}
+        onRequestClose={() => setShowEditModal(false)}
       >
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Choose Profile Style</Text>
-                <Text style={styles.modalSubtitle}>Pick an icon and theme for your profile</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Edit Profile</Text>
+                <Text style={styles.modalSubtitle}>Customize your persona, name, and email</Text>
               </View>
               <Pressable
                 style={styles.modalCloseBtn}
-                onPress={() => setShowAvatarModal(false)}
+                onPress={() => setShowEditModal(false)}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >
@@ -438,209 +571,445 @@ export default function ProfileScreen({ navigation }) {
               </Pressable>
             </View>
 
-            {/* Mode Switcher: Custom Photo OR Drama Persona */}
-            <View style={styles.modeTabBar}>
-              <Pressable
-                style={[
-                  styles.modeTab,
-                  avatarMode === 'photo' && styles.modeTabActive,
-                ]}
-                onPress={() => setAvatarMode('photo')}
-              >
-                <Ionicons
-                  name="camera-outline"
-                  size={15}
-                  color={avatarMode === 'photo' ? '#FFFFFF' : '#8D8B98'}
+            <ScrollView
+              style={styles.modalBodyScroll}
+              contentContainerStyle={styles.modalBodyScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* SECTION 1: DISPLAY NAME */}
+              <View style={styles.editSection}>
+                <Text style={styles.editSectionHeading}>DISPLAY NAME</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Enter your name"
+                  placeholderTextColor="#686577"
+                  autoCapitalize="words"
+                  maxLength={50}
                 />
-                <Text
-                  style={[
-                    styles.modeTabText,
-                    avatarMode === 'photo' && styles.modeTabTextActive,
-                  ]}
-                >
-                  Custom Photo
-                </Text>
-              </Pressable>
+              </View>
 
-              <Pressable
-                style={[
-                  styles.modeTab,
-                  avatarMode === 'persona' && styles.modeTabActive,
-                ]}
-                onPress={() => setAvatarMode('persona')}
-              >
-                <Ionicons
-                  name="happy-outline"
-                  size={15}
-                  color={avatarMode === 'persona' ? '#FFFFFF' : '#8D8B98'}
-                />
-                <Text
-                  style={[
-                    styles.modeTabText,
-                    avatarMode === 'persona' && styles.modeTabTextActive,
-                  ]}
-                >
-                  Drama Persona
-                </Text>
-              </Pressable>
-            </View>
+              {/* SECTION 2: EMAIL (INDUSTRY STANDARD FLOW) */}
+              <View style={styles.editSection}>
+                <Text style={styles.editSectionHeading}>EMAIL ADDRESS</Text>
 
-            {avatarMode === 'photo' ? (
-              <View style={styles.modeContent}>
-                {/* Photo Preview */}
-                <View style={styles.previewContainer}>
-                  <View style={styles.avatarPreview}>
-                    <View style={[styles.avatarPreviewInner, { backgroundColor: '#1E1B2D' }]}>
-                      {customImage ? (
-                        <Image
-                          source={{ uri: customImage }}
-                          style={styles.avatarPreviewPhoto}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <Ionicons name="person-outline" size={40} color="#8D8B98" />
-                      )}
+                {!showEmailFlow ? (
+                  <View style={styles.emailCard}>
+                    <View style={styles.emailCurrentRow}>
+                      <View style={styles.emailCurrentLeft}>
+                        <Ionicons name="mail-outline" size={17} color="#a6a1b2" />
+                        <Text style={styles.emailCurrentText} numberOfLines={1}>
+                          {user?.email || 'No email set'}
+                        </Text>
+                      </View>
+                      <View style={styles.emailBadge}>
+                        <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                        <Text style={styles.emailBadgeText}>Verified</Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text style={styles.previewLabel}>
-                    {customImage ? 'Custom Photo Selected' : 'No Photo Selected'}
-                  </Text>
 
-                  {/* Photo Actions */}
-                  <View style={styles.customPhotoBtnRow}>
                     <Pressable
                       style={({ pressed }) => [
-                        styles.photoActionBtn,
+                        styles.changeEmailTriggerBtn,
                         pressed && styles.buttonPressed,
                       ]}
-                      onPress={handlePickCustomImage}
-                      disabled={isProcessingImage}
+                      onPress={() => {
+                        setShowEmailFlow(true);
+                        setEmailStep('input');
+                        setNewEmail('');
+                        setPassword('');
+                        setEmailOtp('');
+                        setEmailError('');
+                        setEmailSuccess('');
+                      }}
                       accessibilityRole="button"
-                      accessibilityLabel="Choose Photo from gallery"
+                      accessibilityLabel="Change email address"
                     >
-                      {isProcessingImage ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <>
-                          <Ionicons name="image-outline" size={14} color="#FFFFFF" />
-                          <Text style={styles.photoActionBtnText}>Choose Photo</Text>
-                        </>
-                      )}
+                      <Ionicons name="swap-horizontal" size={14} color="#eb5b78" />
+                      <Text style={styles.changeEmailTriggerText}>Change Email</Text>
                     </Pressable>
-
-                    {Platform.OS !== 'web' && (
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.photoActionBtn,
-                          pressed && styles.buttonPressed,
-                        ]}
-                        onPress={handleTakePhoto}
-                        disabled={isProcessingImage}
-                        accessibilityRole="button"
-                        accessibilityLabel="Take Photo with camera"
-                      >
-                        <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
-                        <Text style={styles.photoActionBtnText}>Take Photo</Text>
-                      </Pressable>
-                    )}
-
-                    {customImage ? (
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.photoRemoveBtn,
-                          pressed && styles.buttonPressed,
-                        ]}
-                        onPress={handleRemoveCustomPhoto}
-                        accessibilityRole="button"
-                        accessibilityLabel="Remove custom photo"
-                      >
-                        <Ionicons name="trash-outline" size={13} color="#EF4444" />
-                        <Text style={styles.photoRemoveBtnText}>Remove</Text>
-                      </Pressable>
-                    ) : null}
                   </View>
+                ) : (
+                  <View style={styles.emailFlowCard}>
+                    {emailStep === 'input' ? (
+                      <>
+                        <View style={styles.emailFlowStepHeader}>
+                          <Ionicons name="shield-checkmark-outline" size={16} color="#eb5b78" />
+                          <Text style={styles.emailFlowTitle}>Change Account Email</Text>
+                        </View>
+                        <Text style={styles.emailFlowDesc}>
+                          For your security, please enter your new email and confirm your current password. A 6-digit verification code will be sent to the new email.
+                        </Text>
+
+                        <Text style={styles.inputSubLabel}>NEW EMAIL ADDRESS</Text>
+                        <TextInput
+                          style={styles.textInput}
+                          value={newEmail}
+                          onChangeText={(text) => {
+                            setNewEmail(text);
+                            if (emailError) setEmailError('');
+                          }}
+                          placeholder="e.g. name@example.com"
+                          placeholderTextColor="#686577"
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                        />
+
+                        <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>CURRENT PASSWORD</Text>
+                        <TextInput
+                          style={styles.textInput}
+                          value={password}
+                          onChangeText={(text) => {
+                            setPassword(text);
+                            if (emailError) setEmailError('');
+                          }}
+                          placeholder="Enter current password"
+                          placeholderTextColor="#686577"
+                          secureTextEntry
+                        />
+
+                        {emailError ? (
+                          <View style={styles.emailErrorBox}>
+                            <Ionicons name="alert-circle" size={15} color="#EF4444" />
+                            <Text style={styles.emailErrorText}>{emailError}</Text>
+                          </View>
+                        ) : null}
+
+                        <View style={styles.emailBtnRow}>
+                          <Pressable
+                            style={styles.emailSecondaryBtn}
+                            onPress={() => {
+                              setShowEmailFlow(false);
+                              setEmailError('');
+                            }}
+                            disabled={isRequestingOtp}
+                          >
+                            <Text style={styles.emailSecondaryBtnText}>Cancel</Text>
+                          </Pressable>
+
+                          <Pressable
+                            style={[styles.emailPrimaryBtn, isRequestingOtp && { opacity: 0.7 }]}
+                            onPress={handleRequestEmailChange}
+                            disabled={isRequestingOtp}
+                          >
+                            {isRequestingOtp ? (
+                              <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                              <>
+                                <Text style={styles.emailPrimaryBtnText}>Send Code</Text>
+                                <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+                              </>
+                            )}
+                          </Pressable>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <View style={styles.emailFlowStepHeader}>
+                          <Ionicons name="mail-unread-outline" size={16} color="#eb5b78" />
+                          <Text style={styles.emailFlowTitle}>Enter Verification Code</Text>
+                        </View>
+                        <Text style={styles.emailFlowDesc}>
+                          We sent a 6-digit confirmation code to{' '}
+                          <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>{newEmail}</Text>.
+                          Enter it below to confirm your new email.
+                        </Text>
+
+                        <TextInput
+                          style={styles.emailOtpInput}
+                          value={emailOtp}
+                          onChangeText={(text) => {
+                            setEmailOtp(text.replace(/[^0-9]/g, ''));
+                            if (emailError) setEmailError('');
+                          }}
+                          placeholder="••••••"
+                          placeholderTextColor="#555166"
+                          keyboardType="number-pad"
+                          maxLength={6}
+                          autoFocus
+                        />
+
+                        {emailError ? (
+                          <View style={styles.emailErrorBox}>
+                            <Ionicons name="alert-circle" size={15} color="#EF4444" />
+                            <Text style={styles.emailErrorText}>{emailError}</Text>
+                          </View>
+                        ) : null}
+
+                        <View style={styles.resendRow}>
+                          {resendTimer > 0 ? (
+                            <Text style={styles.resendTimerText}>
+                              Resend code in <Text style={{ color: '#eb5b78' }}>{resendTimer}s</Text>
+                            </Text>
+                          ) : (
+                            <Pressable
+                              onPress={handleRequestEmailChange}
+                              disabled={isRequestingOtp}
+                            >
+                              <Text style={styles.resendLinkText}>Resend verification code</Text>
+                            </Pressable>
+                          )}
+                        </View>
+
+                        <View style={styles.emailBtnRow}>
+                          <Pressable
+                            style={styles.emailSecondaryBtn}
+                            onPress={() => {
+                              setEmailStep('input');
+                              setEmailError('');
+                            }}
+                            disabled={isVerifyingOtp}
+                          >
+                            <Text style={styles.emailSecondaryBtnText}>Back</Text>
+                          </Pressable>
+
+                          <Pressable
+                            style={[styles.emailPrimaryBtn, isVerifyingOtp && { opacity: 0.7 }]}
+                            onPress={handleVerifyEmailChange}
+                            disabled={isVerifyingOtp}
+                          >
+                            {isVerifyingOtp ? (
+                              <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                              <Text style={styles.emailPrimaryBtnText}>Verify & Update</Text>
+                            )}
+                          </Pressable>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                )}
+
+                {emailSuccess ? (
+                  <View style={styles.emailSuccessBox}>
+                    <Ionicons name="checkmark-circle" size={15} color="#10B981" />
+                    <Text style={styles.emailSuccessText}>{emailSuccess}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* SECTION 3: AVATAR & DRAMA PERSONA */}
+              <View style={styles.editSection}>
+                <Text style={styles.editSectionHeading}>PROFILE PICTURE & PERSONA</Text>
+
+                {/* Mode Switcher */}
+                <View style={styles.modeTabBar}>
+                  <Pressable
+                    style={[
+                      styles.modeTab,
+                      avatarMode === 'photo' && styles.modeTabActive,
+                    ]}
+                    onPress={() => setAvatarMode('photo')}
+                  >
+                    <Ionicons
+                      name="camera-outline"
+                      size={15}
+                      color={avatarMode === 'photo' ? '#FFFFFF' : '#8D8B98'}
+                    />
+                    <Text
+                      style={[
+                        styles.modeTabText,
+                        avatarMode === 'photo' && styles.modeTabTextActive,
+                      ]}
+                    >
+                      Custom Photo
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.modeTab,
+                      avatarMode === 'persona' && styles.modeTabActive,
+                    ]}
+                    onPress={() => setAvatarMode('persona')}
+                  >
+                    <Ionicons
+                      name="happy-outline"
+                      size={15}
+                      color={avatarMode === 'persona' ? '#FFFFFF' : '#8D8B98'}
+                    />
+                    <Text
+                      style={[
+                        styles.modeTabText,
+                        avatarMode === 'persona' && styles.modeTabTextActive,
+                      ]}
+                    >
+                      Drama Persona
+                    </Text>
+                  </Pressable>
                 </View>
 
-                <View style={styles.modeNoticeBox}>
-                  <Ionicons name="information-circle-outline" size={16} color="#8D8B98" />
-                  <Text style={styles.modeNoticeText}>
-                    Using a custom photo replaces your Drama Persona icon. Your photo is automatically cropped to a square and optimized.
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.modeContent}>
-                {/* Persona Preview */}
-                <View style={styles.previewContainer}>
-                  <View style={styles.avatarPreview}>
-                    <View style={[styles.avatarPreviewInner, { backgroundColor: selectedColor }]}>
-                      <Ionicons name={selectedIcon} size={42} color="#FFFFFF" />
+                {avatarMode === 'photo' ? (
+                  <View style={styles.modeContent}>
+                    {/* Photo Preview */}
+                    <View style={styles.previewContainer}>
+                      <View style={styles.avatarPreview}>
+                        <View style={[styles.avatarPreviewInner, { backgroundColor: '#1E1B2D' }]}>
+                          {customImage ? (
+                            <Image
+                              source={{ uri: customImage }}
+                              style={styles.avatarPreviewPhoto}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <Ionicons name="person-outline" size={40} color="#8D8B98" />
+                          )}
+                        </View>
+                      </View>
+                      <Text style={styles.previewLabel}>
+                        {customImage ? 'Custom Photo Selected' : 'No Photo Selected'}
+                      </Text>
+
+                      {/* Photo Actions */}
+                      <View style={styles.customPhotoBtnRow}>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.photoActionBtn,
+                            pressed && styles.buttonPressed,
+                          ]}
+                          onPress={handlePickCustomImage}
+                          disabled={isProcessingImage}
+                          accessibilityRole="button"
+                          accessibilityLabel="Choose Photo from gallery"
+                        >
+                          {isProcessingImage ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <>
+                              <Ionicons name="image-outline" size={14} color="#FFFFFF" />
+                              <Text style={styles.photoActionBtnText}>Choose Photo</Text>
+                            </>
+                          )}
+                        </Pressable>
+
+                        {Platform.OS !== 'web' && (
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.photoActionBtn,
+                              pressed && styles.buttonPressed,
+                            ]}
+                            onPress={handleTakePhoto}
+                            disabled={isProcessingImage}
+                            accessibilityRole="button"
+                            accessibilityLabel="Take Photo with camera"
+                          >
+                            <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
+                            <Text style={styles.photoActionBtnText}>Take Photo</Text>
+                          </Pressable>
+                        )}
+
+                        {customImage ? (
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.photoRemoveBtn,
+                              pressed && styles.buttonPressed,
+                            ]}
+                            onPress={handleRemoveCustomPhoto}
+                            accessibilityRole="button"
+                            accessibilityLabel="Remove custom photo"
+                          >
+                            <Ionicons name="trash-outline" size={13} color="#EF4444" />
+                            <Text style={styles.photoRemoveBtnText}>Remove</Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    <View style={styles.modeNoticeBox}>
+                      <Ionicons name="information-circle-outline" size={16} color="#8D8B98" />
+                      <Text style={styles.modeNoticeText}>
+                        Custom photo replaces your Drama Persona icon and is compressed and optimized for fast loading.
+                      </Text>
                     </View>
                   </View>
-                  <Text style={styles.previewLabel}>
-                    {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
-                  </Text>
-                </View>
+                ) : (
+                  <View style={styles.modeContent}>
+                    {/* Persona Preview */}
+                    <View style={styles.previewContainer}>
+                      <View style={styles.avatarPreview}>
+                        <View style={[styles.avatarPreviewInner, { backgroundColor: selectedColor }]}>
+                          <Ionicons name={selectedIcon} size={42} color="#FFFFFF" />
+                        </View>
+                      </View>
+                      <Text style={styles.previewLabel}>
+                        {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
+                      </Text>
+                    </View>
 
-                {/* Color Swatches */}
-                <Text style={styles.modalSectionHeading}>CHOOSE COLOR THEME</Text>
-                <View style={styles.colorPaletteRow}>
-                  {COLOR_PALETTES.map((col) => {
-                    const isSelected = selectedColor === col;
-                    return (
-                      <Pressable
-                        key={col}
-                        style={[
-                          styles.colorSwatch,
-                          { backgroundColor: col },
-                          isSelected && styles.colorSwatchActive,
-                        ]}
-                        onPress={() => setSelectedColor(col)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Select color ${col}`}
-                      >
-                        {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                    {/* Color Swatches */}
+                    <Text style={styles.modalSectionHeading}>CHOOSE COLOR THEME</Text>
+                    <View style={styles.colorPaletteRow}>
+                      {COLOR_PALETTES.map((col) => {
+                        const isSelected = selectedColor === col;
+                        return (
+                          <Pressable
+                            key={col}
+                            style={[
+                              styles.colorSwatch,
+                              { backgroundColor: col },
+                              isSelected && styles.colorSwatchActive,
+                            ]}
+                            onPress={() => setSelectedColor(col)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Select color ${col}`}
+                          >
+                            {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
 
-                {/* Icon Grid */}
-                <Text style={styles.modalSectionHeading}>SELECT DRAMA PERSONA</Text>
-                <ScrollView style={styles.iconScroll} showsVerticalScrollIndicator={false}>
-                  <View style={styles.iconGrid}>
-                    {AVATAR_ICONS.map((item) => {
-                      const isSelected = selectedIcon === item.icon;
-                      return (
-                        <Pressable
-                          key={item.id}
-                          style={[
-                            styles.iconTile,
-                            isSelected && [styles.iconTileActive, { borderColor: selectedColor }],
-                          ]}
-                          onPress={() => setSelectedIcon(item.icon)}
-                          accessibilityRole="button"
-                          accessibilityLabel={item.label}
-                        >
-                          <View style={[styles.iconTileBg, { backgroundColor: isSelected ? selectedColor : '#1C1B2A' }]}>
-                            <Ionicons name={item.icon} size={22} color="#FFFFFF" />
-                          </View>
-                          <Text style={[styles.iconTileLabel, isSelected && styles.iconTileLabelActive]} numberOfLines={1}>
-                            {item.label}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                    {/* Icon Grid */}
+                    <Text style={styles.modalSectionHeading}>SELECT DRAMA PERSONA</Text>
+                    <View style={styles.iconGrid}>
+                      {AVATAR_ICONS.map((item) => {
+                        const isSelected = selectedIcon === item.icon;
+                        return (
+                          <Pressable
+                            key={item.id}
+                            style={[
+                              styles.iconTile,
+                              isSelected && [styles.iconTileActive, { borderColor: selectedColor }],
+                            ]}
+                            onPress={() => setSelectedIcon(item.icon)}
+                            accessibilityRole="button"
+                            accessibilityLabel={item.label}
+                          >
+                            <View
+                              style={[
+                                styles.iconTileBg,
+                                { backgroundColor: isSelected ? selectedColor : '#1C1B2A' },
+                              ]}
+                            >
+                              <Ionicons name={item.icon} size={22} color="#FFFFFF" />
+                            </View>
+                            <Text
+                              style={[
+                                styles.iconTileLabel,
+                                isSelected && styles.iconTileLabelActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {item.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
-                </ScrollView>
+                )}
               </View>
-            )}
+            </ScrollView>
 
             {/* Modal Actions */}
             <View style={styles.modalActions}>
               <Pressable
                 style={styles.cancelBtn}
-                onPress={() => setShowAvatarModal(false)}
+                onPress={() => setShowEditModal(false)}
+                disabled={isSavingProfile}
               >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
@@ -648,17 +1017,21 @@ export default function ProfileScreen({ navigation }) {
               <Pressable
                 style={[
                   styles.saveAvatarBtn,
-                  { backgroundColor: avatarMode === 'photo' ? '#eb5b78' : selectedColor },
+                  { backgroundColor: '#eb5b78' },
+                  isSavingProfile && { opacity: 0.7 },
                 ]}
-                onPress={handleSaveAvatar}
+                onPress={handleSaveProfile}
+                disabled={isSavingProfile}
               >
-                <Text style={styles.saveAvatarBtnText}>
-                  {avatarMode === 'photo' ? 'Save Custom Photo' : 'Save Drama Persona'}
-                </Text>
+                {isSavingProfile ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveAvatarBtnText}>Save Profile</Text>
+                )}
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
@@ -727,26 +1100,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 4,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerActionBtn: {
+  pencilEditButton: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: 10,
     backgroundColor: '#161424',
+    borderWidth: 1,
+    borderColor: '#262335',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
   },
-  headerActionBtnHovered: {
+  pencilEditButtonHovered: {
     backgroundColor: '#1E1B30',
+    borderColor: '#38324F',
   },
   buttonPressed: {
     opacity: 0.7,
@@ -963,6 +1334,214 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  modalBodyScroll: {
+    maxHeight: 460,
+  },
+  modalBodyScrollContent: {
+    paddingBottom: 8,
+  },
+  editSection: {
+    marginBottom: 18,
+  },
+  editSectionHeading: {
+    color: '#8D8B98',
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  inputSubLabel: {
+    color: '#8D8B98',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  textInput: {
+    backgroundColor: '#0D0C17',
+    borderWidth: 1,
+    borderColor: '#26233A',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emailCard: {
+    backgroundColor: '#0D0C17',
+    borderWidth: 1,
+    borderColor: '#26233A',
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+  },
+  emailCurrentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  emailCurrentLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  emailCurrentText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '700',
+    flex: 1,
+  },
+  emailBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  emailBadgeText: {
+    color: '#10B981',
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  changeEmailTriggerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(235, 91, 120, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(235, 91, 120, 0.28)',
+    borderRadius: 8,
+    paddingVertical: 8,
+  },
+  changeEmailTriggerText: {
+    color: '#eb5b78',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emailFlowCard: {
+    backgroundColor: '#12101F',
+    borderWidth: 1,
+    borderColor: '#363050',
+    borderRadius: 12,
+    padding: 14,
+  },
+  emailFlowStepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  emailFlowTitle: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '800',
+  },
+  emailFlowDesc: {
+    color: '#8D8B98',
+    fontSize: 11.5,
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  emailOtpInput: {
+    backgroundColor: '#0D0C17',
+    borderWidth: 1.5,
+    borderColor: '#eb5b78',
+    borderRadius: 10,
+    paddingVertical: 12,
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: 8,
+    marginVertical: 8,
+  },
+  resendRow: {
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  resendTimerText: {
+    color: '#8D8B98',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  resendLinkText: {
+    color: '#eb5b78',
+    fontSize: 11.5,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  emailBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 10,
+  },
+  emailSecondaryBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emailSecondaryBtnText: {
+    color: '#D7D4DC',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  emailPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#eb5b78',
+  },
+  emailPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  emailErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 8,
+  },
+  emailErrorText: {
+    color: '#EF4444',
+    fontSize: 11.5,
+    fontWeight: '600',
+    flex: 1,
+  },
+  emailSuccessBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  emailSuccessText: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
   },
   previewContainer: {
     alignItems: 'center',

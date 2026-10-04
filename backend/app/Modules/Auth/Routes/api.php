@@ -25,6 +25,9 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [AuthController::class, 'profile']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/email/request-change', [AuthController::class, 'requestEmailChange'])->middleware('throttle:5,1');
+    Route::post('/email/verify-change', [AuthController::class, 'verifyEmailChange'])->middleware('throttle:6,1');
     Route::patch('/preferences', [AuthController::class, 'updatePreferences']);
     Route::get('/stats', [AuthController::class, 'stats']);
     Route::put('/password', [AuthController::class, 'updatePassword']);

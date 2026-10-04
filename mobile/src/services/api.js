@@ -86,6 +86,9 @@ export const authService = {
 // User Profile & Stats
 export const userService = {
   getProfile: () => api.get('/user/profile'),
+  updateProfile: (data) => api.put('/user/profile', data),
+  requestEmailChange: (data) => api.post('/user/email/request-change', data),
+  verifyEmailChange: (data) => api.post('/user/email/verify-change', data),
   getStats: () => api.get('/user/stats'),
   updatePreferences: (data) => api.patch('/user/preferences', data),
   deleteAccount: (data) => api.delete('/user', { data }),
