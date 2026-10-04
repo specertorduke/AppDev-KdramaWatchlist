@@ -51,6 +51,9 @@ export function AuthProvider({ children }) {
         name: accountUserWithAvatar.name || accountUserWithAvatar.email?.split('@')[0] || 'User',
         avatar: accountUserWithAvatar.avatar,
         avatar_url: accountUserWithAvatar.avatar_url,
+        avatarIcon: accountUserWithAvatar.avatarIcon,
+        color: accountUserWithAvatar.color,
+        avatarType: accountUserWithAvatar.avatarType,
         token: accountToken,
         user: accountUserWithAvatar,
         lastActive: Date.now(),
@@ -112,12 +115,17 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const updateProfile = async ({ name, avatar }) => {
+  const updateProfile = async ({ name, avatar, avatarIcon, color, avatarType }) => {
     let apiResult = null
-    try {
-      apiResult = await authService.updateProfile({ name, avatar, avatar_url: avatar })
-    } catch {
-      // Offline fallback
+    if (name !== undefined || avatar !== undefined) {
+      try {
+        apiResult = await authService.updateProfile({
+          ...(name !== undefined ? { name } : {}),
+          ...(avatar !== undefined ? { avatar, avatar_url: avatar } : {}),
+        })
+      } catch {
+        // Offline fallback
+      }
     }
 
     setUser((prev) => {
@@ -126,6 +134,9 @@ export function AuthProvider({ children }) {
         ...(apiResult?.user || (apiResult?.id ? apiResult : {})),
         ...(name ? { name } : {}),
         ...(avatar ? { avatar, avatar_url: avatar } : {}),
+        ...(avatarIcon !== undefined ? { avatarIcon } : {}),
+        ...(color !== undefined ? { color } : {}),
+        ...(avatarType !== undefined ? { avatarType } : {}),
       }
       localStorage.setItem('sarangtv_user', JSON.stringify(updated))
       const userKey = updated?.id || updated?.email
@@ -136,6 +147,9 @@ export function AuthProvider({ children }) {
             name: updated.name,
             avatar: updated.avatar || updated.avatar_url,
             avatar_url: updated.avatar || updated.avatar_url,
+            avatarIcon: updated.avatarIcon,
+            color: updated.color,
+            avatarType: updated.avatarType,
           })
         )
       }

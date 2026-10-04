@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
+import DramaPersonaAvatar from './DramaPersonaAvatar.jsx'
 
 const TILE_THEMES = [
   { bg: '#eb5b78', color: '#ffffff', Icon: Heart },
@@ -111,7 +112,12 @@ export default function AccountSwitcher({ onAddAccount }) {
             const isSwitching = switchingId === (acc.id || acc.email)
             const theme = TILE_THEMES[index % TILE_THEMES.length]
             const ThemeIcon = theme.Icon
+            const avatarType = acc.avatarType || acc.user?.avatarType
+            const avatarIcon = acc.avatarIcon || acc.user?.avatarIcon
+            const avatarColor = acc.color || acc.user?.color
+            const usePersona = avatarType === 'persona' || (!avatarType && avatarIcon)
             const hasCustomPhoto = Boolean(
+              !usePersona &&
               acc.avatar && (
                 acc.avatar.startsWith('http') ||
                 acc.avatar.startsWith('data:image/') ||
@@ -139,7 +145,14 @@ export default function AccountSwitcher({ onAddAccount }) {
                   className="account-avatar-tile"
                   style={!hasCustomPhoto ? { backgroundColor: theme.bg, color: theme.color } : {}}
                 >
-                  {hasCustomPhoto ? (
+                  {usePersona ? (
+                    <DramaPersonaAvatar
+                      className="account-persona-avatar"
+                      personaId={avatarIcon}
+                      color={avatarColor || '#F5A9C4'}
+                      iconSize={46}
+                    />
+                  ) : hasCustomPhoto ? (
                     <img src={acc.avatar} alt={acc.name} className="account-avatar-photo" />
                   ) : (
                     <ThemeIcon size={46} strokeWidth={2.3} className="account-theme-icon" />
@@ -226,4 +239,3 @@ export default function AccountSwitcher({ onAddAccount }) {
     </main>
   )
 }
-
