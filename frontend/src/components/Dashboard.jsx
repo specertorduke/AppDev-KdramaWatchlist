@@ -33,6 +33,8 @@ import {
   Loader2,
   Settings,
   Trash2,
+  AlertCircle,
+  AlertTriangle,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -1965,6 +1967,7 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
 
 function SettingsPage() {
   const navigate = useNavigate()
+  const { deleteAccount } = useAuth()
   const [settings, setSettings] = useState({
     episodeAlerts: true,
     progressReminders: true,
@@ -1972,8 +1975,38 @@ function SettingsPage() {
     highQualityPosters: true,
   })
 
+  // Delete Account modal states (matching mobile SettingsScreen)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const toggleSetting = (key) => {
     setSettings((current) => ({ ...current, [key]: !current[key] }))
+  }
+
+  const handleDeleteAccount = async (e) => {
+    if (e) e.preventDefault()
+    if (!deletePassword) {
+      setDeleteError('Please enter your password to confirm.')
+      return
+    }
+    setIsDeleting(true)
+    setDeleteError('')
+
+    try {
+      const res = await deleteAccount(deletePassword)
+      if (res.success) {
+        setShowDeleteModal(false)
+        navigate('/')
+      } else {
+        setDeleteError(res.error || 'Failed to delete account. Incorrect password.')
+      }
+    } catch {
+      setDeleteError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -2066,8 +2099,119 @@ function SettingsPage() {
               <strong>Dark Cinematic</strong>
             </div>
           </div>
+
+          {/* DANGER ZONE (Matching Mobile SettingsScreen) */}
+          <div className="profile-settings-group settings-danger-group">
+            <p className="profile-settings-title danger-title">DANGER ZONE</p>
+            <div
+              className="profile-setting-row delete-account-setting-row"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setDeletePassword('')
+                setDeleteError('')
+                setShowDeleteModal(true)
+              }}
+            >
+              <div className="delete-account-left">
+                <div className="delete-icon-wrap">
+                  <Trash2 size={16} color="#EF4444" />
+                </div>
+                <div className="profile-setting-copy">
+                  <strong className="delete-title">Delete Account</strong>
+                  <small>Permanently delete your profile, watchlist tracker, and all personal data</small>
+                </div>
+              </div>
+              <ChevronRight size={16} color="#EF4444" />
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div
+          className="modal-overlay danger-modal-overlay"
+          onClick={() => !isDeleting && setShowDeleteModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="delete-account-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <div className="delete-warning-icon-wrap">
+                <AlertTriangle size={24} color="#EF4444" />
+              </div>
+              <div>
+                <h3>Delete Account?</h3>
+                <p>This action cannot be undone</p>
+              </div>
+              <button
+                type="button"
+                className="modal-close-button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                aria-label="Close delete modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="delete-modal-description">
+              Please enter your password to confirm account deletion. All your watchlist data, favorite genres, and history will be permanently deleted.
+            </p>
+
+            <form onSubmit={handleDeleteAccount}>
+              <div className="delete-input-group">
+                <label htmlFor="settings-delete-password">CURRENT PASSWORD</label>
+                <input
+                  id="settings-delete-password"
+                  type="password"
+                  className="edit-profile-input"
+                  value={deletePassword}
+                  onChange={(e) => {
+                    setDeletePassword(e.target.value)
+                    if (deleteError) setDeleteError('')
+                  }}
+                  placeholder="Enter current password"
+                  autoFocus
+                  disabled={isDeleting}
+                />
+              </div>
+
+              {deleteError && (
+                <div className="edit-email-error-box" role="alert">
+                  <AlertCircle size={15} />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+
+              <div className="delete-modal-actions">
+                <button
+                  type="button"
+                  className="delete-modal-btn-cancel"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="delete-modal-btn-confirm"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={14} className="spinner-icon" /> Deleting...
+                    </>
+                  ) : (
+                    'Delete My Account'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }

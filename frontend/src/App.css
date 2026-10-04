@@ -4251,6 +4251,447 @@
   margin: 2px 0 0 0;
 }
 
+/* Email Change Section & Flow Card (Mobile Layout) */
+.edit-email-section {
+  position: relative;
+}
+
+.edit-email-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(235, 91, 120, 0.12);
+  border: 1px solid rgba(235, 91, 120, 0.3);
+  color: #eb5b78;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.edit-email-trigger-btn:hover {
+  background: rgba(235, 91, 120, 0.22);
+  border-color: #eb5b78;
+  transform: translateY(-1px);
+}
+
+.edit-email-idle-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-email-flow-card {
+  background: #141220;
+  border: 1px solid #2d2944;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: modalFadeIn 180ms ease;
+}
+
+.edit-email-step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #eb5b78;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.edit-email-step-icon {
+  color: #eb5b78;
+  flex-shrink: 0;
+}
+
+.edit-email-step-desc {
+  font-size: 12.5px;
+  color: #9f99ad;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.edit-email-highlight {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.edit-email-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.edit-email-sublabel {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #7d778d;
+}
+
+.edit-password-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.edit-password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #7d778d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.edit-password-toggle-btn:hover {
+  color: #ded8e4;
+}
+
+.edit-email-otp-container {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.edit-email-otp-input {
+  width: 220px;
+  height: 48px;
+  text-align: center;
+  letter-spacing: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  background: #191629;
+  border: 1px solid #363252;
+  border-radius: 10px;
+  color: #ffffff;
+  outline: none;
+  transition: all 160ms ease;
+  box-sizing: border-box;
+}
+
+.edit-email-otp-input:focus {
+  border-color: #eb5b78;
+  box-shadow: 0 0 0 2px rgba(235, 91, 120, 0.2);
+}
+
+.edit-email-error-box {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-email-success-box {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.edit-email-resend-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+}
+
+.edit-email-timer-text {
+  color: #7d778d;
+}
+
+.edit-email-timer-text .timer-count {
+  color: #eb5b78;
+}
+
+.edit-email-resend-btn {
+  background: none;
+  border: none;
+  color: #eb5b78;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.edit-email-resend-btn:hover {
+  color: #f4728f;
+}
+
+.edit-email-btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.edit-email-btn-secondary {
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid #2e2a44;
+  border-radius: 8px;
+  color: #8c8699;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.edit-email-btn-secondary:hover {
+  background: #1c1a2c;
+  color: #ffffff;
+}
+
+.edit-email-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: #eb5b78;
+  border: 1px solid #eb5b78;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.edit-email-btn-primary:hover {
+  background: #d64966;
+}
+
+.edit-avatar-remove-btn {
+  padding: 6px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.edit-avatar-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Danger Zone in Edit Profile Modal */
+.edit-profile-danger-zone {
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-danger-heading {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #EF4444;
+}
+
+.edit-profile-danger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.edit-profile-danger-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #EF4444;
+}
+
+/* Delete Account Modal (Confirmation) */
+.danger-modal-overlay {
+  z-index: 1002;
+}
+
+.delete-account-modal-card {
+  width: 100%;
+  max-width: 440px;
+  background: #13111e;
+  border: 1px solid #332733;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(239, 68, 68, 0.08);
+  box-sizing: border-box;
+  animation: modalFadeIn 180ms ease;
+}
+
+.delete-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.delete-warning-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delete-modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.delete-modal-header p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: #EF4444;
+  font-weight: 600;
+}
+
+.delete-modal-description {
+  font-size: 13px;
+  color: #9f99ad;
+  line-height: 1.5;
+  margin: 0 0 18px 0;
+}
+
+.delete-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.delete-input-group label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #7d778d;
+}
+
+.delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.delete-modal-btn-cancel {
+  padding: 9px 18px;
+  background: transparent;
+  border: 1px solid #2e2a44;
+  border-radius: 9px;
+  color: #8c8699;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.delete-modal-btn-cancel:hover {
+  background: #1c1a2c;
+  color: #ffffff;
+}
+
+.delete-modal-btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: #EF4444;
+  border: 1px solid #EF4444;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.delete-modal-btn-confirm:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Settings Danger Zone (Matching Mobile SettingsScreen) */
+.settings-danger-group {
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  background: rgba(239, 68, 68, 0.04) !important;
+}
+
+.settings-danger-group .danger-title {
+  color: #EF4444 !important;
+}
+
+.delete-account-setting-row {
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.delete-account-setting-row:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.delete-account-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.delete-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delete-title {
+  color: #EF4444 !important;
+}
+
 .edit-profile-alert {
   padding: 10px 14px;
   border-radius: 9px;

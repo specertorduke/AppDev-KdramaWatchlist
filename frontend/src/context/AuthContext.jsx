@@ -176,6 +176,56 @@ export function AuthProvider({ children }) {
     return true
   }
 
+  const updateUserEmail = async (newEmail) => {
+    if (!user) return
+    const updatedUser = {
+      ...user,
+      email: newEmail,
+    }
+    setUser(updatedUser)
+    localStorage.setItem('sarangtv_user', JSON.stringify(updatedUser))
+
+    setSavedAccounts((prev) => {
+      const updated = prev.map((a) => {
+        if (
+          (a.id !== undefined && a.id !== null && String(a.id) === String(user.id)) ||
+          (a.email && a.email.toLowerCase() === user.email?.toLowerCase())
+        ) {
+          return {
+            ...a,
+            email: newEmail,
+            user: { ...(a.user || {}), ...updatedUser },
+          }
+        }
+        return a
+      })
+      localStorage.setItem('sarangtv_accounts', JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  const deleteAccount = async (currentPassword) => {
+    try {
+      await authService.deleteAccount({ current_password: currentPassword })
+
+      const currentKey = user?.id || user?.email
+      if (currentKey) {
+        removeSavedAccount(currentKey)
+      }
+      setToken(null)
+      setUser(null)
+      localStorage.removeItem('sarangtv_token')
+      localStorage.removeItem('sarangtv_user')
+      return { success: true }
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors?.current_password?.[0] ||
+        'Failed to delete account. Please verify your password.'
+      return { success: false, error: msg }
+    }
+  }
+
   const login = async (credentials) => {
     const data = await authService.login(credentials)
     if (data.token) {
@@ -355,6 +405,8 @@ export function AuthProvider({ children }) {
     logout,
     updateProfile,
     updateUserPreferences,
+    updateUserEmail,
+    deleteAccount,
     savedAccounts,
     switchAccount,
     removeSavedAccount,
