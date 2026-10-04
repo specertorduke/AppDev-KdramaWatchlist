@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService, setOnUnauthorizedCallback } from '../services/api';
+import { authService, userService, setOnUnauthorizedCallback } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -145,6 +145,69 @@ export const AuthProvider = ({ children }) => {
       await userService.updatePreferences(payload);
     } catch (e) {
       console.warn('Failed to update user preferences:', e);
+    }
+  };
+
+  const updateProfileName = async (newName) => {
+    try {
+      if (!user) return { success: false, error: 'Not authenticated' };
+      const res = await userService.updateProfile({ name: newName });
+      const updatedUser = {
+        ...user,
+        name: newName,
+      };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+      const stored = await AsyncStorage.getItem('saved_accounts');
+      let accounts = stored ? JSON.parse(stored) : [];
+      accounts = accounts.map((a) => {
+        if (a.id === user.id || a.email === user.email) {
+          return {
+            ...a,
+            name: newName,
+            initials: getInitials(newName),
+            user: { ...a.user, ...updatedUser },
+          };
+        }
+        return a;
+      });
+      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
+      setSavedAccounts(accounts);
+      return { success: true, data: res.data };
+    } catch (e) {
+      console.warn('Failed to update profile name:', e);
+      const msg = e?.response?.data?.message || 'Failed to update name.';
+      return { success: false, error: msg };
+    }
+  };
+
+  const updateUserEmail = async (newEmail) => {
+    try {
+      if (!user) return;
+      const updatedUser = {
+        ...user,
+        email: newEmail,
+      };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
+
+      const stored = await AsyncStorage.getItem('saved_accounts');
+      let accounts = stored ? JSON.parse(stored) : [];
+      accounts = accounts.map((a) => {
+        if (a.id === user.id || a.email === user.email) {
+          return {
+            ...a,
+            email: newEmail,
+            user: { ...a.user, ...updatedUser },
+          };
+        }
+        return a;
+      });
+      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
+      setSavedAccounts(accounts);
+    } catch (e) {
+      console.warn('Failed to update local user email:', e);
     }
   };
 
@@ -346,6 +409,42 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const deleteAccount = async (currentPassword) => {
+    try {
+      if (!user) return { success: false, error: 'Not authenticated' };
+      await userService.deleteAccount({ current_password: currentPassword });
+
+      const userId = user.id;
+      // Remove from saved accounts
+      const stored = await AsyncStorage.getItem('saved_accounts');
+      let accounts = stored ? JSON.parse(stored) : [];
+      const updatedAccounts = accounts.filter((a) => a.id !== userId);
+      setSavedAccounts(updatedAccounts);
+      await AsyncStorage.setItem('saved_accounts', JSON.stringify(updatedAccounts));
+
+      // Clear active user session
+      setUser(null);
+      setToken(null);
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('auth_user');
+
+      if (updatedAccounts.length > 0) {
+        setIsChoosingAccount(true);
+      } else {
+        setIsChoosingAccount(false);
+      }
+
+      return { success: true };
+    } catch (e) {
+      console.warn('Failed to delete account:', e);
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors?.current_password?.[0] ||
+        'Failed to delete account. Please verify your password.';
+      return { success: false, error: msg };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -361,6 +460,9 @@ export const AuthProvider = ({ children }) => {
         removeSavedAccount,
         updateProfileAvatar,
         updateUserPreferences,
+        updateProfileName,
+        updateUserEmail,
+        deleteAccount,
         needsOnboarding,
         setNeedsOnboarding,
         login,

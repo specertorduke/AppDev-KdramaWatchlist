@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../../theme';
 import { homeService, trackerService, discoverService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -128,26 +129,32 @@ export default function HomeScreen({ navigation }) {
           <Pressable
             style={({ pressed, hovered }) => [
               styles.avatarButton,
-              { backgroundColor: user?.color || '#292546' },
               hovered && styles.avatarButtonHovered,
               pressed && styles.avatarButtonPressed,
             ]}
             onPress={() => navigation.navigate('Profile')}
             accessibilityLabel="Profile"
           >
-            {user?.avatar_url ? (
-              <Image
-                source={{ uri: user.avatar_url }}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <Ionicons
-                name={user?.avatarIcon || 'person'}
-                size={18}
-                color="#FFFFFF"
-              />
-            )}
+            <View
+              style={[
+                styles.avatarInner,
+                { backgroundColor: user?.color || '#292546' },
+              ]}
+            >
+              {user?.avatar_url ? (
+                <Image
+                  source={{ uri: user.avatar_url }}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Ionicons
+                  name={user?.avatarIcon || 'person'}
+                  size={16}
+                  color="#FFFFFF"
+                />
+              )}
+            </View>
           </Pressable>
         </View>
       </View>
@@ -189,36 +196,40 @@ export default function HomeScreen({ navigation }) {
             {/* Statistics 4-Grid */}
             <View style={styles.statsGrid}>
               <StatCard
-                value={stats.listed ?? 0}
-                label="Listed"
-                sublabel="in your list"
+                value={stats.listed ?? stats.totalTracked ?? 0}
+                label="Total Tracked"
+                sublabel={`${stats.watching ?? 0} watching`}
                 icon="bookmark-outline"
-                iconColor="#7C6DAA"
+                iconColor="#9d8ade"
+                bottomColor="#9d8ade"
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'All' })}
               />
               <StatCard
-                value={stats.watching ?? 0}
-                label="Watching"
-                sublabel="airing now"
+                value={stats.episodes_watched ?? (Math.round(stats.hours_watched ?? 0) > 0 ? Math.round(stats.hours_watched) : stats.watching ?? 0)}
+                label="Episodes Watched"
+                sublabel={`${stats.completed ?? 0} completed`}
                 icon="play-outline"
-                iconColor="#6C85B4"
+                iconColor="#759bc7"
+                bottomColor="#759bc7"
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'Watching' })}
               />
               <StatCard
-                value={stats.completed ?? 0}
-                label="Completed"
-                sublabel="finished"
+                value={stats.plan_to_watch ?? Math.max(0, (stats.listed ?? 0) - (stats.watching ?? 0) - (stats.completed ?? 0))}
+                label="Plan to Watch"
+                sublabel={`${stats.on_hold ?? 0} on hold`}
                 icon="checkmark-outline"
-                iconColor="#4FA477"
+                iconColor="#4fb487"
+                bottomColor="#4fb487"
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'Completed' })}
               />
               <StatCard
                 value={Math.round(stats.hours_watched ?? 0)}
                 suffix="h"
-                label="Hours"
-                sublabel="time watched"
+                label="Hours Watched"
+                sublabel="Total watch time"
                 icon="time-outline"
-                iconColor="#C59B4A"
+                iconColor="#c6a73d"
+                bottomColor="#c6a73d"
                 onPress={() => navigation.navigate('Profile')}
               />
             </View>
@@ -228,101 +239,120 @@ export default function HomeScreen({ navigation }) {
 
             {currentlyWatching ? (
               <View style={styles.watchingCard}>
-                <View style={styles.watchingHeader}>
-                  <Text style={styles.watchingEyebrow}>● WATCHING PROGRESS</Text>
-                  <Text style={styles.watchingPercent}>{watchingProgress}%</Text>
-                </View>
-
-                <Pressable
-                  style={({ pressed, hovered }) => [
-                    styles.watchingMain,
-                    hovered && styles.watchingMainHovered,
-                    pressed && styles.watchingMainPressed,
-                  ]}
-                  onPress={() =>
-                    navigation.navigate('DramaDetail', { tmdbId: currentlyWatching.tmdb_id })
-                  }
-                >
+                {(currentlyWatching.backdrop_url || currentlyWatching.poster_url) ? (
                   <Image
                     source={{
-                      uri:
-                        currentlyWatching.poster_url ||
-                        currentlyWatching.backdrop_url ||
-                        'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400',
+                      uri: currentlyWatching.backdrop_url || currentlyWatching.poster_url,
                     }}
-                    style={styles.watchingImage}
+                    style={styles.watchingBackdropImage}
                     resizeMode="cover"
                   />
+                ) : null}
+                <View style={styles.watchingBackdropOverlay} />
 
-                  <View style={styles.watchingInfo}>
-                    <Text style={styles.watchingTitle} numberOfLines={1}>
-                      {currentlyWatching.title}
-                    </Text>
-
-                    <Text style={styles.watchingEpisode} numberOfLines={1}>
-                      Episode {watchingEp} of {watchingTotal}
-                      {currentlyWatching.runtime ? ` · ${currentlyWatching.runtime}` : ' · 65m'}
-                    </Text>
-
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${watchingProgress}%` },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                </Pressable>
-
-                <View style={styles.watchingFooter}>
-                  <View>
-                    <Text style={styles.loggedLabel}>LOGGED</Text>
-                    <Text style={styles.loggedValue}>{watchingEp} eps</Text>
+                <View style={styles.watchingCardContent}>
+                  <View style={styles.watchingHeader}>
+                    <View style={styles.watchingDot} />
+                    <Text style={styles.watchingEyebrow}>WATCHING PROGRESS</Text>
                   </View>
 
-                  <View style={styles.watchingActions}>
-                    <Pressable
-                      style={({ pressed, hovered }) => [
-                        styles.detailsButton,
-                        hovered && styles.detailsButtonHovered,
-                        pressed && styles.detailsButtonPressed,
-                      ]}
-                      onPress={() =>
-                        navigation.navigate('DramaDetail', { tmdbId: currentlyWatching.tmdb_id })
+                  <Pressable
+                    style={({ pressed, hovered }) => [
+                      styles.watchingMain,
+                      hovered && styles.watchingMainHovered,
+                      pressed && styles.watchingMainPressed,
+                    ]}
+                    onPress={() =>
+                      navigation.navigate('DramaDetail', { tmdbId: currentlyWatching.tmdb_id })
+                    }
+                  >
+                    <CircularProgressAvatar
+                      src={
+                        currentlyWatching.poster_url ||
+                        currentlyWatching.backdrop_url ||
+                        currentlyWatching.image
                       }
-                    >
-                      <Text style={styles.detailsButtonText}>Details</Text>
-                    </Pressable>
+                      progress={watchingProgress}
+                      size={68}
+                      strokeWidth={4.5}
+                    />
 
-                    <Pressable
-                      style={({ pressed, hovered }) => [
-                        styles.logButton,
-                        hovered && styles.logButtonHovered,
-                        pressed && styles.logButtonPressed,
-                      ]}
-                      onPress={() => handleIncrement(currentlyWatching.tmdb_id)}
-                      disabled={loggingEp}
-                    >
-                      {loggingEp ? (
-                        <ActivityIndicator size="small" color="#07100D" />
-                      ) : (
-                        <>
-                          <Ionicons name="checkmark" size={12} color="#07100D" />
-                          <Text style={styles.logButtonText}>
-                            {watchingTotal > 0 && watchingEp >= watchingTotal
-                              ? 'Completed'
-                              : `Log Ep ${nextEpToLog}`}
-                          </Text>
-                        </>
-                      )}
-                    </Pressable>
+                    <View style={styles.watchingInfo}>
+                      <Text style={styles.watchingTitle} numberOfLines={1}>
+                        {currentlyWatching.title}
+                      </Text>
+
+                      <Text style={styles.watchingEpisode} numberOfLines={1}>
+                        Ep {watchingEp} of {watchingTotal}
+                        {currentlyWatching.runtime ? ` · ${currentlyWatching.runtime}` : ' · ~60 min'}
+                      </Text>
+
+                      <View style={styles.progressRow}>
+                        <View style={styles.progressTrack}>
+                          <View
+                            style={[
+                              styles.progressFill,
+                              { width: `${watchingProgress}%` },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.progressPercentText}>{watchingProgress}%</Text>
+                      </View>
+                    </View>
+                  </Pressable>
+
+                  <View style={styles.watchingFooter}>
+                    <View>
+                      <Text style={styles.loggedLabel}>LOGGED</Text>
+                      <Text style={styles.loggedValue}>Today</Text>
+                    </View>
+
+                    <View style={styles.watchingActions}>
+                      <Pressable
+                        style={({ pressed, hovered }) => [
+                          styles.detailsButton,
+                          hovered && styles.detailsButtonHovered,
+                          pressed && styles.detailsButtonPressed,
+                        ]}
+                        onPress={() =>
+                          navigation.navigate('DramaDetail', { tmdbId: currentlyWatching.tmdb_id })
+                        }
+                      >
+                        <Text style={styles.detailsButtonText}>Details</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={({ pressed, hovered }) => [
+                          styles.logButton,
+                          hovered && styles.logButtonHovered,
+                          pressed && styles.logButtonPressed,
+                        ]}
+                        onPress={() => handleIncrement(currentlyWatching.tmdb_id)}
+                        disabled={loggingEp}
+                      >
+                        {loggingEp ? (
+                          <ActivityIndicator size="small" color="#061a15" />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark" size={15} color="#061a15" />
+                            <Text style={styles.logButtonText}>
+                              {watchingTotal > 0 && watchingEp >= watchingTotal
+                                ? 'Completed'
+                                : `Log Ep ${nextEpToLog}`}
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
               </View>
             ) : (
               <View style={styles.watchingCardEmpty}>
-                <Text style={styles.watchingEyebrow}>● WATCHING PROGRESS</Text>
+                <View style={styles.watchingHeader}>
+                  <View style={styles.watchingDot} />
+                  <Text style={styles.watchingEyebrow}>WATCHING PROGRESS</Text>
+                </View>
                 <Text style={styles.noWatchingText}>
                   Explore dramas and add to your watchlist to start tracking progress.
                 </Text>
@@ -412,11 +442,6 @@ export default function HomeScreen({ navigation }) {
                         style={styles.trendingPosterImage}
                         resizeMode="cover"
                       />
-                      {rating > 0 && (
-                        <View style={styles.trendingRatingPill}>
-                          <Text style={styles.trendingRatingVal}>★ {rating.toFixed(1)}</Text>
-                        </View>
-                      )}
                       {(drama.watch_status || drama.status) ? (() => {
                         const s = String(drama.watch_status || drama.status).toLowerCase().replace(/_/g, ' ');
                         let badgeColor = '#eb5b78';
@@ -502,7 +527,7 @@ function SectionTitle({ text }) {
   return <Text style={styles.sectionTitle}>{text}</Text>;
 }
 
-function StatCard({ value, suffix, label, sublabel, icon, iconColor, onPress }) {
+function StatCard({ value, suffix, label, sublabel, icon, iconColor, bottomColor, onPress }) {
   return (
     <Pressable
       style={({ pressed, hovered }) => [
@@ -515,15 +540,64 @@ function StatCard({ value, suffix, label, sublabel, icon, iconColor, onPress }) 
       <View style={styles.statTop}>
         <Text style={styles.statValue}>
           {value}
-          {suffix || ''}
+          {suffix ? <Text style={styles.statSuffix}>{suffix}</Text> : null}
         </Text>
-        <View style={styles.statIconBox}>
-          <Ionicons name={icon} size={14} color={iconColor} />
-        </View>
+        <Ionicons name={icon} size={18} color={iconColor} style={{ opacity: 0.9 }} />
       </View>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statSublabel}>{sublabel}</Text>
+      <View style={styles.statBottom}>
+        <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
+        <Text style={styles.statSublabel} numberOfLines={1}>{sublabel}</Text>
+      </View>
+      <View style={[styles.statBottomBar, { backgroundColor: bottomColor || iconColor }]} />
     </Pressable>
+  );
+}
+
+function CircularProgressAvatar({ src, progress = 0, size = 68, strokeWidth = 4.5 }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clampedProgress = Math.min(100, Math.max(0, Number(progress) || 0));
+  const offset = circumference - (clampedProgress / 100) * circumference;
+  const imgSize = size - strokeWidth * 2 - 6;
+
+  return (
+    <View style={{ width: size, height: size, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#272635"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#32d19a"
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          fill="transparent"
+        />
+      </Svg>
+      <Image
+        source={{
+          uri:
+            src ||
+            'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=400',
+        }}
+        style={{
+          width: imgSize,
+          height: imgSize,
+          borderRadius: imgSize / 2,
+          backgroundColor: '#1C1B2A',
+        }}
+        resizeMode="cover"
+      />
+    </View>
   );
 }
 
@@ -700,9 +774,13 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.94 }],
   },
   avatarButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#61374c',
+    padding: 2,
+    backgroundColor: '#07070E',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
@@ -710,6 +788,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  avatarInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
   },
   avatarImage: {
@@ -767,21 +853,26 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48.5%',
-    minHeight: 84,
-    backgroundColor: '#161424',
+    minHeight: 110,
+    backgroundColor: '#11111b',
+    borderWidth: 1,
+    borderColor: '#20202d',
     borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    marginBottom: 11,
     justifyContent: 'space-between',
+    overflow: 'hidden',
+    position: 'relative',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   statCardHovered: {
-    backgroundColor: '#1E1B30',
+    backgroundColor: '#181826',
     transform: [{ translateY: -2 }, { scale: 1.015 }],
   },
   statCardPressed: {
@@ -790,33 +881,43 @@ const styles = StyleSheet.create({
   },
   statTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   statValue: {
-    color: colors.text,
-    fontSize: 22,
-    lineHeight: 24,
-    fontWeight: '900',
+    color: '#FFFFFF',
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  statIconBox: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
-    backgroundColor: '#201D33',
-    alignItems: 'center',
-    justifyContent: 'center',
+  statSuffix: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  statBottom: {
+    marginTop: 8,
   },
   statLabel: {
-    color: '#DDD8DD',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
-    marginTop: 5,
+    letterSpacing: -0.2,
   },
   statSublabel: {
     color: '#8D8B98',
-    fontSize: 11,
+    fontSize: 11.5,
+    fontWeight: '500',
     marginTop: 2,
+  },
+  statBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    opacity: 0.85,
   },
   sectionTitle: {
     color: '#8D8B98',
@@ -828,22 +929,42 @@ const styles = StyleSheet.create({
   },
   watchingCard: {
     width: '100%',
-    backgroundColor: '#151322',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
+    backgroundColor: '#111119',
+    borderWidth: 1,
+    borderColor: '#292632',
+    borderRadius: 17,
+    position: 'relative',
+    overflow: 'hidden',
+    marginBottom: 16,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 4,
+  },
+  watchingBackdropImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    opacity: 0.14,
+  },
+  watchingBackdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(17, 17, 25, 0.75)',
+  },
+  watchingCardContent: {
+    position: 'relative',
+    zIndex: 2,
+    padding: 18,
   },
   watchingCardEmpty: {
     width: '100%',
-    backgroundColor: '#151322',
-    borderRadius: 16,
+    backgroundColor: '#111119',
+    borderWidth: 1,
+    borderColor: '#292632',
+    borderRadius: 17,
     padding: 18,
-    marginBottom: 14,
+    marginBottom: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -852,95 +973,101 @@ const styles = StyleSheet.create({
   },
   noWatchingText: {
     color: colors.muted,
-    fontSize: 9,
+    fontSize: 11,
     textAlign: 'center',
     paddingVertical: 18,
+    lineHeight: 16,
   },
   watchingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 14,
+  },
+  watchingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#36d29c',
+    marginRight: 8,
   },
   watchingEyebrow: {
-    color: '#5A9A85',
+    color: '#807985',
     fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1.05,
-  },
-  watchingPercent: {
-    color: '#42D4A7',
-    fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   watchingMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    padding: 6,
   },
   watchingMainHovered: {
-    backgroundColor: 'rgba(255,255,255,0.035)',
     transform: [{ scale: 1.008 }],
   },
   watchingMainPressed: {
     opacity: 0.7,
     transform: [{ scale: 0.985 }],
   },
-  watchingImage: {
-    width: 54,
-    height: 54,
-    borderRadius: 12,
-    backgroundColor: '#242431',
-  },
   watchingInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 16,
     minWidth: 0,
   },
   watchingTitle: {
-    color: colors.text,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '900',
+    color: '#FFFFFF',
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   watchingEpisode: {
-    color: '#AAA4AC',
-    fontSize: 12,
+    color: '#7c7883',
+    fontSize: 12.5,
     marginTop: 4,
   },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 10,
+  },
   progressTrack: {
-    width: '100%',
-    height: 5,
-    backgroundColor: '#292832',
-    borderRadius: 999,
+    flex: 1,
+    height: 4,
+    backgroundColor: '#2b2b35',
+    borderRadius: 2,
     overflow: 'hidden',
-    marginTop: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#32C89A',
-    borderRadius: 999,
+    backgroundColor: '#32d19a',
+    borderRadius: 2,
+  },
+  progressPercentText: {
+    color: '#38d4a0',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   watchingFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 8,
+    marginTop: 18,
+    paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
   loggedLabel: {
-    color: '#8D8B98',
-    fontSize: 11,
+    color: '#777582',
+    fontSize: 10.5,
     fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   loggedValue: {
-    color: '#D7D2D6',
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 2,
+    color: '#ddd8e0',
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 3,
   },
   watchingActions: {
     flexDirection: 'row',
@@ -948,16 +1075,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   detailsButton: {
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: '#1E1B30',
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#2a2930',
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailsButtonHovered: {
-    backgroundColor: '#272531',
-    borderColor: '#514D60',
+    backgroundColor: '#35333e',
     transform: [{ translateY: -1 }],
   },
   detailsButtonPressed: {
@@ -965,32 +1091,32 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
   detailsButtonText: {
-    color: '#C6C1C5',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#c4c0c5',
+    fontSize: 13,
+    fontWeight: '800',
   },
   logButton: {
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#35CDA0',
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#30d49d',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 5,
   },
   logButtonHovered: {
-    backgroundColor: '#4AE0B2',
-    transform: [{ translateY: -1 }, { scale: 1.025 }],
+    backgroundColor: '#40e2ab',
+    transform: [{ translateY: -1 }, { scale: 1.02 }],
   },
   logButtonPressed: {
     opacity: 0.72,
     transform: [{ scale: 0.96 }],
   },
   logButtonText: {
-    color: '#07100D',
-    fontSize: 12,
-    fontWeight: '900',
-    marginLeft: 4,
+    color: '#061a15',
+    fontSize: 13,
+    fontWeight: '800',
   },
   quickGrid: {
     flexDirection: 'row',
