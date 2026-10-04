@@ -399,7 +399,7 @@ export default function TrackerScreen({ navigation, route }) {
                       </Text>
                       {Number(item.rating) > 0 ? (
                         <View style={styles.gridRatingBadge}>
-                          <Ionicons name="star" size={10} color="#FFD76A" />
+                          <Ionicons name="star" size={10} color="#eb5b78" />
                           <Text style={styles.gridRatingText}>{Number(item.rating).toFixed(0)}</Text>
                         </View>
                       ) : (
@@ -531,7 +531,7 @@ export default function TrackerScreen({ navigation, route }) {
                       <View style={styles.bottomRow}>
                         {Number(item.rating) > 0 ? (
                           <View style={styles.ratingChip}>
-                            <Ionicons name="star" size={11} color="#FFD76A" />
+                            <Ionicons name="star" size={11} color="#eb5b78" />
                             <Text style={styles.ratingChipText}>
                               {Number(item.rating).toFixed(0)}/10
                             </Text>
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   gridRatingText: {
-    color: '#FFD76A',
+    color: '#eb5b78',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1050,13 +1050,13 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     width: '100%',
-    backgroundColor: '#262433',
-    borderRadius: 999,
+    backgroundColor: '#232230',
+    borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 999,
+    borderRadius: 4,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -1067,16 +1067,16 @@ const styles = StyleSheet.create({
   ratingChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 106, 0.12)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(235, 91, 120, 0.12)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 6,
-    gap: 3,
+    gap: 4,
   },
   ratingChipText: {
-    color: '#FFD76A',
+    color: '#eb5b78',
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   comment: {
     color: '#9E9BAA',

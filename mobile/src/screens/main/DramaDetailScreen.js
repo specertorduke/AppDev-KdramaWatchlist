@@ -32,6 +32,17 @@ const STATUS_COLORS = {
   Dropped: '#EF4444',
 };
 
+const formatAddedDate = (dateStr) => {
+  if (!dateStr) return 'Recently';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Recently';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return 'Recently';
+  }
+};
+
 const getStatusColor = (status) => {
   if (!status) return '#eb5b78';
   const formatted = status.replace(/_/g, ' ').toLowerCase();
@@ -245,6 +256,17 @@ export default function DramaDetailScreen({ route, navigation }) {
   const tmdbScore = typeof drama.rating === 'number' && drama.rating > 0 ? Number(drama.rating).toFixed(1) : null;
   const tmdbVoteCount = drama.vote_count ? Number(drama.vote_count) : null;
 
+  const formatAddedDate = (dateStr) => {
+    if (!dateStr) return 'Recently';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'Recently';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return 'Recently';
+    }
+  };
+
   const posterImage =
     drama.poster_url || drama.poster || drama.image || drama.backdrop_url || null;
 
@@ -322,15 +344,17 @@ export default function DramaDetailScreen({ route, navigation }) {
         </View>
 
         <View style={styles.heroInfo}>
-          <Text style={styles.title} numberOfLines={2}>
-            {drama.title || drama.name}
-          </Text>
-
-          {drama.original_title ? (
-            <Text style={styles.koreanTitle} numberOfLines={1}>
-              {drama.original_title}
+          <View style={styles.titleGroup}>
+            <Text style={styles.title} numberOfLines={2}>
+              {drama.title || drama.name}
             </Text>
-          ) : null}
+
+            {drama.original_title ? (
+              <Text style={styles.koreanTitle} numberOfLines={1}>
+                {drama.original_title}
+              </Text>
+            ) : null}
+          </View>
 
           {/* Clean metadata line */}
           <View style={styles.metaRow}>
@@ -345,21 +369,22 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Text style={styles.metaText}>{episodesTotal} Episodes</Text>
           </View>
 
-          {/* Clean TMDB Rating Tag */}
-          {tmdbScore && (
-            <View style={styles.heroTmdbRow}>
-              <View style={styles.tmdbPill}>
-                <Ionicons name="star" size={12} color="#FFD76A" />
-                <Text style={styles.tmdbPillScore}>{tmdbScore}</Text>
-                <Text style={styles.tmdbPillLabel}>TMDB</Text>
+          {/* Dedicated TMDB Rating line with badge & votes */}
+          {tmdbScore ? (
+            <View style={styles.tmdbRatingRow}>
+              <View style={styles.tmdbBadge}>
+                <Text style={styles.tmdbBadgeText}>TMDB</Text>
               </View>
+              <Text style={styles.metaStarRating}>
+                ★ {tmdbScore} <Text style={styles.metaStarRatingSlash}>/ 10</Text>
+              </Text>
               {tmdbVoteCount ? (
                 <Text style={styles.tmdbVoteText}>
-                  {tmdbVoteCount.toLocaleString()} ratings
+                  ({tmdbVoteCount >= 1000 ? `${(tmdbVoteCount / 1000).toFixed(1)}k` : tmdbVoteCount} votes)
                 </Text>
               ) : null}
             </View>
-          )}
+          ) : null}
 
           {/* Genres Chips */}
           {Array.isArray(drama.genres) && drama.genres.length > 0 && (
@@ -407,28 +432,30 @@ export default function DramaDetailScreen({ route, navigation }) {
         </Pressable>
       </View>
 
-      {/* STREAMING-STYLE TRACKING SECTION */}
+      {/* PROGRESS TRACKING SECTION */}
       <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>MY WATCH STATUS</Text>
-          {progress > 0 && (
-            <Text style={[styles.progressCounterText, { color: getStatusColor(selectedStatus) }]}>
-              {watchedEpisodes} / {episodesTotal} ({progress}%)
-            </Text>
-          )}
+        <View style={styles.progressHeaderRow}>
+          <Text style={styles.progressHeaderTitle}>PROGRESS</Text>
+          <Text style={styles.progressHeaderMeta}>
+            {watchedEpisodes}/{episodesTotal} eps · added {formatAddedDate(tracker?.created_at || tracker?.updated_at)}
+          </Text>
         </View>
 
-        {/* Minimal Progress Bar */}
-        <View style={styles.cleanProgressTrack}>
+        {/* Exact Progress Track */}
+        <View style={styles.detailProgressTrack}>
           <View
             style={[
-              styles.cleanProgressFill,
-              {
-                width: `${progress}%`,
-                backgroundColor: getStatusColor(selectedStatus),
-              },
+              styles.detailProgressBar,
+              { width: `${progress}%` },
             ]}
           />
+        </View>
+
+        <View style={styles.detailProgressInfoRow}>
+          <Text style={styles.progressRemaining}>
+            ~{Math.max(1, episodesTotal - watchedEpisodes)}h remaining
+          </Text>
+          <Text style={styles.progressPctText}>{progress}%</Text>
         </View>
 
         {/* Status Filter Scroll */}
@@ -601,10 +628,10 @@ export default function DramaDetailScreen({ route, navigation }) {
         )}
       </View>
 
-      {/* RATING & PERSONAL REVIEW */}
+      {/* MY RATING SECTION */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>MY RATING & REVIEW</Text>
+          <Text style={styles.sectionTitle}>MY RATING</Text>
           {selectedRating > 0 && (
             <Pressable
               onPress={() => {
@@ -620,45 +647,39 @@ export default function DramaDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* 10-point Tap-to-Rate Row */}
-        <View style={styles.ratingNumberBar}>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => {
-            const isSelected = selectedRating === score;
-            const isPassed = selectedRating >= score;
+        {/* 10 Star Rating Picker */}
+        <View style={styles.detailStarPicker}>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((starNum) => {
+            const isFilled = selectedRating >= starNum;
             return (
               <Pressable
-                key={score}
-                style={[
-                  styles.scoreButton,
-                  isSelected && styles.scoreButtonSelected,
-                  isPassed && !isSelected && styles.scoreButtonPassed,
+                key={starNum}
+                style={({ pressed }) => [
+                  styles.starPickButton,
+                  pressed && styles.buttonPressed,
                 ]}
                 onPress={() => {
-                  setSelectedRating(score);
-                  saveTrackerChanges(undefined, undefined, score);
+                  const nextRating = selectedRating === starNum ? 0 : starNum;
+                  setSelectedRating(nextRating);
+                  saveTrackerChanges(undefined, undefined, nextRating > 0 ? nextRating : null);
                 }}
+                hitSlop={4}
+                accessibilityRole="button"
+                accessibilityLabel={`Rate ${starNum} out of 10`}
               >
-                <Text
-                  style={[
-                    styles.scoreButtonText,
-                    (isSelected || isPassed) && styles.scoreButtonTextActive,
-                  ]}
-                >
-                  {score}
-                </Text>
+                <Ionicons
+                  name={isFilled ? 'star' : 'star-outline'}
+                  size={24}
+                  color={isFilled ? '#eb5b78' : '#3c3748'}
+                />
               </Pressable>
             );
           })}
         </View>
 
-        {selectedRating > 0 && (
-          <View style={styles.activeScoreRow}>
-            <Ionicons name="star" size={14} color="#FFD76A" />
-            <Text style={styles.activeScoreText}>
-              Your rating: <Text style={styles.activeScoreHighlight}>{selectedRating} / 10</Text>
-            </Text>
-          </View>
-        )}
+        <Text style={styles.detailRatingScore}>
+          {selectedRating > 0 ? `${selectedRating} / 10` : 'Not rated yet'}
+        </Text>
 
         {/* Review Notes Area */}
         <TextInput
@@ -835,29 +856,31 @@ const styles = StyleSheet.create({
   heroInfo: {
     flex: 1,
     minWidth: 0,
-    paddingLeft: 16,
-    paddingTop: 4,
+    paddingLeft: 14,
     justifyContent: 'center',
+    gap: 7,
+  },
+  titleGroup: {
+    marginBottom: 0,
   },
   title: {
     color: colors.text,
-    fontSize: 22,
-    lineHeight: 27,
+    fontSize: 21,
+    lineHeight: 26,
     fontWeight: '900',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   koreanTitle: {
     color: '#eb5b78',
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
     fontWeight: '600',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 8,
     gap: 4,
   },
   metaText: {
@@ -868,37 +891,28 @@ const styles = StyleSheet.create({
   metaDot: {
     color: 'rgba(255, 255, 255, 0.35)',
     fontSize: 12,
-    marginHorizontal: 3,
+    marginHorizontal: 2,
   },
-  heroTmdbRow: {
+  tmdbRatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 8,
+    gap: 6,
   },
-  tmdbPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 106, 0.14)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
+  tmdbBadge: {
+    backgroundColor: 'rgba(235, 91, 120, 0.14)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
   },
-  tmdbPillScore: {
-    color: '#FFD76A',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  tmdbPillLabel: {
-    color: '#E0DEE9',
+  tmdbBadgeText: {
+    color: '#eb5b78',
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.5,
   },
   tmdbVoteText: {
-    color: colors.muted,
+    color: '#8D8A98',
     fontSize: 11,
     fontWeight: '500',
   },
@@ -906,13 +920,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 10,
   },
   genreTag: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#161424',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 7,
+    backgroundColor: '#1b1926',
   },
   genreTagText: {
     color: 'rgba(255,255,255,0.7)',
@@ -1163,49 +1176,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  ratingNumberBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 6,
-    marginTop: 4,
-    marginBottom: 10,
-  },
-  scoreButton: {
-    flex: 1,
-    height: 38,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scoreButtonPassed: {
-    backgroundColor: 'rgba(255, 215, 106, 0.1)',
-  },
-  scoreButtonSelected: {
-    backgroundColor: '#FFD76A',
-  },
-  scoreButtonText: {
-    color: 'rgba(255,255,255,0.5)',
+  metaStarRating: {
+    color: '#eb5b78',
     fontSize: 12,
     fontWeight: '800',
   },
-  scoreButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '900',
+  metaStarRatingSlash: {
+    color: '#7b7585',
+    fontWeight: '400',
   },
-  activeScoreRow: {
+  progressHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
-  activeScoreText: {
-    color: colors.muted,
-    fontSize: 12,
+  progressHeaderTitle: {
+    color: '#8D8B98',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
-  activeScoreHighlight: {
-    color: '#FFD76A',
+  progressHeaderMeta: {
+    color: '#716b7c',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  detailProgressTrack: {
+    width: '100%',
+    height: 6,
+    borderRadius: 4,
+    backgroundColor: '#232230',
+    overflow: 'hidden',
+  },
+  detailProgressBar: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#eb5b78',
+  },
+  detailProgressInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 14,
+  },
+  progressRemaining: {
+    color: '#6e6878',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  progressPctText: {
+    color: '#eb5b78',
+    fontSize: 12,
     fontWeight: '800',
+  },
+  detailStarPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 6,
+  },
+  starPickButton: {
+    padding: 2,
+  },
+  starPickButtonPressed: {
+    transform: [{ scale: 1.15 }],
+  },
+  detailRatingScore: {
+    color: '#eb5b78',
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 4,
+    marginBottom: 12,
   },
   clearRatingButton: {
     flexDirection: 'row',
