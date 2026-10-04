@@ -67,6 +67,7 @@ export default function DramaDetailScreen({ route, navigation }) {
   // Form states
   const [selectedSeasonIndex, setSelectedSeasonIndex] = useState(0);
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
+  const [showAllCast, setShowAllCast] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('Plan to Watch');
   const [watchedEpisodes, setWatchedEpisodes] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
@@ -304,6 +305,14 @@ export default function DramaDetailScreen({ route, navigation }) {
   const displayedEpisodes = showAllEpisodes
     ? episodeList
     : episodeList.slice(0, INITIAL_VISIBLE_COUNT);
+
+  const castList = Array.isArray(drama.cast) ? drama.cast : [];
+  const INITIAL_CAST_COUNT = 8;
+  const hasMoreCast = castList.length > INITIAL_CAST_COUNT;
+  const displayedCast = showAllCast ? castList : castList.slice(0, INITIAL_CAST_COUNT);
+  const durationDisplay =
+    drama.duration ||
+    (drama.episode_runtime ? `${drama.episode_runtime} min / ep` : '60–70 min / ep');
 
   const isWide = width >= 600;
 
@@ -739,21 +748,73 @@ export default function DramaDetailScreen({ route, navigation }) {
           label="Genres"
           value={Array.isArray(drama.genres) ? drama.genres.join(', ') : drama.genre || 'Drama'}
         />
+        <DetailRow label="Director" value={drama.director || 'Director'} />
+        <DetailRow label="Aired" value={String(drama.release_year || '2026')} />
+        <DetailRow label="Duration" value={durationDisplay} />
         <DetailRow
-          label="TMDB Rating"
-          value={
-            tmdbScore
-              ? `★ ${tmdbScore} / 10${tmdbVoteCount ? ` (${tmdbVoteCount.toLocaleString()} votes)` : ''}`
-              : 'Not rated yet on TMDB'
-          }
+          label="Network"
+          value={networksDisplay || 'tvN · Netflix'}
+          last={allSeasons.length <= 1}
         />
-        <DetailRow label="Director" value={drama.director || 'Park Ji-young'} />
         {allSeasons.length > 1 ? (
-          <DetailRow label="Seasons" value={`${allSeasons.length} Seasons (${episodesTotal} Total Eps)`} />
+          <DetailRow
+            label="Seasons"
+            value={`${allSeasons.length} Seasons (${episodesTotal} Total Eps)`}
+            last
+          />
         ) : null}
-        <DetailRow label="Aired" value={String(drama.release_year || '2025')} />
-        <DetailRow label="Network" value={networksDisplay || 'tvN · Netflix'} last />
       </View>
+
+      {/* FULL CAST SECTION */}
+      {castList.length > 0 && (
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>FULL CAST</Text>
+            <Text style={styles.sectionCountText}>{castList.length} Actors</Text>
+          </View>
+
+          <View style={styles.castList}>
+            {displayedCast.map((actor, idx) => {
+              const actorAvatar =
+                actor.avatar ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(actor.name || 'Cast')}&background=1f1f23&color=e4e4e7`;
+              return (
+                <View key={actor.id || `${actor.name}-${idx}`} style={styles.castRow}>
+                  <Image
+                    source={{ uri: actorAvatar }}
+                    style={styles.castAvatar}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.castTextWrap}>
+                    <Text style={styles.castName} numberOfLines={1}>
+                      {actor.name}
+                    </Text>
+                    <Text style={styles.castRole} numberOfLines={1}>
+                      {actor.role || actor.character ? `as ${actor.role || actor.character}` : 'as Cast'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          {hasMoreCast && (
+            <Pressable
+              style={styles.showMoreButton}
+              onPress={() => setShowAllCast((prev) => !prev)}
+            >
+              <Text style={styles.showMoreButtonText}>
+                {showAllCast ? 'Show Less' : `Show all ${castList.length} cast members`}
+              </Text>
+              <Ionicons
+                name={showAllCast ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color="#eb5b78"
+              />
+            </Pressable>
+          )}
+        </View>
+      )}
 
       <View style={styles.bottomSpace} />
     </ScrollView>
@@ -1334,5 +1395,37 @@ const styles = StyleSheet.create({
   },
   bottomSpace: {
     height: 50,
+  },
+  castList: {
+    gap: 12,
+  },
+  castRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 3,
+  },
+  castAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1E1C2B',
+  },
+  castTextWrap: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: 'center',
+  },
+  castName: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  castRole: {
+    color: '#8D8A98',
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
+    marginTop: 2,
   },
 });
