@@ -378,6 +378,7 @@ class AuthService
      */
     public function deleteAccount(User $user): void
     {
+        EmailOtp::where('email', $user->email)->delete();
         $user->tokens()->delete();
         $user->delete();
     }

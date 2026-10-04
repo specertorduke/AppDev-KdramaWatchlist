@@ -409,6 +409,42 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const deleteAccount = async (currentPassword) => {
+    try {
+      if (!user) return { success: false, error: 'Not authenticated' };
+      await userService.deleteAccount({ current_password: currentPassword });
+
+      const userId = user.id;
+      // Remove from saved accounts
+      const stored = await AsyncStorage.getItem('saved_accounts');
+      let accounts = stored ? JSON.parse(stored) : [];
+      const updatedAccounts = accounts.filter((a) => a.id !== userId);
+      setSavedAccounts(updatedAccounts);
+      await AsyncStorage.setItem('saved_accounts', JSON.stringify(updatedAccounts));
+
+      // Clear active user session
+      setUser(null);
+      setToken(null);
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('auth_user');
+
+      if (updatedAccounts.length > 0) {
+        setIsChoosingAccount(true);
+      } else {
+        setIsChoosingAccount(false);
+      }
+
+      return { success: true };
+    } catch (e) {
+      console.warn('Failed to delete account:', e);
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors?.current_password?.[0] ||
+        'Failed to delete account. Please verify your password.';
+      return { success: false, error: msg };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -426,6 +462,7 @@ export const AuthProvider = ({ children }) => {
         updateUserPreferences,
         updateProfileName,
         updateUserEmail,
+        deleteAccount,
         needsOnboarding,
         setNeedsOnboarding,
         login,

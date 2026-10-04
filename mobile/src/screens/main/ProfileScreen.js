@@ -1002,6 +1002,26 @@ export default function ProfileScreen({ navigation }) {
                   </View>
                 )}
               </View>
+
+              {/* SECTION 4: DANGER ZONE (ACCOUNT DELETION) */}
+              <View style={[styles.editSection, { marginTop: 14, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)' }]}>
+                <Text style={[styles.editSectionHeading, { color: '#EF4444' }]}>DANGER ZONE</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.deleteAccountEditBtn,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={() => {
+                    setShowEditModal(false);
+                    navigation.navigate('Settings', { openDeleteModal: true });
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete Account"
+                >
+                  <Ionicons name="trash-outline" size={15} color="#EF4444" />
+                  <Text style={styles.deleteAccountEditText}>Delete Account</Text>
+                </Pressable>
+              </View>
             </ScrollView>
 
             {/* Modal Actions */}
@@ -1720,5 +1740,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',
+  },
+  deleteAccountEditBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.28)',
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  deleteAccountEditText: {
+    color: '#EF4444',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
 });
