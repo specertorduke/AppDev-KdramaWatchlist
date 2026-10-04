@@ -17,6 +17,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  Edit3,
+  ClipboardList,
+  BarChart3,
+  Sparkles as LucideSparkles,
+  Settings as LucideSettings,
+  UsersRound,
+  ChevronRight,
+} from 'lucide-react-native';
 import { colors } from '../../theme';
 import { userService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -384,7 +393,7 @@ export default function ProfileScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Edit profile"
         >
-          <Ionicons name="pencil" size={17} color="#a6a1b2" />
+          <Edit3 size={18} color="#a6a1b2" />
         </Pressable>
       </View>
 
@@ -426,15 +435,15 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="My Tracker"
         >
           <View style={styles.menuIcon}>
-            <Ionicons name="clipboard-outline" size={15} color={colors.muted} />
+            <ClipboardList size={18} color="#8D8B98" />
           </View>
           <View style={styles.menuText}>
             <Text style={styles.menuTitle}>My Tracker</Text>
             <Text style={styles.menuSubtitle}>
-              {stats?.total_dramas ?? 4} dramas tracked
+              {stats?.total_dramas ?? 1} dramas tracked
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+          <ChevronRight size={18} color="#686577" />
         </Pressable>
 
         {/* Stats & History */}
@@ -449,15 +458,15 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Stats and History"
         >
           <View style={styles.menuIcon}>
-            <Ionicons name="bar-chart-outline" size={15} color={colors.muted} />
+            <BarChart3 size={18} color="#8D8B98" />
           </View>
           <View style={styles.menuText}>
             <Text style={styles.menuTitle}>Stats & History</Text>
             <Text style={styles.menuSubtitle}>
-              {stats?.episodes_watched ?? 18} episodes · {Math.round(stats?.hours_watched ?? 17)}h
+              {stats?.episodes_watched ?? 4} episodes · {Math.round(stats?.hours_watched ?? 4)}h
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+          <ChevronRight size={18} color="#686577" />
         </Pressable>
 
         {/* Favorite Genres & Taste */}
@@ -472,7 +481,7 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Favorite Genres"
         >
           <View style={styles.menuIcon}>
-            <Ionicons name="sparkles-outline" size={15} color="#eb5b78" />
+            <LucideSparkles size={18} color="#8D8B98" />
           </View>
           <View style={styles.menuText}>
             <Text style={styles.menuTitle}>Favorite Genres</Text>
@@ -482,7 +491,7 @@ export default function ProfileScreen({ navigation }) {
                 : 'Select your preferred genres'}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+          <ChevronRight size={18} color="#686577" />
         </Pressable>
 
         {/* Settings */}
@@ -497,13 +506,13 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Settings"
         >
           <View style={styles.menuIcon}>
-            <Ionicons name="settings-outline" size={15} color={colors.muted} />
+            <LucideSettings size={18} color="#8D8B98" />
           </View>
           <View style={styles.menuText}>
             <Text style={styles.menuTitle}>Settings</Text>
-            <Text style={styles.menuSubtitle}>Notifications, quality, account</Text>
+            <Text style={styles.menuSubtitle}>Notifications and preferences</Text>
           </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+          <ChevronRight size={18} color="#686577" />
         </Pressable>
 
         {/* Switch Account */}
@@ -519,13 +528,13 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Switch Account"
         >
           <View style={styles.menuIcon}>
-            <Ionicons name="people-outline" size={15} color={colors.muted} />
+            <UsersRound size={18} color="#8D8B98" />
           </View>
           <View style={styles.menuText}>
             <Text style={styles.menuTitle}>Switch Account</Text>
-            <Text style={styles.menuSubtitle}>Who's tracking? · Change active profile</Text>
+            <Text style={styles.menuSubtitle}>Change active profile</Text>
           </View>
-          <Ionicons name="chevron-forward" size={13} color={colors.muted} />
+          <ChevronRight size={18} color="#686577" />
         </Pressable>
       </View>
 
