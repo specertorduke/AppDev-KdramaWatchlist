@@ -53,6 +53,11 @@ export function mapDramaDetail(item) {
   const poster = item.poster_url || item.backdrop_url || DEFAULT_POSTER_IMAGE
   const totalEps = item.number_of_episodes || item.episodes || item.total_episodes || 16
   const genresList = Array.isArray(item.genres) ? item.genres : []
+  const networks = Array.isArray(item.networks)
+    ? item.networks
+        .map((network) => (typeof network === 'string' ? network : network?.name))
+        .filter(Boolean)
+    : []
   const genresString = genresList.length > 0 ? genresList.join(' · ') : 'Romance · Drama'
   const releaseYear = item.release_year || 2025
   const numericRating = Number(item.rating)
@@ -120,7 +125,8 @@ export function mapDramaDetail(item) {
     title: item.title || 'Untitled Drama',
     nativeTitle: item.original_title || item.title || '',
     year: releaseYear,
-    network: 'tvN · Netflix',
+    networks,
+    network: networks.join(' · '),
     episodes: totalEps,
     duration: '60–70 min / ep',
     rating,
@@ -135,7 +141,6 @@ export function mapDramaDetail(item) {
     poster,
     genres: genresString,
     director: 'Director',
-    availableOn: 'tvN, Netflix, Viki',
     synopsis:
       item.overview ||
       'An acclaimed Korean drama series featuring compelling storytelling, memorable characters, and emotional twists.',

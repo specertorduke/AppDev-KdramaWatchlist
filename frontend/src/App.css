@@ -2332,16 +2332,11 @@
   font-weight: 500;
 }
 
-.detail-available-on {
-  margin: 8px 0 20px;
-  color: #726c7d;
-  font-size: 12px;
-}
-
 .detail-header-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 24px;
 }
 
 .detail-update-status-button {

@@ -778,8 +778,12 @@ function DramaDetailView({ drama, onBack }) {
 
           <div className="detail-meta-line">
             <span>{drama.year}</span>
-            <span className="meta-dot">·</span>
-            <span>{drama.network}</span>
+            {drama.network && (
+              <>
+                <span className="meta-dot">·</span>
+                <span>{drama.network}</span>
+              </>
+            )}
             <span className="meta-dot">·</span>
             <span>{totalEpisodes} Episodes</span>
           </div>
@@ -796,8 +800,6 @@ function DramaDetailView({ drama, onBack }) {
               )}
             </div>
           )}
-
-          <p className="detail-available-on">Available on {drama.availableOn || drama.network}</p>
 
           <div className="detail-header-actions">
             {!isTracked ? (
