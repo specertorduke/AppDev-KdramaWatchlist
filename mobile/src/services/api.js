@@ -81,6 +81,7 @@ export const authService = {
   forgotPassword: (data) => api.post('/auth/forgot-password', data),
   resetPassword: (data) => api.post('/auth/reset-password', data),
   updatePassword: (data) => api.patch('/auth/password', data),
+  changePassword: (data) => api.post('/auth/change-password', data),
 };
 
 // User Profile & Stats
