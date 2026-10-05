@@ -107,6 +107,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
   const [newChangePasswordConfirm, setNewChangePasswordConfirm] = useState('')
   const [showCurrentChangePwd, setShowCurrentChangePwd] = useState(false)
   const [showNewChangePwd, setShowNewChangePwd] = useState(false)
+  const [showConfirmChangePwd, setShowConfirmChangePwd] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordChangeError, setPasswordChangeError] = useState('')
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('')
@@ -140,6 +141,9 @@ export default function EditProfileModal({ isOpen, onClose }) {
       setCurrentChangePassword('')
       setNewChangePassword('')
       setNewChangePasswordConfirm('')
+      setShowCurrentChangePwd(false)
+      setShowNewChangePwd(false)
+      setShowConfirmChangePwd(false)
       setPasswordChangeError('')
       setPasswordChangeSuccess('')
     }
@@ -815,34 +819,38 @@ export default function EditProfileModal({ isOpen, onClose }) {
               </div>
 
               {/* SECTION 3: PASSWORD & SECURITY */}
-              <div className="edit-profile-section">
-                <span className="edit-section-heading">PASSWORD & SECURITY</span>
+              <div className="edit-profile-section edit-password-section">
+                <span className="edit-section-heading">
+                  <Lock size={13} /> PASSWORD & SECURITY
+                </span>
 
                 {!showPasswordChangeFlow ? (
-                  <div className="edit-email-card">
-                    <div className="edit-email-current-row">
-                      <div className="edit-email-current-left">
-                        <Lock size={17} className="edit-email-current-icon" />
-                        <div>
-                          <strong style={{ color: '#F0EEE8', fontSize: '13px', display: 'block' }}>Password</strong>
-                          <span style={{ color: '#8D8B98', fontSize: '12px' }}>••••••••••••</span>
+                  <div className="edit-password-card">
+                    <div className="edit-password-current-row">
+                      <div className="edit-password-current-left">
+                        <div className="edit-password-icon-wrap">
+                          <Lock size={16} />
+                        </div>
+                        <div className="edit-password-info">
+                          <strong>Password</strong>
+                          <span>••••••••••••</span>
                         </div>
                       </div>
                       <button
                         type="button"
-                        className="edit-email-change-trigger-btn"
+                        className="edit-password-change-trigger-btn"
                         onClick={() => {
                           setShowPasswordChangeFlow(true)
                           setPasswordChangeError('')
                           setPasswordChangeSuccess('')
                         }}
                       >
-                        Change Password
+                        <KeyRound size={13} /> Change Password
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="edit-email-flow-container">
+                  <div className="edit-password-flow-card">
                     <div className="edit-email-step-header">
                       <KeyRound size={16} className="edit-email-step-icon" />
                       <strong>Change Your Password</strong>
@@ -851,7 +859,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
                       Enter your current password and choose a new secure password.
                     </p>
 
-                    <form onSubmit={handleChangePasswordSubmit}>
+                    <div className="edit-password-form-body">
                       <div className="edit-email-input-group">
                         <label className="edit-email-sublabel">CURRENT PASSWORD</label>
                         <div className="edit-password-input-wrap">
@@ -863,9 +871,14 @@ export default function EditProfileModal({ isOpen, onClose }) {
                               setCurrentChangePassword(e.target.value)
                               if (passwordChangeError) setPasswordChangeError('')
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleChangePasswordSubmit(e)
+                              }
+                            }}
                             placeholder="Enter current password"
                             disabled={isChangingPassword}
-                            required
                           />
                           <button
                             type="button"
@@ -879,7 +892,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
                         </div>
                       </div>
 
-                      <div className="edit-email-input-group" style={{ marginTop: '12px' }}>
+                      <div className="edit-email-input-group">
                         <label className="edit-email-sublabel">NEW PASSWORD</label>
                         <div className="edit-password-input-wrap">
                           <input
@@ -890,9 +903,14 @@ export default function EditProfileModal({ isOpen, onClose }) {
                               setNewChangePassword(e.target.value)
                               if (passwordChangeError) setPasswordChangeError('')
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleChangePasswordSubmit(e)
+                              }
+                            }}
                             placeholder="Min. 8 chars, uppercase, number & symbol"
                             disabled={isChangingPassword}
-                            required
                           />
                           <button
                             type="button"
@@ -906,21 +924,35 @@ export default function EditProfileModal({ isOpen, onClose }) {
                         </div>
                       </div>
 
-                      <div className="edit-email-input-group" style={{ marginTop: '12px' }}>
+                      <div className="edit-email-input-group">
                         <label className="edit-email-sublabel">CONFIRM NEW PASSWORD</label>
                         <div className="edit-password-input-wrap">
                           <input
-                            type={showNewChangePwd ? 'text' : 'password'}
+                            type={showConfirmChangePwd ? 'text' : 'password'}
                             className="edit-profile-input edit-password-input"
                             value={newChangePasswordConfirm}
                             onChange={(e) => {
                               setNewChangePasswordConfirm(e.target.value)
                               if (passwordChangeError) setPasswordChangeError('')
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleChangePasswordSubmit(e)
+                              }
+                            }}
                             placeholder="Repeat new password"
                             disabled={isChangingPassword}
-                            required
                           />
+                          <button
+                            type="button"
+                            className="edit-password-toggle-btn"
+                            onClick={() => setShowConfirmChangePwd(!showConfirmChangePwd)}
+                            tabIndex={-1}
+                            aria-label={showConfirmChangePwd ? 'Hide password' : 'Show password'}
+                          >
+                            {showConfirmChangePwd ? <Eye size={16} /> : <EyeOff size={16} />}
+                          </button>
                         </div>
                       </div>
 
@@ -933,20 +965,20 @@ export default function EditProfileModal({ isOpen, onClose }) {
                       />
 
                       {passwordChangeError && (
-                        <div className="edit-email-error-box" style={{ marginTop: '10px' }}>
+                        <div className="edit-email-error-box">
                           <AlertCircle size={15} />
                           <span>{passwordChangeError}</span>
                         </div>
                       )}
 
                       {passwordChangeSuccess && (
-                        <div className="edit-email-success-box" style={{ marginTop: '10px' }}>
+                        <div className="edit-email-success-box">
                           <CheckCircle2 size={15} />
                           <span>{passwordChangeSuccess}</span>
                         </div>
                       )}
 
-                      <div className="edit-email-btn-row" style={{ marginTop: '14px' }}>
+                      <div className="edit-email-btn-row">
                         <button
                           type="button"
                           className="edit-email-btn-secondary"
@@ -960,8 +992,9 @@ export default function EditProfileModal({ isOpen, onClose }) {
                           Cancel
                         </button>
                         <button
-                          type="submit"
+                          type="button"
                           className="edit-email-btn-primary"
+                          onClick={handleChangePasswordSubmit}
                           disabled={isChangingPassword}
                         >
                           {isChangingPassword ? (
@@ -973,7 +1006,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
                           )}
                         </button>
                       </div>
-                    </form>
+                    </div>
                   </div>
                 )}
               </div>
