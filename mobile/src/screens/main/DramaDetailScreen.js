@@ -202,16 +202,40 @@ export default function DramaDetailScreen({ route, navigation }) {
     );
   };
 
+  const confirmRemoveFromWatchlist = () => {
+    Alert.alert(
+      'Remove from Watchlist',
+      `Are you sure you want to remove "${drama?.title || 'this drama'}" and its recorded progress from your watchlist?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setSavingStatus(true);
+            try {
+              await trackerService.deleteDrama(tmdbId);
+              setTracker(null);
+              setIsFavorite(false);
+              setWatchedEpisodes(0);
+              setSelectedRating(0);
+              setNotes('');
+              setSelectedStatus('Plan to Watch');
+              Alert.alert('Removed', 'Drama removed from your watchlist.');
+            } catch (e) {
+              Alert.alert('Error', 'Could not remove from watchlist.');
+            } finally {
+              setSavingStatus(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleToggleList = async () => {
     if (tracker) {
-      try {
-        await trackerService.deleteDrama(tmdbId);
-        setTracker(null);
-        setIsFavorite(false);
-        Alert.alert('Removed', 'Drama removed from watchlist.');
-      } catch (e) {
-        Alert.alert('Error', 'Could not remove from watchlist.');
-      }
+      confirmRemoveFromWatchlist();
     } else {
       await saveTrackerChanges('Plan to Watch', 0, null, '', isFavorite);
       Alert.alert('Added', 'Drama added to your watchlist.');
@@ -437,6 +461,28 @@ export default function DramaDetailScreen({ route, navigation }) {
             color={isFavorite ? '#FF4655' : colors.text}
           />
         </Pressable>
+
+        {tracker ? (
+          <Pressable
+            style={({ pressed, hovered }) => [
+              styles.deleteButton,
+              {
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.08)',
+                borderColor: isDark ? 'rgba(239, 68, 68, 0.30)' : 'rgba(239, 68, 68, 0.22)',
+                borderWidth: 1,
+              },
+              hovered && { transform: [{ scale: 1.05 }], opacity: 0.9 },
+              pressed && { transform: [{ scale: 0.95 }], opacity: 0.7 },
+            ]}
+            onPress={confirmRemoveFromWatchlist}
+            disabled={savingStatus}
+            accessibilityRole="button"
+            accessibilityLabel="Remove from Watchlist"
+            hitSlop={6}
+          >
+            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+          </Pressable>
+        ) : null}
       </View>
 
       {/* PROGRESS TRACKING SECTION */}
@@ -1093,6 +1139,18 @@ const styles = StyleSheet.create({
   },
   favoriteButtonActive: {
     backgroundColor: 'rgba(255,70,85,0.18)',
+  },
+  deleteButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sectionContainer: {
     width: '100%',
