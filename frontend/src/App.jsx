@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, Eye, EyeOff, FileText, Loader2, ShieldCheck, X } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, FileText, Loader2, ShieldCheck, X, XCircle } from 'lucide-react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
@@ -8,6 +8,9 @@ import StatsHistoryPage from './components/StatsHistoryPage.jsx'
 import AccountSwitcher from './components/AccountSwitcher.jsx'
 import OtpVerification from './components/OtpVerification.jsx'
 import GenreOnboarding from './components/GenreOnboarding.jsx'
+import PasswordRequirementsList from './components/PasswordRequirementsList.jsx'
+import { checkPasswordRequirements } from './utils/passwordRequirements.js'
+import authService from './services/authService.js'
 import './App.css'
 
 function LandingPage() {
@@ -59,8 +62,92 @@ function AuthPage({ mode }) {
   const [policyModal, setPolicyModal] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [confirmSubmitted, setConfirmSubmitted] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
+
+  // Forgot / Reset Password state
+  const [showForgotModal, setShowForgotModal] = useState(false)
+  const [forgotStep, setForgotStep] = useState('request') // 'request' | 'reset'
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotToken, setForgotToken] = useState('')
+  const [resetNewPassword, setResetNewPassword] = useState('')
+  const [resetNewConfirm, setResetNewConfirm] = useState('')
+  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotError, setForgotError] = useState('')
+  const [forgotSuccess, setForgotSuccess] = useState('')
+  const [resetFieldErrors, setResetFieldErrors] = useState({})
+
+  const handleRequestPasswordReset = async (e) => {
+    e.preventDefault()
+    setForgotError('')
+    setForgotSuccess('')
+    if (!forgotEmail || !forgotEmail.trim()) {
+      setForgotError('Please enter your account email.')
+      return
+    }
+    setForgotLoading(true)
+    try {
+      const res = await authService.forgotPassword({ email: forgotEmail.trim() })
+      setForgotSuccess(res?.message || 'Password reset link / token has been sent to your email.')
+      setForgotStep('reset')
+    } catch (err) {
+      setForgotError(
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.email?.[0] ||
+        'Failed to send password reset code. Please check your email.'
+      )
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleConfirmPasswordReset = async (e) => {
+    e.preventDefault()
+    setForgotError('')
+    setForgotSuccess('')
+    setResetFieldErrors({})
+
+    if (!forgotToken || !forgotToken.trim()) {
+      setResetFieldErrors({ token: ['Please enter the reset code or token from your email.'] })
+      return
+    }
+
+    const { allRulesMet, isMatch } = checkPasswordRequirements(resetNewPassword, resetNewConfirm)
+    if (!allRulesMet) {
+      setResetFieldErrors({ password: ['Password must meet all complexity requirements.'] })
+      return
+    }
+    if (!isMatch) {
+      setResetFieldErrors({ password_confirmation: ['The password confirmation does not match.'] })
+      return
+    }
+
+    setForgotLoading(true)
+    try {
+      const res = await authService.resetPassword({
+        email: forgotEmail.trim(),
+        token: forgotToken.trim(),
+        password: resetNewPassword,
+        password_confirmation: resetNewConfirm,
+      })
+      setForgotSuccess(res?.message || 'Your password has been reset successfully! You can now log in.')
+      setTimeout(() => {
+        setShowForgotModal(false)
+        setFormData((prev) => ({ ...prev, email: forgotEmail.trim(), password: '' }))
+      }, 2000)
+    } catch (err) {
+      if (err?.response?.status === 422 && err.response.data?.errors) {
+        setResetFieldErrors(err.response.data.errors)
+      }
+      setForgotError(
+        err?.response?.data?.message || 'Failed to reset password. Please check your reset token and password.'
+      )
+    } finally {
+      setForgotLoading(false)
+    }
+  }
 
   if (isSignup && showOtpVerification) {
     return (
@@ -90,6 +177,9 @@ function AuthPage({ mode }) {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    if (name === 'password_confirmation' || name === 'password') {
+      setConfirmSubmitted(false)
+    }
     // Clear error for field on change
     if (fieldErrors[name]) {
       setFieldErrors((prev) => ({ ...prev, [name]: null }))
@@ -108,6 +198,25 @@ function AuthPage({ mode }) {
         terms_privacy_accepted: ['You must agree to the Terms and Data Privacy Policy to create an account.'],
       }))
       return
+    }
+
+    // Client verification for password complexity rules before proceeding
+    if (isSignup) {
+      const { allRulesMet, isMatch } = checkPasswordRequirements(
+        formData.password,
+        formData.password_confirmation
+      )
+      if (!allRulesMet) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          password: ['Password must meet all complexity requirements.'],
+        }))
+        return
+      }
+      if (!isMatch) {
+        setConfirmSubmitted(true)
+        return
+      }
     }
 
     setIsSubmitting(true)
@@ -131,7 +240,14 @@ function AuthPage({ mode }) {
     } catch (err) {
       if (err.response) {
         if (err.response.status === 422 && err.response.data?.errors) {
-          setFieldErrors(err.response.data.errors)
+          const errors = { ...err.response.data.errors }
+          if (isSignup) {
+            delete errors.password_confirmation
+            if (err.response.data.errors.password_confirmation) {
+              setConfirmSubmitted(true)
+            }
+          }
+          setFieldErrors(errors)
         }
         setErrorMessage(
           err.response.data?.message ||
@@ -157,6 +273,10 @@ function AuthPage({ mode }) {
       setIsSubmitting(false)
     }
   }
+
+  const hasTypedConfirm = Boolean(formData.password_confirmation && formData.password_confirmation.length > 0)
+  const shouldShowMatchMessage = hasTypedConfirm || confirmSubmitted
+  const passwordsMatch = Boolean(hasTypedConfirm && formData.password && formData.password === formData.password_confirmation)
 
   return (
     <main className="auth-page">
@@ -228,7 +348,7 @@ function AuthPage({ mode }) {
                 )}
               </label>
 
-              <label className="auth-field">
+              <div className="auth-field auth-field-full">
                 <span>Password</span>
                 <span className="password-input">
                   <input
@@ -236,7 +356,7 @@ function AuthPage({ mode }) {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Min. 8 characters"
+                    placeholder="Create a password"
                     disabled={isSubmitting}
                   />
                   <button
@@ -251,9 +371,12 @@ function AuthPage({ mode }) {
                 {fieldErrors.password && (
                   <span className="field-error-text">{fieldErrors.password[0]}</span>
                 )}
-              </label>
 
-              <label className="auth-field">
+                {/* Strength meter and compact checklist directly under Password */}
+                <PasswordRequirementsList password={formData.password} />
+              </div>
+
+              <div className="auth-field auth-field-full">
                 <span>Confirm Password</span>
                 <span className="password-input">
                   <input
@@ -265,10 +388,29 @@ function AuthPage({ mode }) {
                     disabled={isSubmitting}
                   />
                 </span>
-                {fieldErrors.password_confirmation && (
-                  <span className="field-error-text">{fieldErrors.password_confirmation[0]}</span>
-                )}
-              </label>
+                <div className="pwd-match-message-wrap">
+                  {shouldShowMatchMessage ? (
+                    <span
+                      className={`pwd-match-message ${passwordsMatch ? 'match' : 'mismatch'}`}
+                      aria-live="polite"
+                    >
+                      {passwordsMatch ? (
+                        <>
+                          <CheckCircle2 size={13} aria-hidden="true" />
+                          Passwords match
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={13} aria-hidden="true" />
+                          Passwords don't match yet
+                        </>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="pwd-match-spacer" aria-hidden="true">&nbsp;</span>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="auth-fields-stack">
@@ -314,7 +456,22 @@ function AuthPage({ mode }) {
             </div>
           )}
 
-          {!isSignup && <Link className="forgot-link" to="/login">Forgot password?</Link>}
+          {!isSignup && (
+            <button
+              type="button"
+              className="forgot-link"
+              onClick={() => {
+                setShowForgotModal(true)
+                setForgotStep('request')
+                setForgotEmail(formData.email || '')
+                setForgotError('')
+                setForgotSuccess('')
+                setResetFieldErrors({})
+              }}
+            >
+              Forgot password?
+            </button>
+          )}
 
           {/* Terms & Data Privacy Policy agreement checkbox (registration only) */}
           {isSignup && (
@@ -529,6 +686,180 @@ function AuthPage({ mode }) {
                 Close
               </button>
             </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot / Reset Password Modal */}
+      {showForgotModal && (
+        <div
+          className="policy-modal-overlay"
+          onClick={() => !forgotLoading && setShowForgotModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="policy-modal-card forgot-modal-card" onClick={(e) => e.stopPropagation()}>
+            <header className="policy-modal-header">
+              <div className="policy-modal-title-group">
+                <ShieldCheck size={20} className="policy-icon" />
+                <h2>{forgotStep === 'request' ? 'Reset Your Password' : 'Set New Password'}</h2>
+              </div>
+              <button
+                type="button"
+                className="policy-modal-close"
+                onClick={() => setShowForgotModal(false)}
+                disabled={forgotLoading}
+                aria-label="Close modal"
+              >
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="policy-modal-body">
+              {forgotSuccess && (
+                <div className="auth-alert-box alert-success" style={{ marginBottom: '14px' }}>
+                  <span>{forgotSuccess}</span>
+                </div>
+              )}
+              {forgotError && (
+                <div className="auth-alert-box alert-error" style={{ marginBottom: '14px' }}>
+                  <span>{forgotError}</span>
+                </div>
+              )}
+
+              {forgotStep === 'request' ? (
+                <form onSubmit={handleRequestPasswordReset} className="auth-fields-stack">
+                  <p style={{ color: '#a6a1b2', fontSize: '13.5px', marginBottom: '8px' }}>
+                    Enter the email associated with your SarangTV account. We will send you a password reset code.
+                  </p>
+                  <label className="auth-field">
+                    <span>Email Address</span>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      disabled={forgotLoading}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="button button-primary"
+                    style={{ width: '100%', marginTop: '12px' }}
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? 'Sending Reset Code...' : 'Send Reset Code'}
+                  </button>
+                  <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="auth-terms-link"
+                      onClick={() => setForgotStep('reset')}
+                    >
+                      Already have a reset token/code?
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleConfirmPasswordReset} className="auth-fields-stack">
+                  <p style={{ color: '#a6a1b2', fontSize: '13.5px', marginBottom: '8px' }}>
+                    Enter your reset token and your new password.
+                  </p>
+                  <label className="auth-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      disabled={forgotLoading}
+                    />
+                  </label>
+                  <label className="auth-field">
+                    <span>Reset Token / Code</span>
+                    <input
+                      type="text"
+                      value={forgotToken}
+                      onChange={(e) => setForgotToken(e.target.value)}
+                      placeholder="Paste token or code"
+                      required
+                      disabled={forgotLoading}
+                    />
+                    {resetFieldErrors.token && (
+                      <span className="field-error-text">{resetFieldErrors.token[0]}</span>
+                    )}
+                  </label>
+                  <label className="auth-field">
+                    <span>New Password</span>
+                    <span className="password-input">
+                      <input
+                        type={showResetPassword ? 'text' : 'password'}
+                        value={resetNewPassword}
+                        onChange={(e) => setResetNewPassword(e.target.value)}
+                        placeholder="Min. 8 chars, uppercase, number & symbol"
+                        required
+                        disabled={forgotLoading}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowResetPassword(!showResetPassword)}
+                        aria-label={showResetPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showResetPassword ? <Eye size={17} /> : <EyeOff size={17} />}
+                      </button>
+                    </span>
+                    {resetFieldErrors.password && (
+                      <span className="field-error-text">{resetFieldErrors.password[0]}</span>
+                    )}
+                  </label>
+                  <label className="auth-field">
+                    <span>Confirm New Password</span>
+                    <span className="password-input">
+                      <input
+                        type={showResetPassword ? 'text' : 'password'}
+                        value={resetNewConfirm}
+                        onChange={(e) => setResetNewConfirm(e.target.value)}
+                        placeholder="Repeat your new password"
+                        required
+                        disabled={forgotLoading}
+                      />
+                    </span>
+                    {resetFieldErrors.password_confirmation && (
+                      <span className="field-error-text">{resetFieldErrors.password_confirmation[0]}</span>
+                    )}
+                  </label>
+
+                  {/* Password requirements list shown dynamically */}
+                  <PasswordRequirementsList
+                    password={resetNewPassword}
+                    confirmation={resetNewConfirm}
+                  />
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      className="button button-outline"
+                      onClick={() => setForgotStep('request')}
+                      disabled={forgotLoading}
+                      style={{ flex: 1 }}
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      className="button button-primary"
+                      disabled={forgotLoading}
+                      style={{ flex: 2 }}
+                    >
+                      {forgotLoading ? 'Resetting Password...' : 'Reset Password'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -5,16 +5,51 @@
   --color-nav: #0B0B13;
   --color-panel: #11111B;
   --color-panel-raised: #151521;
+  --color-input-bg: #151521;
   --color-text: #F0EEE8;
   --color-muted: #8D8B98;
+  --color-text-muted: #a09ca8;
   --color-primary: #F5A9C4;
   --color-primary-dark: #E085A6;
+  --color-accent: #eb5b78;
+  --color-border: #36272d;
+  --color-danger: #ff7691;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
   --color-line: rgba(255, 255, 255, 0.08);
   font-family: 'Poppins', sans-serif;
   color: var(--color-text);
   background: #080808;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+}
+
+/* Dark theme autofill override using design tokens */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-input-bg) inset !important;
+  box-shadow: 0 0 0 1000px var(--color-input-bg) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  caret-color: var(--color-text) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:autofill,
+textarea:autofill,
+select:autofill {
+  box-shadow: 0 0 0 1000px var(--color-input-bg) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  caret-color: var(--color-text) !important;
 }
 
 * {

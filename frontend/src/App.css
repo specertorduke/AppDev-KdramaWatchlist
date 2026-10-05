@@ -355,11 +355,11 @@
   width: 100%;
   height: 48px;
   padding: 0 16px;
-  border: 1px solid #36272d;
+  border: 1px solid var(--color-border, #36272d);
   border-radius: 12px;
   outline: none;
-  background: #181517;
-  color: #f7f0f0;
+  background: var(--color-input-bg, var(--color-panel-raised, #151521));
+  color: var(--color-text, #f7f0f0);
   font-size: 14.5px;
   transition: border-color 180ms ease, box-shadow 180ms ease;
   box-sizing: border-box;
@@ -405,17 +405,26 @@
 
 .forgot-link {
   display: block;
-  margin: 2px 0 16px;
+  margin: 2px 0 16px auto;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
   color: #eb5b78;
   font-size: 13px;
   font-weight: 600;
   text-align: right;
   text-decoration: none;
+  font-family: inherit;
 }
 
 .forgot-link:hover {
   color: #f17892;
   text-decoration: underline;
+}
+
+.forgot-modal-card {
+  max-width: 480px;
 }
 
 .auth-submit {
@@ -457,6 +466,181 @@
   font-size: 11.5px;
   font-weight: 600;
   text-align: left;
+}
+
+/* Password Strength & Requirements Section */
+.auth-field-full {
+  grid-column: 1 / -1;
+}
+
+.pwd-requirements-container {
+  margin: 10px 0 0;
+  text-align: left;
+}
+
+/* 4-Segment Strength Meter */
+.pwd-strength-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pwd-strength-segments {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.pwd-strength-segment {
+  height: 3.5px;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--color-border, #36272d);
+  transition: background-color 200ms ease;
+}
+
+/* Filled Segment Colors (Weak: red, Fair: amber, Good: accent, Strong: green) */
+.pwd-strength-segments.weak .pwd-strength-segment.active {
+  background: var(--color-danger, #ff7691);
+}
+
+.pwd-strength-segments.fair .pwd-strength-segment.active {
+  background: var(--color-warning, #f59e0b);
+}
+
+.pwd-strength-segments.good .pwd-strength-segment.active {
+  background: var(--color-accent, #eb5b78);
+}
+
+.pwd-strength-segments.strong .pwd-strength-segment.active {
+  background: var(--color-success, #10b981);
+}
+
+.pwd-strength-label {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 44px;
+  text-align: right;
+  flex-shrink: 0;
+  transition: color 200ms ease;
+}
+
+.pwd-strength-label.empty {
+  color: var(--color-text-muted, #a09ca8);
+}
+
+.pwd-strength-label.weak {
+  color: var(--color-danger, #ff7691);
+}
+
+.pwd-strength-label.fair {
+  color: var(--color-warning, #f59e0b);
+}
+
+.pwd-strength-label.good {
+  color: var(--color-accent, #eb5b78);
+}
+
+.pwd-strength-label.strong {
+  color: var(--color-success, #10b981);
+}
+
+/* Compact Checklist (2 cols desktop, 1 col mobile, no box/border) */
+.pwd-requirements-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.pwd-requirement-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--color-text-muted, #a09ca8);
+  transition: color 180ms ease;
+}
+
+.pwd-requirement-item.met {
+  color: var(--color-success, #10b981);
+  font-weight: 500;
+}
+
+.pwd-req-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+.pwd-req-icon.unmet {
+  color: var(--color-text-muted, #a09ca8);
+}
+
+.pwd-req-icon.met {
+  color: var(--color-success, #10b981);
+}
+
+/* Small Muted Breach Notice Line with Shield */
+.pwd-breach-notice {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-text-muted, #a09ca8);
+  line-height: 1.35;
+}
+
+.pwd-breach-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted, #a09ca8);
+}
+
+/* Confirm Password Match Message */
+.pwd-match-message-wrap {
+  min-height: 20px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.pwd-match-message {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pwd-match-message svg {
+  flex-shrink: 0;
+}
+
+.pwd-match-message.match {
+  color: var(--color-success, #10b981);
+}
+
+.pwd-match-message.mismatch {
+  color: var(--color-danger, #ff7691);
+}
+
+.pwd-match-spacer {
+  visibility: hidden;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+@media (max-width: 560px) {
+  .pwd-requirements-checklist {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
 
 .auth-switch {
@@ -5549,6 +5733,25 @@
 .auth-terms-checkbox:focus-visible {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(245, 169, 196, 0.16);
+}
+
+.auth-field input:-webkit-autofill,
+.auth-field input:-webkit-autofill:hover,
+.auth-field input:-webkit-autofill:focus,
+.auth-field input:-webkit-autofill:active,
+.auth-field input:autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-panel-raised) inset !important;
+  box-shadow: 0 0 0 1000px var(--color-panel-raised) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  caret-color: var(--color-text) !important;
+  font-family: inherit !important;
+}
+
+.auth-field input:-webkit-autofill:focus,
+.auth-field input:autofill:focus {
+  border-color: var(--color-primary);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-panel-raised) inset, 0 0 0 3px rgba(245, 169, 196, 0.16) !important;
+  box-shadow: 0 0 0 1000px var(--color-panel-raised) inset, 0 0 0 3px rgba(245, 169, 196, 0.16) !important;
 }
 
 .auth-submit {

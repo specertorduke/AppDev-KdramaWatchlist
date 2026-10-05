@@ -9,7 +9,9 @@ import {
   Eye,
   EyeOff,
   Heart,
+  KeyRound,
   Loader2,
+  Lock,
   Mail,
   ShieldCheck,
   Sparkles,
@@ -23,6 +25,8 @@ import authService from '../services/authService.js'
 import { dashboardUser } from '../data/dashboardData.js'
 import { DRAMA_PERSONAS, PROFILE_COLORS } from '../data/dramaPersonas.js'
 import DramaPersonaAvatar from './DramaPersonaAvatar.jsx'
+import PasswordRequirementsList from './PasswordRequirementsList.jsx'
+import { checkPasswordRequirements } from '../utils/passwordRequirements.js'
 
 function compressProfileImage(file) {
   return new Promise((resolve, reject) => {
@@ -96,6 +100,17 @@ export default function EditProfileModal({ isOpen, onClose }) {
   const [deleteError, setDeleteError] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Password Change Flow States
+  const [showPasswordChangeFlow, setShowPasswordChangeFlow] = useState(false)
+  const [currentChangePassword, setCurrentChangePassword] = useState('')
+  const [newChangePassword, setNewChangePassword] = useState('')
+  const [newChangePasswordConfirm, setNewChangePasswordConfirm] = useState('')
+  const [showCurrentChangePwd, setShowCurrentChangePwd] = useState(false)
+  const [showNewChangePwd, setShowNewChangePwd] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordChangeError, setPasswordChangeError] = useState('')
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('')
+
   // Sync state whenever modal opens or user data changes
   useEffect(() => {
     if (isOpen) {
@@ -120,8 +135,71 @@ export default function EditProfileModal({ isOpen, onClose }) {
       setShowDeleteModal(false)
       setDeletePassword('')
       setDeleteError('')
+
+      setShowPasswordChangeFlow(false)
+      setCurrentChangePassword('')
+      setNewChangePassword('')
+      setNewChangePasswordConfirm('')
+      setPasswordChangeError('')
+      setPasswordChangeSuccess('')
     }
   }, [isOpen, user])
+
+  const handleChangePasswordSubmit = async (e) => {
+    if (e) e.preventDefault()
+    setPasswordChangeError('')
+    setPasswordChangeSuccess('')
+
+    if (!currentChangePassword) {
+      setPasswordChangeError('Please enter your current password.')
+      return
+    }
+
+    const { allRulesMet, isMatch, isDifferent } = checkPasswordRequirements(
+      newChangePassword,
+      newChangePasswordConfirm,
+      currentChangePassword
+    )
+
+    if (!allRulesMet) {
+      setPasswordChangeError('New password must meet all complexity requirements.')
+      return
+    }
+    if (!isMatch) {
+      setPasswordChangeError('The password confirmation does not match.')
+      return
+    }
+    if (!isDifferent) {
+      setPasswordChangeError('The new password must be different from your current password.')
+      return
+    }
+
+    setIsChangingPassword(true)
+    try {
+      const res = await authService.changePassword({
+        current_password: currentChangePassword,
+        password: newChangePassword,
+        password_confirmation: newChangePasswordConfirm,
+      })
+      setPasswordChangeSuccess(res?.message || 'Password changed successfully!')
+      setCurrentChangePassword('')
+      setNewChangePassword('')
+      setNewChangePasswordConfirm('')
+      setTimeout(() => {
+        setShowPasswordChangeFlow(false)
+        setPasswordChangeSuccess('')
+      }, 2500)
+    } catch (err) {
+      const errMsg =
+        err?.response?.data?.errors?.password?.[0] ||
+        err?.response?.data?.errors?.current_password?.[0] ||
+        err?.response?.data?.message ||
+        'Failed to change password. Please check your current password and requirements.'
+      setPasswordChangeError(errMsg)
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -604,7 +682,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
                               tabIndex={-1}
                               aria-label={showPassword ? 'Hide password' : 'Show password'}
                             >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
                             </button>
                           </div>
                         </div>
@@ -732,6 +810,170 @@ export default function EditProfileModal({ isOpen, onClose }) {
                   <div className="edit-email-success-box">
                     <CheckCircle2 size={15} />
                     <span>{emailSuccess}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: PASSWORD & SECURITY */}
+              <div className="edit-profile-section">
+                <span className="edit-section-heading">PASSWORD & SECURITY</span>
+
+                {!showPasswordChangeFlow ? (
+                  <div className="edit-email-card">
+                    <div className="edit-email-current-row">
+                      <div className="edit-email-current-left">
+                        <Lock size={17} className="edit-email-current-icon" />
+                        <div>
+                          <strong style={{ color: '#F0EEE8', fontSize: '13px', display: 'block' }}>Password</strong>
+                          <span style={{ color: '#8D8B98', fontSize: '12px' }}>••••••••••••</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="edit-email-change-trigger-btn"
+                        onClick={() => {
+                          setShowPasswordChangeFlow(true)
+                          setPasswordChangeError('')
+                          setPasswordChangeSuccess('')
+                        }}
+                      >
+                        Change Password
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="edit-email-flow-container">
+                    <div className="edit-email-step-header">
+                      <KeyRound size={16} className="edit-email-step-icon" />
+                      <strong>Change Your Password</strong>
+                    </div>
+                    <p className="edit-email-step-desc">
+                      Enter your current password and choose a new secure password.
+                    </p>
+
+                    <form onSubmit={handleChangePasswordSubmit}>
+                      <div className="edit-email-input-group">
+                        <label className="edit-email-sublabel">CURRENT PASSWORD</label>
+                        <div className="edit-password-input-wrap">
+                          <input
+                            type={showCurrentChangePwd ? 'text' : 'password'}
+                            className="edit-profile-input edit-password-input"
+                            value={currentChangePassword}
+                            onChange={(e) => {
+                              setCurrentChangePassword(e.target.value)
+                              if (passwordChangeError) setPasswordChangeError('')
+                            }}
+                            placeholder="Enter current password"
+                            disabled={isChangingPassword}
+                            required
+                          />
+                          <button
+                            type="button"
+                            className="edit-password-toggle-btn"
+                            onClick={() => setShowCurrentChangePwd(!showCurrentChangePwd)}
+                            tabIndex={-1}
+                            aria-label={showCurrentChangePwd ? 'Hide password' : 'Show password'}
+                          >
+                            {showCurrentChangePwd ? <Eye size={16} /> : <EyeOff size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="edit-email-input-group" style={{ marginTop: '12px' }}>
+                        <label className="edit-email-sublabel">NEW PASSWORD</label>
+                        <div className="edit-password-input-wrap">
+                          <input
+                            type={showNewChangePwd ? 'text' : 'password'}
+                            className="edit-profile-input edit-password-input"
+                            value={newChangePassword}
+                            onChange={(e) => {
+                              setNewChangePassword(e.target.value)
+                              if (passwordChangeError) setPasswordChangeError('')
+                            }}
+                            placeholder="Min. 8 chars, uppercase, number & symbol"
+                            disabled={isChangingPassword}
+                            required
+                          />
+                          <button
+                            type="button"
+                            className="edit-password-toggle-btn"
+                            onClick={() => setShowNewChangePwd(!showNewChangePwd)}
+                            tabIndex={-1}
+                            aria-label={showNewChangePwd ? 'Hide password' : 'Show password'}
+                          >
+                            {showNewChangePwd ? <Eye size={16} /> : <EyeOff size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="edit-email-input-group" style={{ marginTop: '12px' }}>
+                        <label className="edit-email-sublabel">CONFIRM NEW PASSWORD</label>
+                        <div className="edit-password-input-wrap">
+                          <input
+                            type={showNewChangePwd ? 'text' : 'password'}
+                            className="edit-profile-input edit-password-input"
+                            value={newChangePasswordConfirm}
+                            onChange={(e) => {
+                              setNewChangePasswordConfirm(e.target.value)
+                              if (passwordChangeError) setPasswordChangeError('')
+                            }}
+                            placeholder="Repeat new password"
+                            disabled={isChangingPassword}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Display password requirements checklist dynamically */}
+                      <PasswordRequirementsList
+                        password={newChangePassword}
+                        confirmation={newChangePasswordConfirm}
+                        currentPassword={currentChangePassword}
+                        isChangePassword={true}
+                      />
+
+                      {passwordChangeError && (
+                        <div className="edit-email-error-box" style={{ marginTop: '10px' }}>
+                          <AlertCircle size={15} />
+                          <span>{passwordChangeError}</span>
+                        </div>
+                      )}
+
+                      {passwordChangeSuccess && (
+                        <div className="edit-email-success-box" style={{ marginTop: '10px' }}>
+                          <CheckCircle2 size={15} />
+                          <span>{passwordChangeSuccess}</span>
+                        </div>
+                      )}
+
+                      <div className="edit-email-btn-row" style={{ marginTop: '14px' }}>
+                        <button
+                          type="button"
+                          className="edit-email-btn-secondary"
+                          onClick={() => {
+                            setShowPasswordChangeFlow(false)
+                            setPasswordChangeError('')
+                            setPasswordChangeSuccess('')
+                          }}
+                          disabled={isChangingPassword}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="edit-email-btn-primary"
+                          disabled={isChangingPassword}
+                        >
+                          {isChangingPassword ? (
+                            <>
+                              <Loader2 size={14} className="spinner-icon" /> Updating...
+                            </>
+                          ) : (
+                            'Update Password'
+                          )}
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 )}
               </div>
