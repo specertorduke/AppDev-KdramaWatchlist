@@ -275,10 +275,10 @@ class DiscoverService
             $originCountries = $item['origin_country'] ?? [];
             $originalLanguage = $item['original_language'] ?? '';
 
-            // Filter or prioritize Korean dramas
+            // Exclude non-Korean TV matches instead of merely sorting them lower.
             $isKorean = in_array('KR', $originCountries, true) || $originalLanguage === 'ko';
 
-            if (!isset($seenIds[$id])) {
+            if ($isKorean && !isset($seenIds[$id])) {
                 $seenIds[$id] = true;
                 $collectedDramas[] = [
                     'item'     => $item,

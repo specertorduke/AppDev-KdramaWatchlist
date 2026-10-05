@@ -47,9 +47,32 @@ export const authService = {
       const response = await api.put('/user/profile', payload)
       return response.data
     } catch {
-      // Backend may not have an active profile update endpoint; return payload
+      // Offline / fallback support
       return payload
     }
+  },
+
+  async requestEmailChange({ new_email, password }) {
+    const response = await api.post('/user/email/request-change', {
+      new_email,
+      password,
+    })
+    return response.data
+  },
+
+  async verifyEmailChange({ new_email, otp }) {
+    const response = await api.post('/user/email/verify-change', {
+      new_email,
+      otp,
+    })
+    return response.data
+  },
+
+  async deleteAccount({ current_password }) {
+    const response = await api.delete('/user', {
+      data: { current_password },
+    })
+    return response.data
   },
 
   async updateUserPreferences(favoriteGenres) {

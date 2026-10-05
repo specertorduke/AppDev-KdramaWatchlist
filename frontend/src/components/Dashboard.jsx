@@ -33,6 +33,8 @@ import {
   Loader2,
   Settings,
   Trash2,
+  AlertCircle,
+  AlertTriangle,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -62,6 +64,49 @@ const statusColors = {
   favorites: '#EF4444',
   'on hold': '#F59E0B',
   dropped: '#EF4444',
+}
+const EMPTY_FAVORITE_GENRES = []
+const FAVORITE_GENRE_TMDB_IDS = {
+  romance: 18,
+  comedy: 35,
+  drama: 18,
+  mystery: 9648,
+  'mystery & thriller': 9648,
+  action: 10759,
+  'action & adventure': 10759,
+  'sci-fi & fantasy': 10765,
+  'fantasy & sci-fi': 10765,
+  'sci-fi': 10765,
+  crime: 80,
+  'crime & law': 80,
+  family: 10751,
+  'slice of life & family': 10751,
+}
+
+function getFavoriteGenreIds(genres) {
+  return [...new Set(genres
+    .map((genre) => FAVORITE_GENRE_TMDB_IDS[String(genre).trim().toLowerCase()])
+    .filter(Boolean))]
+}
+
+function interleaveRecommendations(groups, limit = 20) {
+  const recommendations = []
+  const seenIds = new Set()
+  const maxGroupSize = Math.max(0, ...groups.map((group) => group.length))
+
+  for (let index = 0; index < maxGroupSize && recommendations.length < limit; index += 1) {
+    for (const group of groups) {
+      const drama = group[index]
+      const id = drama?.tmdb_id || drama?.id
+      if (!id || seenIds.has(String(id))) continue
+
+      seenIds.add(String(id))
+      recommendations.push(mapDramaCard(drama, recommendations.length))
+      if (recommendations.length >= limit) break
+    }
+  }
+
+  return recommendations
 }
 
 function getStatusKey(status) {
@@ -353,11 +398,28 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
 
 function DashboardHeader({ activeTab }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef(null)
   const { user } = useAuth()
   const navigate = useNavigate()
 
   const displayName = user?.name || dashboardUser.name
   const avatarUrl = user?.avatar || dashboardUser.avatar
+
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus()
+  }, [isSearchOpen])
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
+    const query = searchQuery.trim()
+    if (!query) return
+
+    navigate(`/discover?query=${encodeURIComponent(query)}`)
+    setIsSearchOpen(false)
+    setSearchQuery('')
+  }
 
   return (
     <header className="dashboard-header">
@@ -372,9 +434,34 @@ function DashboardHeader({ activeTab }) {
         <Link className={activeTab === 'profile' ? 'active' : ''} to="/profile"><UserRound size={19} /><span>Profile</span></Link>
       </nav>
       <div className="dashboard-actions">
-        <button type="button" aria-label="Search dramas" onClick={() => navigate('/discover')}>
-          <Search size={20} />
-        </button>
+        {isSearchOpen ? (
+          <form className="dashboard-search-form" role="search" onSubmit={handleSearchSubmit}>
+            <Search size={17} aria-hidden="true" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search dramas..."
+              aria-label="Search dramas"
+            />
+            <button
+              className="dashboard-search-close"
+              type="button"
+              aria-label="Close search"
+              onClick={() => {
+                setIsSearchOpen(false)
+                setSearchQuery('')
+              }}
+            >
+              <X size={17} />
+            </button>
+          </form>
+        ) : (
+          <button type="button" aria-label="Search dramas" onClick={() => setIsSearchOpen(true)}>
+            <Search size={20} />
+          </button>
+        )}
         <button className="profile-avatar" type="button" aria-label="Open profile" onClick={() => setProfileOpen((open) => !open)}>
           {user?.avatarType === 'persona' || (!user?.avatarType && user?.avatarIcon) ? (
             <DramaPersonaAvatar
@@ -776,8 +863,12 @@ function DramaDetailView({ drama, onBack }) {
 
           <div className="detail-meta-line">
             <span>{drama.year}</span>
-            <span className="meta-dot">·</span>
-            <span>{drama.network}</span>
+            {drama.network && (
+              <>
+                <span className="meta-dot">·</span>
+                <span>{drama.network}</span>
+              </>
+            )}
             <span className="meta-dot">·</span>
             <span>{totalEpisodes} Episodes</span>
           </div>
@@ -794,8 +885,6 @@ function DramaDetailView({ drama, onBack }) {
               )}
             </div>
           )}
-
-          <p className="detail-available-on">Available on {drama.availableOn || drama.network}</p>
 
           <div className="detail-header-actions">
             {!isTracked ? (
@@ -1051,6 +1140,7 @@ const DISCOVER_GENRES = [
 ]
 
 function DiscoverPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
@@ -1062,6 +1152,7 @@ function DiscoverPage() {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const pillsRef = useRef(null)
+  const searchQuery = searchParams.get('query')?.trim() || ''
 
   const topDrama = top5List[currentSlide] || top5List[0] || null
 
@@ -1091,7 +1182,6 @@ function DiscoverPage() {
         if (discRes?.data && discRes.data.length > 0) {
           const mapped = discRes.data.map((d, index) => mapDramaCard(d, index))
           setTop5List(mapped.slice(0, 5))
-          setGridDramas(mapped)
         }
 
         if (genRes?.data && genRes.data.length > 0) {
@@ -1111,6 +1201,36 @@ function DiscoverPage() {
     loadData()
   }, [])
 
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadGrid() {
+      setIsLoading(true)
+      try {
+        const response = searchQuery
+          ? await discoverService.searchDramas({ query: searchQuery })
+          : await discoverService.getDiscover({
+              page: 1,
+              genre_id: genreList.find((genre) => genre.name === selectedGenre)?.id || null,
+            })
+
+        if (!isCancelled) {
+          const mapped = (response?.data || []).map((drama, index) => mapDramaCard(drama, index))
+          setGridDramas(mapped)
+        }
+      } catch {
+        if (!isCancelled) setGridDramas([])
+      } finally {
+        if (!isCancelled) setIsLoading(false)
+      }
+    }
+
+    loadGrid()
+    return () => {
+      isCancelled = true
+    }
+  }, [searchQuery, selectedGenre, genreList])
+
   const handlePrevSlide = () => {
     if (top5List.length === 0) return
     setCurrentSlide((prev) => (prev - 1 + top5List.length) % top5List.length)
@@ -1129,20 +1249,7 @@ function DiscoverPage() {
 
   const handleGenreSelect = async (genreObj) => {
     setSelectedGenre(genreObj.name)
-    setIsLoading(true)
-    try {
-      const res = await discoverService.getDiscover({ page: 1, genre_id: genreObj.id || null })
-      if (res?.data && res.data.length > 0) {
-        const mapped = res.data.map((d, index) => mapDramaCard(d, index))
-        setGridDramas(mapped)
-      } else {
-        setGridDramas([])
-      }
-    } catch {
-      setGridDramas([])
-    } finally {
-      setIsLoading(false)
-    }
+    if (searchQuery) setSearchParams({})
   }
 
   const handleOpenDetails = async (drama) => {
@@ -1171,100 +1278,117 @@ function DiscoverPage() {
         <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
       ) : (
         <>
-          {/* Top 5 Carousel */}
-          {topDrama ? (
-            <section className="discover-hero" style={{ backgroundImage: `url(${topDrama.image || topDrama.backdrop || DEFAULT_BACKDROP_IMAGE})` }}>
-              <button className="discover-back" type="button" onClick={handlePrevSlide} aria-label="Previous drama">
-                <ChevronLeft size={22} />
-              </button>
-              <div className="discover-hero-copy">
-                <span>{topDrama.weekHighlight || `#${currentSlide + 1} THIS WEEK`}</span>
-                <h1>{topDrama.title}</h1>
-                <div>
-                  <button className="view-details" type="button" onClick={() => handleOpenDetails(topDrama)}>
-                    ▣ &nbsp;View Details
+          {!searchQuery && (
+            <>
+              {/* Top 5 Carousel */}
+              {topDrama ? (
+                <section className="discover-hero" style={{ backgroundImage: `url(${topDrama.image || topDrama.backdrop || DEFAULT_BACKDROP_IMAGE})` }}>
+                  <button className="discover-back" type="button" onClick={handlePrevSlide} aria-label="Previous drama">
+                    <ChevronLeft size={22} />
                   </button>
-                  <b>★ {topDrama.rating}</b>
-                </div>
-              </div>
-              <button className="discover-next" type="button" onClick={handleNextSlide} aria-label="Next drama">
-                <ChevronRight size={22} />
-              </button>
+                  <div className="discover-hero-copy">
+                    <span>{topDrama.weekHighlight || `#${currentSlide + 1} THIS WEEK`}</span>
+                    <h1>{topDrama.title}</h1>
+                    <div>
+                      <button className="view-details" type="button" onClick={() => handleOpenDetails(topDrama)}>
+                        ▣ &nbsp;View Details
+                      </button>
+                      <b>★ {topDrama.rating}</b>
+                    </div>
+                  </div>
+                  <button className="discover-next" type="button" onClick={handleNextSlide} aria-label="Next drama">
+                    <ChevronRight size={22} />
+                  </button>
 
-              {/* Carousel Slide Indicators */}
-              <div className="carousel-dots">
-                {top5List.map((d, index) => (
+                  {/* Carousel Slide Indicators */}
+                  <div className="carousel-dots">
+                    {top5List.map((d, index) => (
+                      <button
+                        key={d.id || index}
+                        type="button"
+                        className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+                        onClick={() => setCurrentSlide(index)}
+                        aria-label={`Go to slide ${index + 1}: ${d.title}`}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : isLoading ? (
+                <section className="discover-hero" style={{ minHeight: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
+                </section>
+              ) : null}
+
+              {/* Horizontal Genre Pills (Chips) */}
+              <div className="genre-chips-wrapper">
+                {canScrollLeft && (
                   <button
-                    key={d.id || index}
                     type="button"
-                    className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
-                    onClick={() => setCurrentSlide(index)}
-                    aria-label={`Go to slide ${index + 1}: ${d.title}`}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : isLoading ? (
-            <section className="discover-hero" style={{ minHeight: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
-            </section>
-          ) : null}
-
-          {/* Horizontal Genre Pills (Chips) */}
-          <div className="genre-chips-wrapper">
-            {canScrollLeft && (
-              <button
-                type="button"
-                className="genre-scroll-btn genre-scroll-btn-left"
-                onClick={() => handleScroll('left')}
-                aria-label="Scroll genres left"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            )}
-
-            <div
-              className="genre-chips-track"
-              ref={pillsRef}
-              onScroll={checkScroll}
-              role="tablist"
-              aria-label="Filter dramas by genre"
-            >
-              {genreList.map((g) => {
-                const isSelected = selectedGenre === g.name
-                return (
-                  <button
-                    key={g.id ?? g.name}
-                    type="button"
-                    role="tab"
-                    aria-selected={isSelected}
-                    className={`genre-chip ${isSelected ? 'active' : ''}`}
-                    onClick={() => handleGenreSelect(g)}
+                    className="genre-scroll-btn genre-scroll-btn-left"
+                    onClick={() => handleScroll('left')}
+                    aria-label="Scroll genres left"
                   >
-                    {g.name}
+                    <ChevronLeft size={16} />
                   </button>
-                )
-              })}
-            </div>
+                )}
 
-            {canScrollRight && (
+                <div
+                  className="genre-chips-track"
+                  ref={pillsRef}
+                  onScroll={checkScroll}
+                  role="tablist"
+                  aria-label="Filter dramas by genre"
+                >
+                  {genreList.map((g) => {
+                    const isSelected = selectedGenre === g.name
+                    return (
+                      <button
+                        key={g.id ?? g.name}
+                        type="button"
+                        role="tab"
+                        aria-selected={isSelected}
+                        className={`genre-chip ${isSelected ? 'active' : ''}`}
+                        onClick={() => handleGenreSelect(g)}
+                      >
+                        {g.name}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {canScrollRight && (
+                  <button
+                    type="button"
+                    className="genre-scroll-btn genre-scroll-btn-right"
+                    onClick={() => handleScroll('right')}
+                    aria-label="Scroll genres right"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {searchQuery && (
+            <div className="discover-search-header">
               <button
+                className="detail-back-btn"
                 type="button"
-                className="genre-scroll-btn genre-scroll-btn-right"
-                onClick={() => handleScroll('right')}
-                aria-label="Scroll genres right"
+                onClick={() => setSearchParams({})}
               >
-                <ChevronRight size={16} />
+                <ChevronLeft size={16} /> Back to Discover
               </button>
-            )}
-          </div>
+              <h1>Search results for “{searchQuery}”</h1>
+            </div>
+          )}
 
           {/* Discover Grid */}
           <section className="discover-grid">
-            {isLoading && gridDramas.length === 0 ? (
-              <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
+            {isLoading ? (
+              <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }} role="status" aria-live="polite">
                 <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
-                <h3>Loading K-Dramas...</h3>
+                <h3>{searchQuery ? `Searching for “${searchQuery}”...` : 'Loading K-Dramas...'}</h3>
               </div>
             ) : gridDramas.length > 0 ? (
               gridDramas.map((drama) => (
@@ -1282,8 +1406,12 @@ function DiscoverPage() {
             ) : (
               <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
                 <Film size={36} />
-                <h3>No K-Dramas available</h3>
-                <p>No dramas found for "{selectedGenre}". Try selecting another genre.</p>
+                <h3>{searchQuery ? 'No dramas found' : 'No K-Dramas available'}</h3>
+                <p>
+                  {searchQuery
+                    ? `No dramas matched "${searchQuery}". Try another title or actor.`
+                    : `No dramas found for "${selectedGenre}". Try selecting another genre.`}
+                </p>
                 <button
                   type="button"
                   className="genre-clear-btn"
@@ -1965,6 +2093,7 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
 
 function SettingsPage() {
   const navigate = useNavigate()
+  const { deleteAccount } = useAuth()
   const [settings, setSettings] = useState({
     episodeAlerts: true,
     progressReminders: true,
@@ -1972,8 +2101,38 @@ function SettingsPage() {
     highQualityPosters: true,
   })
 
+  // Delete Account modal states (matching mobile SettingsScreen)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const toggleSetting = (key) => {
     setSettings((current) => ({ ...current, [key]: !current[key] }))
+  }
+
+  const handleDeleteAccount = async (e) => {
+    if (e) e.preventDefault()
+    if (!deletePassword) {
+      setDeleteError('Please enter your password to confirm.')
+      return
+    }
+    setIsDeleting(true)
+    setDeleteError('')
+
+    try {
+      const res = await deleteAccount(deletePassword)
+      if (res.success) {
+        setShowDeleteModal(false)
+        navigate('/')
+      } else {
+        setDeleteError(res.error || 'Failed to delete account. Incorrect password.')
+      }
+    } catch {
+      setDeleteError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -2066,8 +2225,119 @@ function SettingsPage() {
               <strong>Dark Cinematic</strong>
             </div>
           </div>
+
+          {/* DANGER ZONE (Matching Mobile SettingsScreen) */}
+          <div className="profile-settings-group settings-danger-group">
+            <p className="profile-settings-title danger-title">DANGER ZONE</p>
+            <div
+              className="profile-setting-row delete-account-setting-row"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setDeletePassword('')
+                setDeleteError('')
+                setShowDeleteModal(true)
+              }}
+            >
+              <div className="delete-account-left">
+                <div className="delete-icon-wrap">
+                  <Trash2 size={16} color="#EF4444" />
+                </div>
+                <div className="profile-setting-copy">
+                  <strong className="delete-title">Delete Account</strong>
+                  <small>Permanently delete your profile, watchlist tracker, and all personal data</small>
+                </div>
+              </div>
+              <ChevronRight size={16} color="#EF4444" />
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div
+          className="modal-overlay danger-modal-overlay"
+          onClick={() => !isDeleting && setShowDeleteModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="delete-account-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <div className="delete-warning-icon-wrap">
+                <AlertTriangle size={24} color="#EF4444" />
+              </div>
+              <div>
+                <h3>Delete Account?</h3>
+                <p>This action cannot be undone</p>
+              </div>
+              <button
+                type="button"
+                className="modal-close-button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                aria-label="Close delete modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="delete-modal-description">
+              Please enter your password to confirm account deletion. All your watchlist data, favorite genres, and history will be permanently deleted.
+            </p>
+
+            <form onSubmit={handleDeleteAccount}>
+              <div className="delete-input-group">
+                <label htmlFor="settings-delete-password">CURRENT PASSWORD</label>
+                <input
+                  id="settings-delete-password"
+                  type="password"
+                  className="edit-profile-input"
+                  value={deletePassword}
+                  onChange={(e) => {
+                    setDeletePassword(e.target.value)
+                    if (deleteError) setDeleteError('')
+                  }}
+                  placeholder="Enter current password"
+                  autoFocus
+                  disabled={isDeleting}
+                />
+              </div>
+
+              {deleteError && (
+                <div className="edit-email-error-box" role="alert">
+                  <AlertCircle size={15} />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+
+              <div className="delete-modal-actions">
+                <button
+                  type="button"
+                  className="delete-modal-btn-cancel"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="delete-modal-btn-confirm"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={14} className="spinner-icon" /> Deleting...
+                    </>
+                  ) : (
+                    'Delete My Account'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }
@@ -2076,107 +2346,56 @@ function Dashboard() {
   const { user } = useAuth()
   const { stats } = useWatchlist()
   const firstName = user?.name ? user.name.split(' ')[0] : 'Fan'
-  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
+  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : EMPTY_FAVORITE_GENRES
+  const favoriteGenreIds = useMemo(() => getFavoriteGenreIds(favoriteGenres), [favoriteGenres])
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [recommendedList, setRecommendedList] = useState([])
-  const [discoverList, setDiscoverList] = useState([])
   const [curatedRecommended, setCuratedRecommended] = useState([])
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(true)
 
   useEffect(() => {
+    let isCurrent = true
+
     async function loadDashboardData() {
       setIsLoadingRecommended(true)
       try {
-        const [homeRes, discoverRes] = await Promise.allSettled([
-          discoverService.getHome(),
+        const responses = await Promise.allSettled([
           discoverService.getDiscover({ page: 1 }),
+          ...favoriteGenreIds.map((genre_id) => discoverService.getDiscover({ page: 1, genre_id })),
         ])
+        const [discoverRes, ...genreResponses] = responses
+
+        if (!isCurrent) return
 
         if (discoverRes.status === 'fulfilled' && discoverRes.value?.data?.length > 0) {
           const mapped = discoverRes.value.data.map((d, index) => mapDramaCard(d, index))
           setRecommendedList(mapped.slice(0, 10))
-          setDiscoverList(mapped)
         } else {
           setRecommendedList([])
-          setDiscoverList([])
         }
 
-        if (
-          homeRes.status === 'fulfilled' &&
-          homeRes.value?.data?.recommended &&
-          Array.isArray(homeRes.value.data.recommended) &&
-          homeRes.value.data.recommended.length > 0
-        ) {
-          const mappedHome = homeRes.value.data.recommended.map((d, index) => mapDramaCard(d, index))
-          setCuratedRecommended(mappedHome)
-        }
+        const recommendationGroups = genreResponses
+          .filter((response) => response.status === 'fulfilled')
+          .map((response) => response.value?.data || [])
+        setCuratedRecommended(interleaveRecommendations(recommendationGroups))
       } catch {
-        setRecommendedList([])
-        setDiscoverList([])
+        if (isCurrent) {
+          setRecommendedList([])
+          setCuratedRecommended([])
+        }
       } finally {
-        setIsLoadingRecommended(false)
+        if (isCurrent) setIsLoadingRecommended(false)
       }
     }
     loadDashboardData()
-  }, [])
 
-  const normalizeGenre = (value) => String(value ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  const recommendedForYou = useMemo(() => {
-    if (!favoriteGenres.length) return []
-
-    const preferredGenres = favoriteGenres.map((genre) => normalizeGenre(genre))
-
-    return discoverList.filter((drama) => {
-      const rawGenres = Array.isArray(drama.genres)
-        ? drama.genres
-        : typeof drama.genres === 'string'
-          ? drama.genres.split(/[|,&/]/)
-          : []
-
-      const dramaGenres = rawGenres
-        .map((genre) => String(genre).trim())
-        .filter(Boolean)
-
-      return dramaGenres.some((genre) => {
-        const normalized = normalizeGenre(genre)
-
-        return preferredGenres.some((preferred) => {
-          if (preferred === 'mystery and thriller') {
-            return normalized.includes('mystery') || normalized.includes('thriller')
-          }
-          if (preferred === 'action and adventure') {
-            return normalized.includes('action') || normalized.includes('adventure')
-          }
-          if (preferred === 'sci fi and fantasy' || preferred === 'science fiction and fantasy' || preferred === 'scifi and fantasy') {
-            return normalized.includes('sci') || normalized.includes('fantasy') || normalized.includes('science fiction')
-          }
-          if (preferred === 'slice of life and family') {
-            return normalized.includes('family') || normalized.includes('slice of life')
-          }
-
-          return normalized === preferred || normalized.includes(preferred)
-        })
-      })
-    }).slice(0, 10)
-  }, [discoverList, favoriteGenres])
-
-  const displayRecommended = useMemo(() => {
-    if (curatedRecommended.length > 0) {
-      return curatedRecommended
+    return () => {
+      isCurrent = false
     }
-    if (recommendedForYou.length > 0) {
-      return recommendedForYou
-    }
-    return discoverList.slice(0, 10)
-  }, [curatedRecommended, recommendedForYou, discoverList])
+  }, [favoriteGenreIds])
+
+  const displayRecommended = curatedRecommended
 
   const handleDramaClick = async (drama) => {
     const tmdbId = drama.tmdb_id || drama.id
@@ -2303,7 +2522,11 @@ function Dashboard() {
                     />
                   ))
                 ) : (
-                  <p className="recommended-empty-text">No recommendations available right now.</p>
+                  <p className="recommended-empty-text">
+                    {favoriteGenres.length
+                      ? 'No dramas matched your favorite genres right now.'
+                      : 'Choose your favorite genres to get recommendations.'}
+                  </p>
                 )}
               </div>
             </section>
