@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 const GENRE_OPTIONS = [
@@ -25,6 +26,7 @@ const GENRE_OPTIONS = [
 
 export default function GenreSelectionScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const { user, updateUserPreferences, setNeedsOnboarding } = useAuth();
   const isEditing = route?.params?.isEditing || false;
 
@@ -79,7 +81,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       <View
         style={[
           styles.container,
@@ -95,28 +97,31 @@ export default function GenreSelectionScreen({ navigation, route }) {
             <Pressable
               onPress={() => navigation.goBack()}
               hitSlop={8}
-              style={styles.backBtn}
+              style={[
+                styles.backBtn,
+                { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+              ]}
             >
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={20} color={colors.text} />
             </Pressable>
           ) : (
-            <View style={styles.badgePill}>
-              <Ionicons name="sparkles" size={13} color="#eb5b78" />
-              <Text style={styles.badgePillText}>Personalize Your Feed</Text>
+            <View style={[styles.badgePill, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.15)' : 'rgba(235, 91, 120, 0.10)' }]}>
+              <Ionicons name="sparkles" size={13} color={colors.pink} />
+              <Text style={[styles.badgePillText, { color: colors.pink }]}>Personalize Your Feed</Text>
             </View>
           )}
 
           {!isEditing && (
             <Pressable onPress={handleSkip} hitSlop={8}>
-              <Text style={styles.skipText}>Skip for now</Text>
+              <Text style={[styles.skipText, { color: colors.muted }]}>Skip for now</Text>
             </Pressable>
           )}
         </View>
 
         {/* Title & Subtitle */}
         <View style={styles.titleSection}>
-          <Text style={styles.title}>What do you love watching?</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.text }]}>What do you love watching?</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>
             Select your favorite genres so SarangTV can personalize your recommendations and home dashboard.
           </Text>
         </View>
@@ -136,7 +141,13 @@ export default function GenreSelectionScreen({ navigation, route }) {
                   onPress={() => toggleGenre(g.id)}
                   style={({ pressed }) => [
                     styles.card,
-                    isSelected && styles.cardSelected,
+                    {
+                      backgroundColor: isSelected
+                        ? (isDark ? '#1E1B32' : (colors.panel2 || '#EEF1F6'))
+                        : colors.card,
+                      borderColor: isSelected ? colors.pink : colors.border,
+                      borderWidth: isSelected ? 1.5 : (isDark ? 0 : 1),
+                    },
                     pressed && styles.cardPressed,
                   ]}
                 >
@@ -145,7 +156,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
                       styles.iconCircle,
                       isSelected
                         ? { backgroundColor: g.color }
-                        : styles.iconCircleDefault,
+                        : { backgroundColor: isDark ? '#1C192E' : (colors.panel2 || '#E2E6ED') },
                     ]}
                   >
                     <Ionicons
@@ -158,7 +169,8 @@ export default function GenreSelectionScreen({ navigation, route }) {
                   <Text
                     style={[
                       styles.cardLabel,
-                      isSelected && styles.cardLabelSelected,
+                      { color: colors.text },
+                      isSelected && { fontWeight: '900', color: isDark ? '#FFFFFF' : colors.text },
                     ]}
                     numberOfLines={1}
                   >
@@ -168,7 +180,11 @@ export default function GenreSelectionScreen({ navigation, route }) {
                   <View
                     style={[
                       styles.checkCircle,
-                      isSelected && styles.checkCircleSelected,
+                      {
+                        backgroundColor: isSelected
+                          ? colors.pink
+                          : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+                      },
                     ]}
                   >
                     {isSelected && (
@@ -188,6 +204,7 @@ export default function GenreSelectionScreen({ navigation, route }) {
             disabled={saving}
             style={({ pressed }) => [
               styles.primaryBtn,
+              { backgroundColor: colors.pink, shadowColor: colors.pink },
               pressed && styles.primaryBtnPressed,
             ]}
           >

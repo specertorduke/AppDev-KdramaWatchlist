@@ -10,10 +10,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { userService } from '../../services/api';
 
 export default function StatsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +54,7 @@ export default function StatsScreen({ navigation }) {
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: colors.bg }]}
       contentContainerStyle={[
         styles.content,
         { paddingTop: (insets.top > 0 ? insets.top : 12) + 6 },
@@ -62,14 +64,17 @@ export default function StatsScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={styles.backButton}
+          style={[
+            styles.backButton,
+            { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+          ]}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
           <Ionicons name="chevron-back" size={15} color={colors.text} />
         </Pressable>
-        <Text style={styles.heading}>My Stats</Text>
+        <Text style={[styles.heading, { color: colors.text }]}>My Stats</Text>
       </View>
 
       {/* Main Statistics */}
@@ -105,10 +110,10 @@ export default function StatsScreen({ navigation }) {
       </View>
 
       {/* Average Rating */}
-      <View style={styles.ratingPanel}>
+      <View style={[styles.ratingPanel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
         <View>
-          <Text style={styles.ratingValue}>{averageRating}</Text>
-          <Text style={styles.ratingLabel}>Avg. rating</Text>
+          <Text style={[styles.ratingValue, { color: colors.text }]}>{averageRating}</Text>
+          <Text style={[styles.ratingLabel, { color: colors.muted }]}>Avg. rating</Text>
         </View>
 
         <View style={styles.stars}>
@@ -117,39 +122,47 @@ export default function StatsScreen({ navigation }) {
               key={index}
               name="star"
               size={16}
-              color={colors.redBright}
+              color={colors.pink}
             />
           ))}
         </View>
       </View>
 
       {/* Status Breakdown */}
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>STATUS BREAKDOWN</Text>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>STATUS BREAKDOWN</Text>
 
         <StatusBar
           name="Watching"
           count={watchingCount}
           percent={40}
           tone="blue"
+          colors={colors}
+          isDark={isDark}
         />
         <StatusBar
           name="Completed"
           count={completedCount}
           percent={20}
           tone="green"
+          colors={colors}
+          isDark={isDark}
         />
         <StatusBar
           name="Plan to Watch"
           count={planCount}
           percent={20}
           tone="purple"
+          colors={colors}
+          isDark={isDark}
         />
         <StatusBar
           name="On Hold"
           count={onHoldCount}
           percent={20}
           tone="gold"
+          colors={colors}
+          isDark={isDark}
         />
         <StatusBar
           name="Dropped"
@@ -157,40 +170,42 @@ export default function StatsScreen({ navigation }) {
           percent={0}
           tone="red"
           last
+          colors={colors}
+          isDark={isDark}
         />
       </View>
 
       {/* Favourite Genres */}
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>FAVOURITE GENRES</Text>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>FAVOURITE GENRES</Text>
 
         {genreData.map((genre) => (
           <View key={genre.name} style={styles.genreRow}>
             <View style={styles.genreHeader}>
-              <Text style={styles.genreName}>{genre.name}</Text>
-              <Text style={styles.genreCount}>{genre.count} dramas</Text>
+              <Text style={[styles.genreName, { color: colors.text }]}>{genre.name}</Text>
+              <Text style={[styles.genreCount, { color: colors.muted }]}>{genre.count} dramas</Text>
             </View>
-            <View style={styles.genreTrack}>
-              <View style={[styles.genreFill, { width: `${genre.percent}%` }]} />
+            <View style={[styles.genreTrack, { backgroundColor: isDark ? '#232230' : (colors.line || 'rgba(0,0,0,0.08)') }]}>
+              <View style={[styles.genreFill, { width: `${genre.percent}%`, backgroundColor: colors.pink }]} />
             </View>
           </View>
         ))}
       </View>
 
       {/* Top Rated Panel */}
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>MY TOP RATED</Text>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>MY TOP RATED</Text>
         <View style={styles.topRatedRow}>
-          <View style={styles.topRatedPoster}>
+          <View style={[styles.topRatedPoster, { backgroundColor: isDark ? colors.bg : (colors.panel2 || '#EEF1F6') }]}>
             <Ionicons name="film-outline" size={18} color={colors.muted} />
           </View>
           <View style={styles.topRatedInfo}>
-            <Text style={styles.topRatedTitle}>Pole Lantern</Text>
-            <Text style={styles.topRatedMeta}>Mystery · Drama</Text>
+            <Text style={[styles.topRatedTitle, { color: colors.text }]}>Pole Lantern</Text>
+            <Text style={[styles.topRatedMeta, { color: colors.muted }]}>Mystery · Drama</Text>
           </View>
           <View style={styles.topRatedScore}>
-            <Ionicons name="star" size={10} color={colors.redBright} />
-            <Text style={styles.scoreText}>10/10</Text>
+            <Ionicons name="star" size={10} color={colors.pink} />
+            <Text style={[styles.scoreText, { color: colors.pink }]}>10/10</Text>
           </View>
         </View>
       </View>
@@ -201,26 +216,32 @@ export default function StatsScreen({ navigation }) {
 }
 
 function StatBox({ icon, iconTone, value, label, sub }) {
+  const { colors, isDark } = useTheme();
   return (
-    <View style={styles.statBox}>
+    <View
+      style={[
+        styles.statBox,
+        { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+      ]}
+    >
       <View style={[styles.statIcon, styles[`icon_${iconTone}`]]}>
-        <Ionicons name={icon} size={18} color={colors.text} />
+        <Ionicons name={icon} size={18} color="#FFFFFF" />
       </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statSub}>{sub}</Text>
+      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.muted }]}>{label}</Text>
+      <Text style={[styles.statSub, { color: colors.muted }]}>{sub}</Text>
     </View>
   );
 }
 
-function StatusBar({ name, count, percent, tone, last }) {
+function StatusBar({ name, count, percent, tone, last, colors, isDark }) {
   return (
     <View style={[styles.statusRow, last && styles.statusLast]}>
       <View style={styles.statusHeader}>
         <Text style={[styles.statusName, styles[`status_${tone}`]]}>{name}</Text>
-        <Text style={styles.statusCount}>{count}</Text>
+        <Text style={[styles.statusCount, { color: colors.muted }]}>{count}</Text>
       </View>
-      <View style={styles.statusTrack}>
+      <View style={[styles.statusTrack, { backgroundColor: isDark ? '#232230' : (colors.line || 'rgba(0,0,0,0.08)') }]}>
         <View style={[styles.statusFill, styles[`statusFill_${tone}`], { width: `${percent}%` }]} />
       </View>
     </View>

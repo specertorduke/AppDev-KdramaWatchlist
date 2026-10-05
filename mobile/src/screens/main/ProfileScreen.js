@@ -23,10 +23,10 @@ import {
   BarChart3,
   Sparkles as LucideSparkles,
   Settings as LucideSettings,
-  UsersRound,
   ChevronRight,
 } from 'lucide-react-native';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { userService, authService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { pickAndCompressAvatar, takeAndCompressAvatar } from '../../services/imageService';
@@ -35,10 +35,10 @@ import { checkPasswordRequirements } from '../../utils/passwordRequirements';
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const {
     user,
     logout,
-    openAccountChooser,
     updateProfileAvatar,
     updateProfileName,
     updateUserEmail,
@@ -396,7 +396,7 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: colors.bg }]}
       contentContainerStyle={[
         styles.content,
         {
@@ -425,7 +425,7 @@ export default function ProfileScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Edit profile and avatar"
         >
-          <View style={styles.avatarBorderRing}>
+          <View style={[styles.avatarBorderRing, { backgroundColor: colors.bg, borderColor: isDark ? '#61374c' : colors.border }]}>
             <View style={[styles.avatarCircle, { backgroundColor: activeColor }]}>
               {user?.avatar_url ? (
                 <Image
@@ -443,13 +443,14 @@ export default function ProfileScreen({ navigation }) {
         </Pressable>
 
         <View style={styles.profileInfo}>
-          <Text style={styles.name}>{user?.name || 'Kim Ji-young'}</Text>
-          <Text style={styles.email}>{user?.email || 'kdramaaddict@email.com'}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{user?.name || 'Kim Ji-young'}</Text>
+          <Text style={[styles.email, { color: colors.muted }]}>{user?.email || 'kdramaaddict@email.com'}</Text>
         </View>
 
         <Pressable
           style={({ pressed, hovered }) => [
             styles.pencilEditButton,
+            { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
             hovered && styles.pencilEditButtonHovered,
             pressed && styles.buttonPressed,
           ]}
@@ -457,40 +458,41 @@ export default function ProfileScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Edit profile"
         >
-          <Edit3 size={18} color="#a6a1b2" />
+          <Edit3 size={18} color={colors.text} />
         </Pressable>
       </View>
 
       {/* Profile Summary */}
-      <View style={styles.stats}>
+      <View style={[styles.stats, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats?.total_dramas ?? 4}</Text>
-          <Text style={styles.statLabel}>Dramas</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats?.total_dramas ?? 4}</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Dramas</Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats?.episodes_watched ?? 18}</Text>
-          <Text style={styles.statLabel}>Episodes</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats?.episodes_watched ?? 18}</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Episodes</Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, styles.gold]}>
+          <Text style={[styles.statValue, styles.gold, { color: colors.gold }]}>
             {Math.round(stats?.hours_watched ?? 17)}h
           </Text>
-          <Text style={[styles.statLabel, styles.gold]}>Watched</Text>
+          <Text style={[styles.statLabel, styles.gold, { color: colors.gold }]}>Watched</Text>
         </View>
       </View>
 
       {/* Profile Menu */}
-      <View style={styles.menu}>
+      <View style={[styles.menu, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
         {/* My Tracker */}
         <Pressable
           style={({ pressed, hovered }) => [
             styles.menuItem,
+            { borderBottomColor: colors.border },
             hovered && styles.menuItemHovered,
             pressed && styles.menuItemPressed,
           ]}
@@ -499,21 +501,22 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="My Tracker"
         >
           <View style={styles.menuIcon}>
-            <ClipboardList size={18} color="#8D8B98" />
+            <ClipboardList size={18} color={colors.pink} />
           </View>
           <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>My Tracker</Text>
-            <Text style={styles.menuSubtitle}>
+            <Text style={[styles.menuTitle, { color: colors.text }]}>My Tracker</Text>
+            <Text style={[styles.menuSubtitle, { color: colors.muted }]}>
               {stats?.total_dramas ?? 1} dramas tracked
             </Text>
           </View>
-          <ChevronRight size={18} color="#686577" />
+          <ChevronRight size={18} color={colors.muted} />
         </Pressable>
 
         {/* Stats & History */}
         <Pressable
           style={({ pressed, hovered }) => [
             styles.menuItem,
+            { borderBottomColor: colors.border },
             hovered && styles.menuItemHovered,
             pressed && styles.menuItemPressed,
           ]}
@@ -522,21 +525,22 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Stats and History"
         >
           <View style={styles.menuIcon}>
-            <BarChart3 size={18} color="#8D8B98" />
+            <BarChart3 size={18} color={colors.blue} />
           </View>
           <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Stats & History</Text>
-            <Text style={styles.menuSubtitle}>
+            <Text style={[styles.menuTitle, { color: colors.text }]}>Stats & History</Text>
+            <Text style={[styles.menuSubtitle, { color: colors.muted }]}>
               {stats?.episodes_watched ?? 4} episodes · {Math.round(stats?.hours_watched ?? 4)}h
             </Text>
           </View>
-          <ChevronRight size={18} color="#686577" />
+          <ChevronRight size={18} color={colors.muted} />
         </Pressable>
 
         {/* Favorite Genres & Taste */}
         <Pressable
           style={({ pressed, hovered }) => [
             styles.menuItem,
+            { borderBottomColor: colors.border },
             hovered && styles.menuItemHovered,
             pressed && styles.menuItemPressed,
           ]}
@@ -545,23 +549,24 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Favorite Genres"
         >
           <View style={styles.menuIcon}>
-            <LucideSparkles size={18} color="#8D8B98" />
+            <LucideSparkles size={18} color={colors.purple} />
           </View>
           <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Favorite Genres</Text>
-            <Text style={styles.menuSubtitle}>
+            <Text style={[styles.menuTitle, { color: colors.text }]}>Favorite Genres</Text>
+            <Text style={[styles.menuSubtitle, { color: colors.muted }]}>
               {Array.isArray(user?.favorite_genres) && user.favorite_genres.length > 0
                 ? user.favorite_genres.join(', ')
                 : 'Select your preferred genres'}
             </Text>
           </View>
-          <ChevronRight size={18} color="#686577" />
+          <ChevronRight size={18} color={colors.muted} />
         </Pressable>
 
         {/* Settings */}
         <Pressable
           style={({ pressed, hovered }) => [
             styles.menuItem,
+            styles.menuItemLast,
             hovered && styles.menuItemHovered,
             pressed && styles.menuItemPressed,
           ]}
@@ -570,35 +575,13 @@ export default function ProfileScreen({ navigation }) {
           accessibilityLabel="Settings"
         >
           <View style={styles.menuIcon}>
-            <LucideSettings size={18} color="#8D8B98" />
+            <LucideSettings size={18} color={colors.muted} />
           </View>
           <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Settings</Text>
-            <Text style={styles.menuSubtitle}>Notifications and preferences</Text>
+            <Text style={[styles.menuTitle, { color: colors.text }]}>Settings</Text>
+            <Text style={[styles.menuSubtitle, { color: colors.muted }]}>Notifications, appearance, and preferences</Text>
           </View>
-          <ChevronRight size={18} color="#686577" />
-        </Pressable>
-
-        {/* Switch Account */}
-        <Pressable
-          style={({ pressed, hovered }) => [
-            styles.menuItem,
-            styles.menuItemLast,
-            hovered && styles.menuItemHovered,
-            pressed && styles.menuItemPressed,
-          ]}
-          onPress={openAccountChooser}
-          accessibilityRole="button"
-          accessibilityLabel="Switch Account"
-        >
-          <View style={styles.menuIcon}>
-            <UsersRound size={18} color="#8D8B98" />
-          </View>
-          <View style={styles.menuText}>
-            <Text style={styles.menuTitle}>Switch Account</Text>
-            <Text style={styles.menuSubtitle}>Change active profile</Text>
-          </View>
-          <ChevronRight size={18} color="#686577" />
+          <ChevronRight size={18} color={colors.muted} />
         </Pressable>
       </View>
 
@@ -628,11 +611,11 @@ export default function ProfileScreen({ navigation }) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>Edit Profile</Text>
-                <Text style={styles.modalSubtitle}>Customize your persona, name, and email</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.muted }]}>Customize your persona, name, and email</Text>
               </View>
               <Pressable
                 style={styles.modalCloseBtn}
@@ -640,7 +623,7 @@ export default function ProfileScreen({ navigation }) {
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={20} color={colors.text} />
               </Pressable>
             </View>
 
@@ -652,13 +635,13 @@ export default function ProfileScreen({ navigation }) {
             >
               {/* SECTION 1: DISPLAY NAME */}
               <View style={styles.editSection}>
-                <Text style={styles.editSectionHeading}>DISPLAY NAME</Text>
+                <Text style={[styles.editSectionHeading, { color: colors.muted }]}>DISPLAY NAME</Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, { backgroundColor: colors.inputBg || colors.panel2, color: colors.text, borderColor: colors.border }]}
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="Enter your name"
-                  placeholderTextColor="#686577"
+                  placeholderTextColor={colors.muted}
                   autoCapitalize="words"
                   maxLength={50}
                 />
@@ -666,14 +649,14 @@ export default function ProfileScreen({ navigation }) {
 
               {/* SECTION 2: EMAIL (INDUSTRY STANDARD FLOW) */}
               <View style={styles.editSection}>
-                <Text style={styles.editSectionHeading}>EMAIL ADDRESS</Text>
+                <Text style={[styles.editSectionHeading, { color: colors.muted }]}>EMAIL ADDRESS</Text>
 
                 {!showEmailFlow ? (
-                  <View style={styles.emailCard}>
+                  <View style={[styles.emailCard, { backgroundColor: isDark ? '#0D0C17' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border }]}>
                     <View style={styles.emailCurrentRow}>
                       <View style={styles.emailCurrentLeft}>
-                        <Ionicons name="mail-outline" size={17} color="#a6a1b2" />
-                        <Text style={styles.emailCurrentText} numberOfLines={1}>
+                        <Ionicons name="mail-outline" size={17} color={colors.muted} />
+                        <Text style={[styles.emailCurrentText, { color: colors.text }]} numberOfLines={1}>
                           {user?.email || 'No email set'}
                         </Text>
                       </View>
@@ -700,47 +683,47 @@ export default function ProfileScreen({ navigation }) {
                       accessibilityRole="button"
                       accessibilityLabel="Change email address"
                     >
-                      <Ionicons name="swap-horizontal" size={14} color="#eb5b78" />
-                      <Text style={styles.changeEmailTriggerText}>Change Email</Text>
+                      <Ionicons name="swap-horizontal" size={14} color={colors.pink} />
+                      <Text style={[styles.changeEmailTriggerText, { color: colors.pink }]}>Change Email</Text>
                     </Pressable>
                   </View>
                 ) : (
-                  <View style={styles.emailFlowCard}>
+                  <View style={[styles.emailFlowCard, { backgroundColor: isDark ? '#12101F' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border }]}>
                     {emailStep === 'input' ? (
                       <>
                         <View style={styles.emailFlowStepHeader}>
-                          <Ionicons name="shield-checkmark-outline" size={16} color="#eb5b78" />
-                          <Text style={styles.emailFlowTitle}>Change Account Email</Text>
+                          <Ionicons name="shield-checkmark-outline" size={16} color={colors.pink} />
+                          <Text style={[styles.emailFlowTitle, { color: colors.text }]}>Change Account Email</Text>
                         </View>
-                        <Text style={styles.emailFlowDesc}>
+                        <Text style={[styles.emailFlowDesc, { color: colors.muted }]}>
                           For your security, please enter your new email and confirm your current password. A 6-digit verification code will be sent to the new email.
                         </Text>
 
-                        <Text style={styles.inputSubLabel}>NEW EMAIL ADDRESS</Text>
+                        <Text style={[styles.inputSubLabel, { color: colors.muted }]}>NEW EMAIL ADDRESS</Text>
                         <TextInput
-                          style={styles.textInput}
+                          style={[styles.textInput, { backgroundColor: colors.inputBg || colors.panel2, color: colors.text, borderColor: colors.border }]}
                           value={newEmail}
                           onChangeText={(text) => {
                             setNewEmail(text);
                             if (emailError) setEmailError('');
                           }}
                           placeholder="e.g. name@example.com"
-                          placeholderTextColor="#686577"
+                          placeholderTextColor={colors.muted}
                           keyboardType="email-address"
                           autoCapitalize="none"
                           autoCorrect={false}
                         />
 
-                        <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>CURRENT PASSWORD</Text>
+                        <Text style={[styles.inputSubLabel, { color: colors.muted, marginTop: 12 }]}>CURRENT PASSWORD</Text>
                         <TextInput
-                          style={styles.textInput}
+                          style={[styles.textInput, { backgroundColor: colors.inputBg || colors.panel2, color: colors.text, borderColor: colors.border }]}
                           value={password}
                           onChangeText={(text) => {
                             setPassword(text);
                             if (emailError) setEmailError('');
                           }}
                           placeholder="Enter current password"
-                          placeholderTextColor="#686577"
+                          placeholderTextColor={colors.muted}
                           secureTextEntry
                         />
 
@@ -753,18 +736,18 @@ export default function ProfileScreen({ navigation }) {
 
                         <View style={styles.emailBtnRow}>
                           <Pressable
-                            style={styles.emailSecondaryBtn}
+                            style={[styles.emailSecondaryBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.06)' }]}
                             onPress={() => {
                               setShowEmailFlow(false);
                               setEmailError('');
                             }}
                             disabled={isRequestingOtp}
                           >
-                            <Text style={styles.emailSecondaryBtnText}>Cancel</Text>
+                            <Text style={[styles.emailSecondaryBtnText, { color: colors.text }]}>Cancel</Text>
                           </Pressable>
 
                           <Pressable
-                            style={[styles.emailPrimaryBtn, isRequestingOtp && { opacity: 0.7 }]}
+                            style={[styles.emailPrimaryBtn, { backgroundColor: colors.pink }, isRequestingOtp && { opacity: 0.7 }]}
                             onPress={handleRequestEmailChange}
                             disabled={isRequestingOtp}
                           >
@@ -782,24 +765,24 @@ export default function ProfileScreen({ navigation }) {
                     ) : (
                       <>
                         <View style={styles.emailFlowStepHeader}>
-                          <Ionicons name="mail-unread-outline" size={16} color="#eb5b78" />
-                          <Text style={styles.emailFlowTitle}>Enter Verification Code</Text>
+                          <Ionicons name="mail-unread-outline" size={16} color={colors.pink} />
+                          <Text style={[styles.emailFlowTitle, { color: colors.text }]}>Enter Verification Code</Text>
                         </View>
-                        <Text style={styles.emailFlowDesc}>
+                        <Text style={[styles.emailFlowDesc, { color: colors.muted }]}>
                           We sent a 6-digit confirmation code to{' '}
-                          <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>{newEmail}</Text>.
+                          <Text style={{ color: colors.text, fontWeight: '800' }}>{newEmail}</Text>.
                           Enter it below to confirm your new email.
                         </Text>
 
                         <TextInput
-                          style={styles.emailOtpInput}
+                          style={[styles.emailOtpInput, { backgroundColor: isDark ? '#0D0C17' : (colors.panel2 || '#FFFFFF'), color: colors.text, borderColor: colors.pink }]}
                           value={emailOtp}
                           onChangeText={(text) => {
                             setEmailOtp(text.replace(/[^0-9]/g, ''));
                             if (emailError) setEmailError('');
                           }}
                           placeholder="••••••"
-                          placeholderTextColor="#555166"
+                          placeholderTextColor={colors.muted}
                           keyboardType="number-pad"
                           maxLength={6}
                           autoFocus
@@ -814,33 +797,33 @@ export default function ProfileScreen({ navigation }) {
 
                         <View style={styles.resendRow}>
                           {resendTimer > 0 ? (
-                            <Text style={styles.resendTimerText}>
-                              Resend code in <Text style={{ color: '#eb5b78' }}>{resendTimer}s</Text>
+                            <Text style={[styles.resendTimerText, { color: colors.muted }]}>
+                              Resend code in <Text style={{ color: colors.pink }}>{resendTimer}s</Text>
                             </Text>
                           ) : (
                             <Pressable
                               onPress={handleRequestEmailChange}
                               disabled={isRequestingOtp}
                             >
-                              <Text style={styles.resendLinkText}>Resend verification code</Text>
+                              <Text style={[styles.resendLinkText, { color: colors.pink }]}>Resend verification code</Text>
                             </Pressable>
                           )}
                         </View>
 
                         <View style={styles.emailBtnRow}>
                           <Pressable
-                            style={styles.emailSecondaryBtn}
+                            style={[styles.emailSecondaryBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.06)' }]}
                             onPress={() => {
                               setEmailStep('input');
                               setEmailError('');
                             }}
                             disabled={isVerifyingOtp}
                           >
-                            <Text style={styles.emailSecondaryBtnText}>Back</Text>
+                            <Text style={[styles.emailSecondaryBtnText, { color: colors.text }]}>Back</Text>
                           </Pressable>
 
                           <Pressable
-                            style={[styles.emailPrimaryBtn, isVerifyingOtp && { opacity: 0.7 }]}
+                            style={[styles.emailPrimaryBtn, { backgroundColor: colors.pink }, isVerifyingOtp && { opacity: 0.7 }]}
                             onPress={handleVerifyEmailChange}
                             disabled={isVerifyingOtp}
                           >
@@ -866,16 +849,16 @@ export default function ProfileScreen({ navigation }) {
 
               {/* SECTION 3: PASSWORD & SECURITY */}
               <View style={styles.editSection}>
-                <Text style={styles.editSectionHeading}>PASSWORD & SECURITY</Text>
+                <Text style={[styles.editSectionHeading, { color: colors.muted }]}>PASSWORD & SECURITY</Text>
 
                 {!showPasswordChangeFlow ? (
-                  <View style={styles.emailCard}>
+                  <View style={[styles.emailCard, { backgroundColor: isDark ? '#0D0C17' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border }]}>
                     <View style={styles.emailCurrentRow}>
                       <View style={styles.emailCurrentLeft}>
-                        <Ionicons name="lock-closed-outline" size={17} color="#a6a1b2" />
+                        <Ionicons name="lock-closed-outline" size={17} color={colors.muted} />
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.emailCurrentText}>Account Password</Text>
-                          <Text style={{ color: '#8D8B98', fontSize: 11, marginTop: 2 }}>
+                          <Text style={[styles.emailCurrentText, { color: colors.text }]}>Account Password</Text>
+                          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
                             Must meet all 8+ char, mixed-case, number & symbol rules
                           </Text>
                         </View>
@@ -898,56 +881,56 @@ export default function ProfileScreen({ navigation }) {
                       accessibilityRole="button"
                       accessibilityLabel="Change password"
                     >
-                      <Ionicons name="key-outline" size={14} color="#eb5b78" />
-                      <Text style={styles.changeEmailTriggerText}>Change Password</Text>
+                      <Ionicons name="key-outline" size={14} color={colors.pink} />
+                      <Text style={[styles.changeEmailTriggerText, { color: colors.pink }]}>Change Password</Text>
                     </Pressable>
                   </View>
                 ) : (
-                  <View style={styles.emailFlowCard}>
+                  <View style={[styles.emailFlowCard, { backgroundColor: isDark ? '#12101F' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border }]}>
                     <View style={styles.emailFlowStepHeader}>
-                      <Ionicons name="shield-checkmark-outline" size={16} color="#eb5b78" />
-                      <Text style={styles.emailFlowTitle}>Change Account Password</Text>
+                      <Ionicons name="shield-checkmark-outline" size={16} color={colors.pink} />
+                      <Text style={[styles.emailFlowTitle, { color: colors.text }]}>Change Account Password</Text>
                     </View>
-                    <Text style={styles.emailFlowDesc}>
+                    <Text style={[styles.emailFlowDesc, { color: colors.muted }]}>
                       Enter your current password and pick a strong new password that differs from your current one.
                     </Text>
 
-                    <Text style={styles.inputSubLabel}>CURRENT PASSWORD</Text>
+                    <Text style={[styles.inputSubLabel, { color: colors.muted }]}>CURRENT PASSWORD</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[styles.textInput, { backgroundColor: colors.inputBg || colors.panel2, color: colors.text, borderColor: colors.border }]}
                       value={currentChangePassword}
                       onChangeText={(t) => {
                         setCurrentChangePassword(t);
                         if (passwordChangeError) setPasswordChangeError('');
                       }}
                       placeholder="Enter current password"
-                      placeholderTextColor="#686577"
+                      placeholderTextColor={colors.muted}
                       secureTextEntry
                     />
 
-                    <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>NEW PASSWORD</Text>
+                    <Text style={[styles.inputSubLabel, { color: colors.muted, marginTop: 12 }]}>NEW PASSWORD</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[styles.textInput, { backgroundColor: colors.inputBg || colors.panel2, color: colors.text, borderColor: colors.border }]}
                       value={newChangePassword}
                       onChangeText={(t) => {
                         setNewChangePassword(t);
                         if (passwordChangeError) setPasswordChangeError('');
                       }}
                       placeholder="Min 8 chars, uppercase, lowercase, number, symbol"
-                      placeholderTextColor="#686577"
+                      placeholderTextColor={colors.muted}
                       secureTextEntry
                     />
 
-                    <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>CONFIRM NEW PASSWORD</Text>
+                    <Text style={[styles.inputSubLabel, { color: colors.muted, marginTop: 12 }]}>CONFIRM NEW PASSWORD</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[styles.textInput, { backgroundColor: colors.inputBg || colors.panel2, color: colors.text, borderColor: colors.border }]}
                       value={confirmNewPassword}
                       onChangeText={(t) => {
                         setConfirmNewPassword(t);
                         if (passwordChangeError) setPasswordChangeError('');
                       }}
                       placeholder="Re-enter new password"
-                      placeholderTextColor="#686577"
+                      placeholderTextColor={colors.muted}
                       secureTextEntry
                     />
 
@@ -965,18 +948,18 @@ export default function ProfileScreen({ navigation }) {
 
                     <View style={styles.emailBtnRow}>
                       <Pressable
-                        style={styles.emailSecondaryBtn}
+                        style={[styles.emailSecondaryBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.06)' }]}
                         onPress={() => {
                           setShowPasswordChangeFlow(false);
                           setPasswordChangeError('');
                         }}
                         disabled={isUpdatingPassword}
                       >
-                        <Text style={styles.emailSecondaryBtnText}>Cancel</Text>
+                        <Text style={[styles.emailSecondaryBtnText, { color: colors.text }]}>Cancel</Text>
                       </Pressable>
 
                       <Pressable
-                        style={[styles.emailPrimaryBtn, isUpdatingPassword && { opacity: 0.7 }]}
+                        style={[styles.emailPrimaryBtn, { backgroundColor: colors.pink }, isUpdatingPassword && { opacity: 0.7 }]}
                         onPress={handleChangePasswordSubmit}
                         disabled={isUpdatingPassword}
                       >
@@ -1003,26 +986,27 @@ export default function ProfileScreen({ navigation }) {
 
               {/* SECTION 4: AVATAR & DRAMA PERSONA */}
               <View style={styles.editSection}>
-                <Text style={styles.editSectionHeading}>PROFILE PICTURE & PERSONA</Text>
+                <Text style={[styles.editSectionHeading, { color: colors.muted }]}>PROFILE PICTURE & PERSONA</Text>
 
                 {/* Mode Switcher */}
-                <View style={styles.modeTabBar}>
+                <View style={[styles.modeTabBar, { backgroundColor: isDark ? '#0F0E1A' : (colors.panel2 || '#ECEEF4') }]}>
                   <Pressable
                     style={[
                       styles.modeTab,
-                      avatarMode === 'photo' && styles.modeTabActive,
+                      avatarMode === 'photo' && [styles.modeTabActive, { backgroundColor: isDark ? '#25213B' : colors.card }],
                     ]}
                     onPress={() => setAvatarMode('photo')}
                   >
                     <Ionicons
                       name="camera-outline"
                       size={15}
-                      color={avatarMode === 'photo' ? '#FFFFFF' : '#8D8B98'}
+                      color={avatarMode === 'photo' ? (isDark ? '#FFFFFF' : colors.pink) : colors.muted}
                     />
                     <Text
                       style={[
                         styles.modeTabText,
-                        avatarMode === 'photo' && styles.modeTabTextActive,
+                        { color: colors.muted },
+                        avatarMode === 'photo' && { color: colors.text, fontWeight: '800' },
                       ]}
                     >
                       Custom Photo
@@ -1032,19 +1016,20 @@ export default function ProfileScreen({ navigation }) {
                   <Pressable
                     style={[
                       styles.modeTab,
-                      avatarMode === 'persona' && styles.modeTabActive,
+                      avatarMode === 'persona' && [styles.modeTabActive, { backgroundColor: isDark ? '#25213B' : colors.card }],
                     ]}
                     onPress={() => setAvatarMode('persona')}
                   >
                     <Ionicons
                       name="happy-outline"
                       size={15}
-                      color={avatarMode === 'persona' ? '#FFFFFF' : '#8D8B98'}
+                      color={avatarMode === 'persona' ? (isDark ? '#FFFFFF' : colors.pink) : colors.muted}
                     />
                     <Text
                       style={[
                         styles.modeTabText,
-                        avatarMode === 'persona' && styles.modeTabTextActive,
+                        { color: colors.muted },
+                        avatarMode === 'persona' && { color: colors.text, fontWeight: '800' },
                       ]}
                     >
                       Drama Persona
@@ -1055,9 +1040,9 @@ export default function ProfileScreen({ navigation }) {
                 {avatarMode === 'photo' ? (
                   <View style={styles.modeContent}>
                     {/* Photo Preview */}
-                    <View style={styles.previewContainer}>
+                    <View style={[styles.previewContainer, { backgroundColor: isDark ? '#0F0E1A' : (colors.panel2 || '#F0F2F6') }]}>
                       <View style={styles.avatarPreview}>
-                        <View style={[styles.avatarPreviewInner, { backgroundColor: '#1E1B2D' }]}>
+                        <View style={[styles.avatarPreviewInner, { backgroundColor: isDark ? '#1E1B2D' : colors.card }]}>
                           {customImage ? (
                             <Image
                               source={{ uri: customImage }}
@@ -1065,11 +1050,11 @@ export default function ProfileScreen({ navigation }) {
                               resizeMode="cover"
                             />
                           ) : (
-                            <Ionicons name="person-outline" size={40} color="#8D8B98" />
+                            <Ionicons name="person-outline" size={40} color={colors.muted} />
                           )}
                         </View>
                       </View>
-                      <Text style={styles.previewLabel}>
+                      <Text style={[styles.previewLabel, { color: colors.text }]}>
                         {customImage ? 'Custom Photo Selected' : 'No Photo Selected'}
                       </Text>
 
@@ -1078,6 +1063,7 @@ export default function ProfileScreen({ navigation }) {
                         <Pressable
                           style={({ pressed }) => [
                             styles.photoActionBtn,
+                            { backgroundColor: colors.card, borderColor: colors.border },
                             pressed && styles.buttonPressed,
                           ]}
                           onPress={handlePickCustomImage}
@@ -1086,11 +1072,11 @@ export default function ProfileScreen({ navigation }) {
                           accessibilityLabel="Choose Photo from gallery"
                         >
                           {isProcessingImage ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
+                            <ActivityIndicator size="small" color={colors.text} />
                           ) : (
                             <>
-                              <Ionicons name="image-outline" size={14} color="#FFFFFF" />
-                              <Text style={styles.photoActionBtnText}>Choose Photo</Text>
+                              <Ionicons name="image-outline" size={14} color={colors.text} />
+                              <Text style={[styles.photoActionBtnText, { color: colors.text }]}>Choose Photo</Text>
                             </>
                           )}
                         </Pressable>
@@ -1099,6 +1085,7 @@ export default function ProfileScreen({ navigation }) {
                           <Pressable
                             style={({ pressed }) => [
                               styles.photoActionBtn,
+                              { backgroundColor: colors.card, borderColor: colors.border },
                               pressed && styles.buttonPressed,
                             ]}
                             onPress={handleTakePhoto}
@@ -1106,8 +1093,8 @@ export default function ProfileScreen({ navigation }) {
                             accessibilityRole="button"
                             accessibilityLabel="Take Photo with camera"
                           >
-                            <Ionicons name="camera-outline" size={14} color="#FFFFFF" />
-                            <Text style={styles.photoActionBtnText}>Take Photo</Text>
+                            <Ionicons name="camera-outline" size={14} color={colors.text} />
+                            <Text style={[styles.photoActionBtnText, { color: colors.text }]}>Take Photo</Text>
                           </Pressable>
                         )}
 
@@ -1129,8 +1116,8 @@ export default function ProfileScreen({ navigation }) {
                     </View>
 
                     <View style={styles.modeNoticeBox}>
-                      <Ionicons name="information-circle-outline" size={16} color="#8D8B98" />
-                      <Text style={styles.modeNoticeText}>
+                      <Ionicons name="information-circle-outline" size={16} color={colors.muted} />
+                      <Text style={[styles.modeNoticeText, { color: colors.muted }]}>
                         Custom photo replaces your Drama Persona icon and is compressed and optimized for fast loading.
                       </Text>
                     </View>
@@ -1138,19 +1125,19 @@ export default function ProfileScreen({ navigation }) {
                 ) : (
                   <View style={styles.modeContent}>
                     {/* Persona Preview */}
-                    <View style={styles.previewContainer}>
+                    <View style={[styles.previewContainer, { backgroundColor: isDark ? '#0F0E1A' : (colors.panel2 || '#F0F2F6') }]}>
                       <View style={styles.avatarPreview}>
                         <View style={[styles.avatarPreviewInner, { backgroundColor: selectedColor }]}>
                           <Ionicons name={selectedIcon} size={42} color="#FFFFFF" />
                         </View>
                       </View>
-                      <Text style={styles.previewLabel}>
+                      <Text style={[styles.previewLabel, { color: colors.text }]}>
                         {AVATAR_ICONS.find((i) => i.icon === selectedIcon)?.label || 'Profile Icon'}
                       </Text>
                     </View>
 
                     {/* Color Swatches */}
-                    <Text style={styles.modalSectionHeading}>CHOOSE COLOR THEME</Text>
+                    <Text style={[styles.modalSectionHeading, { color: colors.muted }]}>CHOOSE COLOR THEME</Text>
                     <View style={styles.colorPaletteRow}>
                       {COLOR_PALETTES.map((col) => {
                         const isSelected = selectedColor === col;
@@ -1173,7 +1160,7 @@ export default function ProfileScreen({ navigation }) {
                     </View>
 
                     {/* Icon Grid */}
-                    <Text style={styles.modalSectionHeading}>SELECT DRAMA PERSONA</Text>
+                    <Text style={[styles.modalSectionHeading, { color: colors.muted }]}>SELECT DRAMA PERSONA</Text>
                     <View style={styles.iconGrid}>
                       {AVATAR_ICONS.map((item) => {
                         const isSelected = selectedIcon === item.icon;
@@ -1182,7 +1169,8 @@ export default function ProfileScreen({ navigation }) {
                             key={item.id}
                             style={[
                               styles.iconTile,
-                              isSelected && [styles.iconTileActive, { borderColor: selectedColor }],
+                              { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                              isSelected && [styles.iconTileActive, { borderColor: selectedColor, backgroundColor: isDark ? '#1E1A2C' : (colors.panel2 || '#ECEEF4') }],
                             ]}
                             onPress={() => setSelectedIcon(item.icon)}
                             accessibilityRole="button"
@@ -1191,15 +1179,16 @@ export default function ProfileScreen({ navigation }) {
                             <View
                               style={[
                                 styles.iconTileBg,
-                                { backgroundColor: isSelected ? selectedColor : '#1C1B2A' },
+                                { backgroundColor: isSelected ? selectedColor : (isDark ? '#1C1B2A' : '#E2E6ED') },
                               ]}
                             >
-                              <Ionicons name={item.icon} size={22} color="#FFFFFF" />
+                              <Ionicons name={item.icon} size={22} color={isSelected ? '#FFFFFF' : colors.text} />
                             </View>
                             <Text
                               style={[
                                 styles.iconTileLabel,
-                                isSelected && styles.iconTileLabelActive,
+                                { color: colors.muted },
+                                isSelected && { color: colors.text, fontWeight: '800' },
                               ]}
                               numberOfLines={1}
                             >
@@ -1214,7 +1203,7 @@ export default function ProfileScreen({ navigation }) {
               </View>
 
               {/* SECTION 4: DANGER ZONE (ACCOUNT DELETION) */}
-              <View style={[styles.editSection, { marginTop: 14, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)' }]}>
+              <View style={[styles.editSection, { marginTop: 14, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border }]}>
                 <Text style={[styles.editSectionHeading, { color: '#EF4444' }]}>DANGER ZONE</Text>
                 <Pressable
                   style={({ pressed }) => [
@@ -1235,19 +1224,19 @@ export default function ProfileScreen({ navigation }) {
             </ScrollView>
 
             {/* Modal Actions */}
-            <View style={styles.modalActions}>
+            <View style={[styles.modalActions, { borderTopColor: colors.border }]}>
               <Pressable
-                style={styles.cancelBtn}
+                style={[styles.cancelBtn, { backgroundColor: isDark ? '#1C192E' : (colors.panel2 || '#EEF1F6') }]}
                 onPress={() => setShowEditModal(false)}
                 disabled={isSavingProfile}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={[styles.cancelBtnText, { color: colors.muted }]}>Cancel</Text>
               </Pressable>
 
               <Pressable
                 style={[
                   styles.saveAvatarBtn,
-                  { backgroundColor: '#eb5b78' },
+                  { backgroundColor: colors.pink },
                   isSavingProfile && { opacity: 0.7 },
                 ]}
                 onPress={handleSaveProfile}

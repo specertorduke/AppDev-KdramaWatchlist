@@ -14,10 +14,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 export default function OtpVerificationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const { verifyOtp, resendOtp } = useAuth();
 
   const initialEmail = route?.params?.email || '';
@@ -210,7 +212,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
     >
       <ScrollView
         contentContainerStyle={[
@@ -235,44 +237,44 @@ export default function OtpVerificationScreen({ navigation, route }) {
           disabled={isVerifying}
           hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={16} color="#8D8B98" />
-          <Text style={styles.backButtonText}>
+          <Ionicons name="arrow-back" size={16} color={colors.text} />
+          <Text style={[styles.backButtonText, { color: colors.text }]}>
             {mode === 'login' ? 'Back to Log In' : 'Back to Sign Up'}
           </Text>
         </TouchableOpacity>
 
         {/* Header Icon & Title */}
         <View style={styles.header}>
-          <View style={styles.iconBubble}>
-            <Ionicons name="key-outline" size={28} color="#EB5B78" />
+          <View style={[styles.iconBubble, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.12)' : 'rgba(235, 91, 120, 0.10)', borderColor: colors.pink }]}>
+            <Ionicons name="key-outline" size={28} color={colors.pink} />
           </View>
-          <Text style={styles.brand}>
-            SARANG<Text style={styles.brandTv}>TV</Text>
+          <Text style={[styles.brand, { color: colors.pink }]}>
+            SARANG<Text style={[styles.brandTv, { color: colors.pink }]}>TV</Text>
           </Text>
-          <Text style={styles.title}>Enter Verification Code</Text>
-          <Text style={styles.subtitle}>We sent a 6-digit verification code to:</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Enter Verification Code</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>We sent a 6-digit verification code to:</Text>
 
           {/* Email Badge / Edit Form */}
           {isEditingEmail ? (
             <View style={styles.emailEditContainer}>
               <TextInput
-                style={styles.emailInput}
+                style={[styles.emailInput, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border, color: colors.text }]}
                 value={emailInput}
                 onChangeText={setEmailInput}
                 placeholder="Enter email address"
-                placeholderTextColor="#5A5866"
+                placeholderTextColor={colors.muted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoFocus
               />
-              <TouchableOpacity style={styles.emailSaveButton} onPress={handleSaveEmail}>
+              <TouchableOpacity style={[styles.emailSaveButton, { backgroundColor: colors.pink }]} onPress={handleSaveEmail}>
                 <Text style={styles.emailSaveText}>Save</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.emailBadge}>
-              <Ionicons name="mail-outline" size={14} color="#EB5B78" style={styles.mailIcon} />
-              <Text style={styles.emailBadgeText} numberOfLines={1}>
+            <View style={[styles.emailBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border }]}>
+              <Ionicons name="mail-outline" size={14} color={colors.pink} style={styles.mailIcon} />
+              <Text style={[styles.emailBadgeText, { color: colors.text }]} numberOfLines={1}>
                 {email}
               </Text>
               <TouchableOpacity
@@ -281,10 +283,10 @@ export default function OtpVerificationScreen({ navigation, route }) {
                   setIsEditingEmail(true);
                 }}
                 hitSlop={8}
-                style={styles.changeEmailButton}
+                style={[styles.changeEmailButton, { borderLeftColor: colors.border }]}
               >
-                <Ionicons name="pencil" size={12} color="#EB5B78" />
-                <Text style={styles.changeEmailText}>Change</Text>
+                <Ionicons name="pencil" size={12} color={colors.pink} />
+                <Text style={[styles.changeEmailText, { color: colors.pink }]}>Change</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -327,7 +329,8 @@ export default function OtpVerificationScreen({ navigation, route }) {
               ref={(ref) => (inputRefs.current[idx] = ref)}
               style={[
                 styles.otpBox,
-                digit ? styles.otpBoxFilled : null,
+                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
+                digit ? [styles.otpBoxFilled, { borderColor: colors.pink, backgroundColor: isDark ? 'rgba(235, 91, 120, 0.08)' : 'rgba(235, 91, 120, 0.06)' }] : null,
                 errorMessage ? styles.otpBoxError : null,
               ]}
               value={digit}
@@ -344,7 +347,11 @@ export default function OtpVerificationScreen({ navigation, route }) {
 
         {/* Verify Button */}
         <TouchableOpacity
-          style={[styles.submitButton, (!isFullCode || isVerifying || isEditingEmail) && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            { backgroundColor: colors.pink },
+            (!isFullCode || isVerifying || isEditingEmail) && { backgroundColor: isDark ? '#2A2735' : (colors.panel2 || '#E0E0E0'), opacity: 0.7 },
+          ]}
           onPress={handleVerify}
           disabled={!isFullCode || isVerifying || isEditingEmail}
           activeOpacity={0.85}
@@ -361,7 +368,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
 
         {/* Resend Cooldown Section */}
         <View style={styles.resendSection}>
-          <Text style={styles.resendPrompt}>Didn't receive the code?</Text>
+          <Text style={[styles.resendPrompt, { color: colors.muted }]}>Didn't receive the code?</Text>
           <TouchableOpacity
             style={[styles.resendButton, cooldown > 0 && styles.resendButtonDisabled]}
             onPress={handleResend}
@@ -369,18 +376,18 @@ export default function OtpVerificationScreen({ navigation, route }) {
           >
             {isResending ? (
               <View style={styles.resendInnerRow}>
-                <ActivityIndicator size="small" color="#EB5B78" />
-                <Text style={styles.resendText}>Sending...</Text>
+                <ActivityIndicator size="small" color={colors.pink} />
+                <Text style={[styles.resendText, { color: colors.pink }]}>Sending...</Text>
               </View>
             ) : cooldown > 0 ? (
               <View style={styles.resendInnerRow}>
-                <Ionicons name="time-outline" size={14} color="#8D8B98" />
-                <Text style={styles.resendCooldownText}>Resend code in {cooldown}s</Text>
+                <Ionicons name="time-outline" size={14} color={colors.muted} />
+                <Text style={[styles.resendCooldownText, { color: colors.muted }]}>Resend code in {cooldown}s</Text>
               </View>
             ) : (
               <View style={styles.resendInnerRow}>
-                <Ionicons name="refresh-outline" size={14} color="#EB5B78" />
-                <Text style={styles.resendText}>Resend Code</Text>
+                <Ionicons name="refresh-outline" size={14} color={colors.pink} />
+                <Text style={[styles.resendText, { color: colors.pink }]}>Resend Code</Text>
               </View>
             )}
           </TouchableOpacity>

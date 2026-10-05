@@ -13,9 +13,20 @@ import {
   Poppins_900Black,
 } from '@expo-google-fonts/poppins';
 import { colors } from './src/theme';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { ChatbotProvider } from './src/context/ChatbotContext';
 import RootNavigator from './src/navigation/RootNavigator';
+
+function MainAppShell() {
+  const { isDark } = useTheme();
+  return (
+    <>
+      <RootNavigator />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+    </>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -45,12 +56,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <ChatbotProvider>
-          <RootNavigator />
-          <StatusBar style="light" />
-        </ChatbotProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ChatbotProvider>
+            <MainAppShell />
+          </ChatbotProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/api';
 import PasswordRequirementsList from '../../components/PasswordRequirementsList';
@@ -24,6 +25,7 @@ import { checkPasswordRequirements } from '../../utils/passwordRequirements';
 export default function SettingsScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { user, deleteAccount } = useAuth();
+  const { theme, isDark, colors, setTheme } = useTheme();
   const [values, setValues] = useState({
     episodeAlerts: true,
     progressReminders: true,
@@ -142,7 +144,7 @@ export default function SettingsScreen({ navigation, route }) {
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: colors.bg }]}
       contentContainerStyle={[
         styles.content,
         { paddingTop: (insets.top > 0 ? insets.top : 12) + 6 },
@@ -152,19 +154,48 @@ export default function SettingsScreen({ navigation, route }) {
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+          style={({ pressed }) => [
+            styles.backButton,
+            { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+            pressed && styles.backButtonPressed,
+          ]}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
           <Ionicons name="arrow-back" size={17} color={colors.text} />
         </Pressable>
-        <Text style={styles.heading}>Settings</Text>
+        <Text style={[styles.heading, { color: colors.text }]}>Settings</Text>
+      </View>
+
+      {/* Appearance & Theme */}
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>APPEARANCE</Text>
+
+        <ThemeOptionRow
+          title="Dark Cinematic"
+          subtitle="Deep cinematic blacks and vibrant pinks"
+          selected={theme === 'dark'}
+          onSelect={() => setTheme('dark')}
+        />
+        <ThemeOptionRow
+          title="Light Clean"
+          subtitle="Crisp daylight theme"
+          selected={theme === 'light'}
+          onSelect={() => setTheme('light')}
+        />
+        <ThemeOptionRow
+          title="Warm Comfort"
+          subtitle="Easy on the eyes with warm cream tones"
+          selected={theme === 'warm'}
+          onSelect={() => setTheme('warm')}
+          last
+        />
       </View>
 
       {/* Notifications */}
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>NOTIFICATIONS</Text>
 
         <SettingToggleRow
           title="New Episode Alerts"
@@ -183,8 +214,8 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* Playback & Tracker Preferences */}
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>PREFERENCES</Text>
 
         <SettingToggleRow
           title="Auto-Mark Completed"
@@ -203,23 +234,25 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* About */}
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>ABOUT</Text>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>ABOUT</Text>
 
-        <View style={styles.aboutRow}>
-          <Text style={styles.aboutLabel}>Version</Text>
-          <Text style={styles.aboutValue}>1.0.0 (SarangTV Mobile)</Text>
+        <View style={[styles.aboutRow, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.aboutLabel, { color: colors.muted }]}>Version</Text>
+          <Text style={[styles.aboutValue, { color: colors.text }]}>1.0.0 (SarangTV Mobile)</Text>
         </View>
 
         <View style={[styles.aboutRow, { borderBottomWidth: 0 }]}>
-          <Text style={styles.aboutLabel}>Theme</Text>
-          <Text style={styles.aboutValue}>Dark Cinematic</Text>
+          <Text style={[styles.aboutLabel, { color: colors.muted }]}>Theme</Text>
+          <Text style={[styles.aboutValue, { color: colors.pink }]}>
+            {theme === 'dark' ? 'Dark Cinematic' : theme === 'warm' ? 'Warm Comfort' : 'Light Clean'}
+          </Text>
         </View>
       </View>
 
       {/* Security: Password Change */}
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>SECURITY</Text>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>SECURITY</Text>
 
         <Pressable
           style={({ pressed }) => [
@@ -242,18 +275,18 @@ export default function SettingsScreen({ navigation, route }) {
               <Ionicons name="key-outline" size={17} color={colors.pink} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Change Password</Text>
-              <Text style={styles.rowSubtitle}>
+              <Text style={[styles.rowTitle, { color: colors.text }]}>Change Password</Text>
+              <Text style={[styles.rowSubtitle, { color: colors.muted }]}>
                 Update your account password with security validation
               </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={14} color="#8D8B98" />
+          <Ionicons name="chevron-forward" size={14} color={colors.muted} />
         </Pressable>
       </View>
 
       {/* Danger Zone: Account Deletion */}
-      <View style={[styles.panel, styles.dangerPanel]}>
+      <View style={[styles.panel, { backgroundColor: isDark ? '#17111D' : 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.25)', borderWidth: 1 }]}>
         <Text style={[styles.sectionTitle, styles.dangerTitle]}>DANGER ZONE</Text>
 
         <Pressable
@@ -275,7 +308,7 @@ export default function SettingsScreen({ navigation, route }) {
             </View>
             <View style={styles.rowInfo}>
               <Text style={styles.deleteTitle}>Delete Account</Text>
-              <Text style={styles.deleteSubtitle}>
+              <Text style={[styles.deleteSubtitle, { color: colors.muted }]}>
                 Permanently delete your profile, watchlist tracker, and all personal data
               </Text>
             </View>
@@ -297,21 +330,21 @@ export default function SettingsScreen({ navigation, route }) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card, borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.35)', borderWidth: 1 }]}>
             <View style={styles.modalWarningHeader}>
               <View style={styles.modalWarningIcon}>
                 <Ionicons name="warning-outline" size={26} color="#EF4444" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>Delete Account?</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Delete Account?</Text>
                 <Text style={styles.modalSubtitle}>This action cannot be undone</Text>
               </View>
               <Pressable
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }]}
                 onPress={() => setShowDeleteModal(false)}
                 disabled={isDeleting}
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={20} color={colors.text} />
               </Pressable>
             </View>
 
@@ -322,16 +355,23 @@ export default function SettingsScreen({ navigation, route }) {
               </Text>
             </View>
 
-            <Text style={styles.inputSubLabel}>ENTER CURRENT PASSWORD TO CONFIRM</Text>
+            <Text style={[styles.inputSubLabel, { color: colors.muted }]}>ENTER CURRENT PASSWORD TO CONFIRM</Text>
             <TextInput
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: isDark ? '#0D0C17' : (colors.panel2 || '#EEF1F6'),
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
               value={deletePassword}
               onChangeText={(text) => {
                 setDeletePassword(text);
                 if (deleteError) setDeleteError('');
               }}
               placeholder="Enter account password"
-              placeholderTextColor="#686577"
+              placeholderTextColor={colors.muted}
               secureTextEntry
               autoCapitalize="none"
             />
@@ -343,13 +383,13 @@ export default function SettingsScreen({ navigation, route }) {
               </View>
             ) : null}
 
-            <View style={styles.modalBtnRow}>
+            <View style={[styles.modalBtnRow, { borderTopColor: colors.border }]}>
               <Pressable
-                style={styles.cancelBtn}
+                style={[styles.cancelBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }]}
                 onPress={() => setShowDeleteModal(false)}
                 disabled={isDeleting}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={[styles.cancelBtnText, { color: colors.text }]}>Cancel</Text>
               </Pressable>
 
               <Pressable
@@ -382,22 +422,22 @@ export default function SettingsScreen({ navigation, route }) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
             <View style={styles.modalHeader}>
               <View style={[styles.deleteWarningIconWrap, { backgroundColor: 'rgba(235, 91, 120, 0.15)' }]}>
                 <Ionicons name="key-outline" size={24} color={colors.pink} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>Change Password</Text>
-                <Text style={styles.modalSubtitle}>Update your account password</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Change Password</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.muted }]}>Update your account password</Text>
               </View>
               <Pressable
-                style={styles.modalCloseBtn}
+                style={[styles.modalCloseBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }]}
                 onPress={() => !isUpdatingPassword && setShowChangePasswordModal(false)}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={20} color={colors.text} />
               </Pressable>
             </View>
 
@@ -417,17 +457,17 @@ export default function SettingsScreen({ navigation, route }) {
               ) : null}
 
               <View style={{ marginTop: 6 }}>
-                <Text style={styles.inputSubLabel}>CURRENT PASSWORD</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.inputSubLabel, { color: colors.muted }]}>CURRENT PASSWORD</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#0D0C17' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border, borderWidth: 1 }]}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.text }]}
                     value={currentChangePassword}
                     onChangeText={(text) => {
                       setCurrentChangePassword(text);
                       if (passwordChangeError) setPasswordChangeError('');
                     }}
                     placeholder="Enter current password"
-                    placeholderTextColor="#555166"
+                    placeholderTextColor={colors.muted}
                     secureTextEntry={!showCurrentChangePassword}
                     editable={!isUpdatingPassword}
                   />
@@ -439,22 +479,22 @@ export default function SettingsScreen({ navigation, route }) {
                     <Ionicons
                       name={showCurrentChangePassword ? 'eye-outline' : 'eye-off-outline'}
                       size={18}
-                      color="#716C77"
+                      color={colors.muted}
                     />
                   </Pressable>
                 </View>
 
-                <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>NEW PASSWORD</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.inputSubLabel, { marginTop: 12, color: colors.muted }]}>NEW PASSWORD</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#0D0C17' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border, borderWidth: 1 }]}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.text }]}
                     value={newChangePassword}
                     onChangeText={(text) => {
                       setNewChangePassword(text);
                       if (passwordChangeError) setPasswordChangeError('');
                     }}
                     placeholder="Min. 8 chars, uppercase, number & symbol"
-                    placeholderTextColor="#555166"
+                    placeholderTextColor={colors.muted}
                     secureTextEntry={!showNewChangePassword}
                     editable={!isUpdatingPassword}
                   />
@@ -466,22 +506,22 @@ export default function SettingsScreen({ navigation, route }) {
                     <Ionicons
                       name={showNewChangePassword ? 'eye-outline' : 'eye-off-outline'}
                       size={18}
-                      color="#716C77"
+                      color={colors.muted}
                     />
                   </Pressable>
                 </View>
 
-                <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>CONFIRM NEW PASSWORD</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.inputSubLabel, { marginTop: 12, color: colors.muted }]}>CONFIRM NEW PASSWORD</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: isDark ? '#0D0C17' : (colors.panel2 || '#EEF1F6'), borderColor: colors.border, borderWidth: 1 }]}>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.text }]}
                     value={confirmNewPassword}
                     onChangeText={(text) => {
                       setConfirmNewPassword(text);
                       if (passwordChangeError) setPasswordChangeError('');
                     }}
                     placeholder="Repeat new password"
-                    placeholderTextColor="#555166"
+                    placeholderTextColor={colors.muted}
                     secureTextEntry={!showNewChangePassword}
                     editable={!isUpdatingPassword}
                   />
@@ -495,13 +535,13 @@ export default function SettingsScreen({ navigation, route }) {
                   isChangePassword={true}
                 />
 
-                <View style={[styles.modalBtnRow, { marginTop: 16 }]}>
+                <View style={[styles.modalBtnRow, { marginTop: 16, borderTopColor: colors.border }]}>
                   <Pressable
-                    style={styles.cancelBtn}
+                    style={[styles.cancelBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }]}
                     onPress={() => setShowChangePasswordModal(false)}
                     disabled={isUpdatingPassword}
                   >
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                    <Text style={[styles.cancelBtnText, { color: colors.text }]}>Cancel</Text>
                   </Pressable>
 
                   <Pressable
@@ -526,19 +566,38 @@ export default function SettingsScreen({ navigation, route }) {
 }
 
 function SettingToggleRow({ title, subtitle, value, onToggle, last }) {
+  const { colors, isDark } = useTheme();
   return (
-    <View style={[styles.row, last && styles.rowLast]}>
+    <View style={[styles.row, { borderBottomColor: colors.border }, last && styles.rowLast]}>
       <View style={styles.rowInfo}>
-        <Text style={styles.rowTitle}>{title}</Text>
-        <Text style={styles.rowSubtitle}>{subtitle}</Text>
+        <Text style={[styles.rowTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.rowSubtitle, { color: colors.muted }]}>{subtitle}</Text>
       </View>
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: '#262534', true: colors.redBright }}
+        trackColor={{ false: isDark ? '#262534' : '#E2E4EB', true: colors.redBright }}
         thumbColor={colors.white}
       />
     </View>
+  );
+}
+
+function ThemeOptionRow({ title, subtitle, selected, onSelect, last }) {
+  const { colors, isDark } = useTheme();
+  return (
+    <Pressable
+      style={[styles.row, { borderBottomColor: colors.border }, last && styles.rowLast]}
+      onPress={onSelect}
+    >
+      <View style={styles.rowInfo}>
+        <Text style={[styles.rowTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.rowSubtitle, { color: colors.muted }]}>{subtitle}</Text>
+      </View>
+      <View style={[styles.radioOuter, { borderColor: selected ? colors.pink : colors.muted }]}>
+        {selected && <View style={[styles.radioInner, { backgroundColor: colors.pink }]} />}
+      </View>
+    </Pressable>
   );
 }
 
@@ -623,6 +682,19 @@ const styles = StyleSheet.create({
     marginTop: 3,
     lineHeight: 16,
   },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   aboutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -642,11 +714,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   /* Danger Zone */
-  dangerPanel: {
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
-    backgroundColor: '#17111D',
-  },
   dangerTitle: {
     color: '#EF4444',
   },
@@ -824,5 +891,50 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 11,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  eyeButton: {
+    padding: 6,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  deleteWarningIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 8,
+    padding: 9,
+    marginBottom: 10,
+  },
+  deleteErrorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
   },
 });

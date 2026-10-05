@@ -8,66 +8,72 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const [savedAccounts, setSavedAccounts] = useState([]);
-  const [isChoosingAccount, setIsChoosingAccount] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     setOnUnauthorizedCallback(async () => {
       setUser(null);
       setToken(null);
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      const accounts = stored ? JSON.parse(stored) : [];
-      if (accounts.length > 0) {
-        setIsChoosingAccount(true);
-      }
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('auth_user');
     });
     loadStoredAuth();
   }, []);
 
-  const getInitials = (name) => {
-    if (!name) return 'U';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return name.slice(0, 2).toUpperCase();
-  };
-
-  const getPaletteColor = (index) => {
-    const palette = ['#6B2638', '#29234D', '#19313B', '#3A315A', '#2D4B3E', '#5C2D43'];
-    return palette[index % palette.length];
-  };
-
-  const updateSavedAccountsList = async (userData, authToken) => {
+  const loadStoredAuth = async () => {
     try {
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      let accounts = stored ? JSON.parse(stored) : [];
-      const existingIdx = accounts.findIndex((a) => a.id === userData.id || a.email === userData.email);
+      const storedToken = await AsyncStorage.getItem('auth_token');
+      const storedUser = await AsyncStorage.getItem('auth_user');
 
-      const existing = existingIdx >= 0 ? accounts[existingIdx] : null;
-      const updatedAccount = {
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        token: authToken,
-        color: existing?.color || getPaletteColor(accounts.length),
-        avatarIcon: existing?.avatarIcon || null,
-        avatar_url: userData.avatar_url || existing?.avatar_url || null,
-        initials: getInitials(userData.name),
-        user: userData,
-      };
-
-      if (existingIdx >= 0) {
-        accounts[existingIdx] = updatedAccount;
-      } else {
-        accounts.push(updatedAccount);
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
       }
-
-      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
-      setSavedAccounts(accounts);
     } catch (e) {
-      console.warn('Failed to update saved accounts:', e);
+      console.error('Failed to load stored auth:', e);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const login = async (email, password) => {
+    const response = await authService.login({ email, password });
+    const { user: userData, token: authToken } = response.data;
+    setUser(userData);
+    setToken(authToken);
+    await AsyncStorage.setItem('auth_token', authToken);
+    await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+    return response.data;
+  };
+
+  const register = async (
+    name,
+    email,
+    password,
+    passwordConfirmation,
+    termsPrivacyAccepted = true,
+    otp = null
+  ) => {
+    const payload = {
+      name,
+      email,
+      password,
+      password_confirmation: passwordConfirmation,
+      terms_privacy_accepted: termsPrivacyAccepted,
+    };
+    if (otp) {
+      payload.otp = otp;
+    }
+    const response = await authService.register(payload);
+    const { user: userData, token: authToken } = response.data;
+    if (authToken && userData) {
+      setUser(userData);
+      setToken(authToken);
+      await AsyncStorage.setItem('auth_token', authToken);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+      setNeedsOnboarding(true);
+    }
+    return response.data;
   };
 
   const updateProfileAvatar = async ({ avatarIcon, color, avatarUrl }) => {
@@ -81,23 +87,6 @@ export const AuthProvider = ({ children }) => {
       };
       setUser(updatedUser);
       await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
-
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      let accounts = stored ? JSON.parse(stored) : [];
-      accounts = accounts.map((a) => {
-        if (a.id === user.id || a.email === user.email) {
-          return {
-            ...a,
-            avatarIcon: avatarIcon !== undefined ? avatarIcon : a.avatarIcon,
-            color: color !== undefined ? color : a.color,
-            avatar_url: avatarUrl !== undefined ? avatarUrl : a.avatar_url,
-            user: { ...a.user, ...updatedUser },
-          };
-        }
-        return a;
-      });
-      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
-      setSavedAccounts(accounts);
 
       if (avatarUrl !== undefined) {
         try {
@@ -113,219 +102,88 @@ export const AuthProvider = ({ children }) => {
 
   const updateUserPreferences = async ({ favoriteGenres, avatarUrl }) => {
     try {
-      if (!user) return;
-      const payload = {};
-      if (favoriteGenres !== undefined) payload.favorite_genres = favoriteGenres;
-      if (avatarUrl !== undefined) payload.avatar_url = avatarUrl;
-
-      const updatedUser = {
-        ...user,
-        ...(favoriteGenres !== undefined ? { favorite_genres: favoriteGenres } : {}),
-        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
-      };
-
-      setUser(updatedUser);
-      await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
-
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      let accounts = stored ? JSON.parse(stored) : [];
-      accounts = accounts.map((a) => {
-        if (a.id === user.id || a.email === user.email) {
-          return {
-            ...a,
-            user: { ...a.user, ...updatedUser },
-          };
-        }
-        return a;
+      const response = await userService.updatePreferences({
+        favorite_genres: favoriteGenres,
+        avatar_url: avatarUrl,
       });
-      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
-      setSavedAccounts(accounts);
-
-      // Persist to backend
-      await userService.updatePreferences(payload);
+      const updated = response.data.data;
+      if (updated) {
+        const newUser = {
+          ...user,
+          ...updated,
+          favorite_genres: updated.favorite_genres ?? user?.favorite_genres,
+        };
+        setUser(newUser);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(newUser));
+      }
+      return response.data;
     } catch (e) {
-      console.warn('Failed to update user preferences:', e);
+      console.warn('Failed to sync preferences:', e);
+      if (favoriteGenres && user) {
+        const localUser = { ...user, favorite_genres: favoriteGenres };
+        setUser(localUser);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(localUser));
+      }
+      throw e;
     }
   };
 
-  const updateProfileName = async (newName) => {
+  const updateProfileName = async (name) => {
     try {
-      if (!user) return { success: false, error: 'Not authenticated' };
-      const res = await userService.updateProfile({ name: newName });
-      const updatedUser = {
-        ...user,
-        name: newName,
-      };
-      setUser(updatedUser);
-      await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
-
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      let accounts = stored ? JSON.parse(stored) : [];
-      accounts = accounts.map((a) => {
-        if (a.id === user.id || a.email === user.email) {
-          return {
-            ...a,
-            name: newName,
-            initials: getInitials(newName),
-            user: { ...a.user, ...updatedUser },
-          };
-        }
-        return a;
-      });
-      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
-      setSavedAccounts(accounts);
-      return { success: true, data: res.data };
+      const response = await userService.updateProfile({ name });
+      const updated = response.data.data;
+      if (updated) {
+        const newUser = { ...user, ...updated };
+        setUser(newUser);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(newUser));
+      }
+      return response.data;
     } catch (e) {
       console.warn('Failed to update profile name:', e);
-      const msg = e?.response?.data?.message || 'Failed to update name.';
-      return { success: false, error: msg };
+      throw e;
     }
   };
 
-  const updateUserEmail = async (newEmail) => {
+  const updateUserEmail = async ({ newEmail, currentPassword, verificationOtp }) => {
     try {
-      if (!user) return;
-      const updatedUser = {
-        ...user,
+      const response = await userService.updateEmail({
         email: newEmail,
-      };
-      setUser(updatedUser);
-      await AsyncStorage.setItem('auth_user', JSON.stringify(updatedUser));
-
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      let accounts = stored ? JSON.parse(stored) : [];
-      accounts = accounts.map((a) => {
-        if (a.id === user.id || a.email === user.email) {
-          return {
-            ...a,
-            email: newEmail,
-            user: { ...a.user, ...updatedUser },
-          };
-        }
-        return a;
+        current_password: currentPassword,
+        otp: verificationOtp,
       });
-      await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
-      setSavedAccounts(accounts);
-    } catch (e) {
-      console.warn('Failed to update local user email:', e);
-    }
-  };
-
-  const loadStoredAuth = async () => {
-    try {
-      const storedAccountsStr = await AsyncStorage.getItem('saved_accounts');
-      let accounts = storedAccountsStr ? JSON.parse(storedAccountsStr) : [];
-      setSavedAccounts(accounts);
-
-      const storedToken = await AsyncStorage.getItem('auth_token');
-      const storedUser = await AsyncStorage.getItem('auth_user');
-
-      if (storedToken && storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(parsedUser);
-
-        if (accounts.length === 0) {
-          const defaultAcc = {
-            id: parsedUser.id,
-            name: parsedUser.name,
-            email: parsedUser.email,
-            token: storedToken,
-            color: getPaletteColor(0),
-            initials: getInitials(parsedUser.name),
-            user: parsedUser,
-          };
-          accounts = [defaultAcc];
-          await AsyncStorage.setItem('saved_accounts', JSON.stringify(accounts));
-          setSavedAccounts(accounts);
-        }
-      } else if (accounts.length > 0) {
-        // If no active session but saved accounts exist, go to account chooser
-        setIsChoosingAccount(true);
+      const updatedUser = response?.data?.data?.user || response?.data?.data;
+      if (updatedUser) {
+        const merged = { ...user, ...updatedUser };
+        setUser(merged);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(merged));
+      } else if (newEmail) {
+        const merged = { ...user, email: newEmail };
+        setUser(merged);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(merged));
       }
+      return response.data;
     } catch (e) {
-      console.error('Failed to load stored auth:', e);
-    } finally {
-      setIsLoading(false);
+      console.warn('Failed to update email in context:', e);
+      throw e;
     }
   };
 
-  const login = async (email, password, rememberMe = true) => {
-    // Rely strictly on backend validation
-    const response = await authService.login({ email, password });
+  const sendSignupOtp = async (formData) => {
+    const response = await authService.sendSignupOtp(formData);
+    return response.data;
+  };
+
+  const verifyOtp = async ({ email, otp }) => {
+    const response = await authService.verifyOtp({ email, otp });
     const { user: userData, token: authToken } = response.data;
-    setUser(userData);
-    setToken(authToken);
-    setIsChoosingAccount(false);
-    await AsyncStorage.setItem('auth_token', authToken);
-    await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-    if (rememberMe) {
-      await updateSavedAccountsList(userData, authToken);
+    if (authToken && userData) {
+      setUser(userData);
+      setToken(authToken);
+      await AsyncStorage.setItem('auth_token', authToken);
+      await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+      setNeedsOnboarding(true);
     }
     return response.data;
-  };
-
-  const register = async (
-    name,
-    email,
-    password,
-    passwordConfirmation,
-    rememberMe = true,
-    termsPrivacyAccepted = true,
-    otp = null
-  ) => {
-    // Rely strictly on backend validation
-    const payload = {
-      name,
-      email,
-      password,
-      password_confirmation: passwordConfirmation,
-      terms_privacy_accepted: termsPrivacyAccepted,
-    };
-    if (otp) {
-      payload.otp = otp;
-    }
-
-    const response = await authService.register(payload);
-    const data = response.data;
-    if (data?.token && data?.user) {
-      setUser(data.user);
-      setToken(data.token);
-      setIsChoosingAccount(false);
-      setNeedsOnboarding(true);
-      await AsyncStorage.setItem('auth_token', data.token);
-      await AsyncStorage.setItem('auth_user', JSON.stringify(data.user));
-      if (rememberMe) {
-        await updateSavedAccountsList(data.user, data.token);
-      }
-    }
-    return data;
-  };
-
-  const sendSignupOtp = async ({ email, name }) => {
-    const response = await authService.sendSignupOtp({ email, name });
-    return response.data;
-  };
-
-  const verifyOtp = async ({ email, otp, rememberMe = true, deviceName = 'Mobile App' }) => {
-    const response = await authService.verifyOtp({
-      email,
-      otp,
-      device_name: deviceName,
-    });
-    const data = response.data;
-    if (data?.token && data?.user) {
-      setUser(data.user);
-      setToken(data.token);
-      setIsChoosingAccount(false);
-      setNeedsOnboarding(true);
-      await AsyncStorage.setItem('auth_token', data.token);
-      await AsyncStorage.setItem('auth_user', JSON.stringify(data.user));
-      if (rememberMe) {
-        await updateSavedAccountsList(data.user, data.token);
-      }
-    }
-    return data;
   };
 
   const resendOtp = async ({ email }) => {
@@ -333,79 +191,15 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const switchAccount = async (account) => {
-    try {
-      if (account.token && account.user) {
-        await AsyncStorage.setItem('auth_token', account.token);
-        await AsyncStorage.setItem('auth_user', JSON.stringify(account.user));
-        setUser(account.user);
-        setToken(account.token);
-        setIsChoosingAccount(false);
-        return { success: true };
-      }
-      return { success: false, reason: 'missing_credentials' };
-    } catch (e) {
-      console.error('Failed to switch account:', e);
-      return { success: false, error: e };
-    }
-  };
-
-  const removeSavedAccount = async (accountId) => {
-    try {
-      const targetAccount = savedAccounts.find((a) => a.id === accountId);
-      if (targetAccount?.token) {
-        // Revoke token on server when profile is permanently removed
-        await authService.logout().catch(() => {});
-      }
-
-      const updated = savedAccounts.filter((a) => a.id !== accountId);
-      setSavedAccounts(updated);
-      await AsyncStorage.setItem('saved_accounts', JSON.stringify(updated));
-
-      // If active user is the one removed
-      if (user && user.id === accountId) {
-        setUser(null);
-        setToken(null);
-        await AsyncStorage.removeItem('auth_token');
-        await AsyncStorage.removeItem('auth_user');
-        if (updated.length > 0) {
-          setIsChoosingAccount(true);
-        } else {
-          setIsChoosingAccount(false);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to remove saved account:', e);
-    }
-  };
-
-  const openAccountChooser = () => {
-    setIsChoosingAccount(true);
-  };
-
-  const closeAccountChooser = () => {
-    setIsChoosingAccount(false);
-  };
-
   const logout = async () => {
     try {
-      // 1-Click Logout:
-      // We do NOT revoke the token on the backend if this profile is saved in savedAccounts,
-      // allowing seamless 1-click switching back later from the profile chooser!
-      // (Permanent token revocation happens when removing the account via 'Manage Accounts').
+      await authService.logout().catch(() => {});
     } finally {
       setUser(null);
       setToken(null);
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('auth_user');
-
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      const accounts = stored ? JSON.parse(stored) : [];
-      if (accounts.length > 0) {
-        setIsChoosingAccount(true);
-      } else {
-        setIsChoosingAccount(false);
-      }
+      await AsyncStorage.removeItem('saved_accounts').catch(() => {});
     }
   };
 
@@ -414,25 +208,11 @@ export const AuthProvider = ({ children }) => {
       if (!user) return { success: false, error: 'Not authenticated' };
       await userService.deleteAccount({ current_password: currentPassword });
 
-      const userId = user.id;
-      // Remove from saved accounts
-      const stored = await AsyncStorage.getItem('saved_accounts');
-      let accounts = stored ? JSON.parse(stored) : [];
-      const updatedAccounts = accounts.filter((a) => a.id !== userId);
-      setSavedAccounts(updatedAccounts);
-      await AsyncStorage.setItem('saved_accounts', JSON.stringify(updatedAccounts));
-
-      // Clear active user session
       setUser(null);
       setToken(null);
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('auth_user');
-
-      if (updatedAccounts.length > 0) {
-        setIsChoosingAccount(true);
-      } else {
-        setIsChoosingAccount(false);
-      }
+      await AsyncStorage.removeItem('saved_accounts').catch(() => {});
 
       return { success: true };
     } catch (e) {
@@ -452,12 +232,6 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token,
         isLoading,
-        savedAccounts,
-        isChoosingAccount,
-        openAccountChooser,
-        closeAccountChooser,
-        switchAccount,
-        removeSavedAccount,
         updateProfileAvatar,
         updateUserPreferences,
         updateProfileName,

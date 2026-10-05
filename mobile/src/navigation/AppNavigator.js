@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTheme } from '../context/ThemeContext';
 import TabNavigator from './TabNavigator';
 import DramaDetailScreen from '../screens/main/DramaDetailScreen';
 import StatsScreen from '../screens/main/StatsScreen';
@@ -10,12 +11,14 @@ import GenreSelectionScreen from '../screens/main/GenreSelectionScreen';
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator({ initialRouteName = 'MainTabs' }) {
+  const { colors } = useTheme();
+
   return (
     <Stack.Navigator
       initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#07070E' },
+        contentStyle: { backgroundColor: colors.bg },
       }}
     >
       <Stack.Screen name="MainTabs" component={TabNavigator} />

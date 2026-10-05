@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { trackerService } from '../../services/api';
 
 const STATUS_OPTIONS = [
@@ -33,19 +34,31 @@ const STATUS_COLORS = {
   Dropped: '#EF4444',
 };
 
-const getStatusColor = (status) => {
-  if (!status) return colors.muted;
-  const formatted = status.replace(/_/g, ' ').toLowerCase();
-  if (formatted.includes('watch') && !formatted.includes('plan')) return STATUS_COLORS.Watching;
-  if (formatted.includes('complete')) return STATUS_COLORS.Completed;
-  if (formatted.includes('plan')) return STATUS_COLORS['Plan to Watch'];
-  if (formatted.includes('hold')) return STATUS_COLORS['On Hold'];
-  if (formatted.includes('drop')) return STATUS_COLORS.Dropped;
-  return colors.muted;
-};
-
 export default function TrackerScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
+
+  const getStatusColor = (status) => {
+    if (!status) return colors.muted;
+    const formatted = status.replace(/_/g, ' ').toLowerCase();
+    if (formatted.includes('watch') && !formatted.includes('plan')) {
+      return isDark ? '#60A5FA' : (colors.blue || '#2B6CB0');
+    }
+    if (formatted.includes('complete')) {
+      return isDark ? '#10B981' : (colors.green || '#047857');
+    }
+    if (formatted.includes('plan')) {
+      return isDark ? '#FFD76A' : (colors.gold || '#B87A04');
+    }
+    if (formatted.includes('hold')) {
+      return isDark ? '#F59E0B' : '#D97706';
+    }
+    if (formatted.includes('drop')) {
+      return colors.danger || '#EF4444';
+    }
+    return colors.muted;
+  };
+
   const [activeTab, setActiveTab] = useState(route?.params?.initialTab || 'All');
   const [items, setItems] = useState([]);
   const [counts, setCounts] = useState({});
@@ -181,10 +194,10 @@ export default function TrackerScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       {/* Tracker Scroll View */}
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: colors.bg }]}
         contentContainerStyle={[
           styles.content,
           {
@@ -208,6 +221,7 @@ export default function TrackerScreen({ navigation, route }) {
             <Pressable
               style={({ pressed, hovered }) => [
                 styles.backButton,
+                { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
                 hovered && styles.backButtonHover,
                 pressed && styles.backButtonPressed,
               ]}
@@ -220,8 +234,8 @@ export default function TrackerScreen({ navigation, route }) {
             </Pressable>
 
             <View style={styles.headerText}>
-              <Text style={styles.title}>My Tracker</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: colors.text }]}>My Tracker</Text>
+              <Text style={[styles.subtitle, { color: colors.muted }]}>
                 {counts.all ? `${counts.all} dramas in collection` : 'Track your K-drama journey'}
               </Text>
             </View>
@@ -231,7 +245,10 @@ export default function TrackerScreen({ navigation, route }) {
           <View style={styles.headerRightActions}>
             {/* View Mode Toggle Button */}
             <Pressable
-              style={styles.viewToggleBtn}
+              style={[
+                styles.viewToggleBtn,
+                { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+              ]}
               onPress={() => setViewMode((v) => (v === 'list' ? 'grid' : 'list'))}
               hitSlop={6}
             >
@@ -273,17 +290,30 @@ export default function TrackerScreen({ navigation, route }) {
               <Pressable
                 key={name}
                 onPress={() => setActiveTab(name)}
-                style={[styles.tab, isActive && styles.tabActive]}
+                style={[
+                  styles.tab,
+                  {
+                    backgroundColor: isActive ? (isDark ? '#2A2438' : colors.pink) : colors.card,
+                    borderColor: colors.border,
+                    borderWidth: isDark ? 0 : 1,
+                  },
+                ]}
               >
                 {name === 'Favorites' && (
                   <Ionicons
                     name="heart"
                     size={12}
-                    color={isActive ? '#FF4655' : colors.muted}
+                    color={isActive ? '#FFFFFF' : '#FF4655'}
                     style={{ marginRight: 4 }}
                   />
                 )}
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    { color: isActive ? '#FFFFFF' : colors.muted },
+                    isActive && { fontWeight: '800' },
+                  ]}
+                >
                   {name} ({count})
                 </Text>
               </Pressable>
@@ -294,15 +324,15 @@ export default function TrackerScreen({ navigation, route }) {
         {/* Empty State */}
         {!loading && items.length === 0 && (
           <View style={styles.empty}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="sparkles" size={30} color={colors.redBright} />
+            <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.15)' : 'rgba(235, 91, 120, 0.12)' }]}>
+              <Ionicons name="sparkles" size={30} color={colors.pink} />
             </View>
-            <Text style={styles.emptyTitle}>Your watchlist is empty</Text>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Your watchlist is empty</Text>
+            <Text style={[styles.emptyText, { color: colors.muted }]}>
               Discover trending K-dramas and start tracking your binge journey!
             </Text>
             <Pressable
-              style={styles.emptyAddBtn}
+              style={[styles.emptyAddBtn, { backgroundColor: colors.pink }]}
               onPress={() => navigation.navigate('AddDrama')}
             >
               <Ionicons name="add-circle" size={16} color="#FFFFFF" />
@@ -314,7 +344,7 @@ export default function TrackerScreen({ navigation, route }) {
         {/* Drama List / Grid */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.redBright} />
+            <ActivityIndicator size="large" color={colors.pink} />
           </View>
         ) : viewMode === 'grid' ? (
           /* POSTER GRID VIEW (Clean Netflix/IMDb style without dark shadow overlay or overlapping buttons) */
@@ -333,7 +363,10 @@ export default function TrackerScreen({ navigation, route }) {
               return (
                 <Pressable
                   key={item.id || item.tmdb_id}
-                  style={styles.gridCard}
+                  style={[
+                    styles.gridCard,
+                    { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+                  ]}
                   onPress={() => navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })}
                 >
                   {/* Clean Poster - Pure artwork with NO dark overlay */}
@@ -347,7 +380,7 @@ export default function TrackerScreen({ navigation, route }) {
                     )}
 
                     {/* Clean bottom progress line */}
-                    <View style={styles.gridProgressTrack}>
+                    <View style={[styles.gridProgressTrack, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : (colors.line || 'rgba(0,0,0,0.08)') }]}>
                       <View
                         style={[
                           styles.gridProgressFill,
@@ -359,7 +392,7 @@ export default function TrackerScreen({ navigation, route }) {
 
                   {/* Information Row Underneath Poster (Clean, Non-overlapping) */}
                   <View style={styles.gridInfoBox}>
-                    <Text style={styles.gridTitle} numberOfLines={1}>
+                    <Text style={[styles.gridTitle, { color: colors.text }]} numberOfLines={1}>
                       {drama.title || 'Untitled'}
                     </Text>
 
@@ -384,23 +417,30 @@ export default function TrackerScreen({ navigation, route }) {
                       {item.status === 'watching' && (
                         <Pressable
                           onPress={(e) => handleQuickIncrement(item, e)}
-                          style={styles.gridQuickAddClean}
+                          style={[
+                            styles.gridQuickAddClean,
+                            {
+                              backgroundColor: isDark ? '#272338' : (colors.panel2 || '#EEF1F6'),
+                              borderColor: colors.border,
+                              borderWidth: isDark ? 0 : 1,
+                            },
+                          ]}
                           hitSlop={5}
                         >
-                          <Text style={styles.gridQuickAddTextClean}>+1</Text>
+                          <Text style={[styles.gridQuickAddTextClean, { color: colors.text }]}>+1</Text>
                         </Pressable>
                       )}
                     </View>
 
                     {/* Episodes & Progress */}
                     <View style={styles.gridMetaRow}>
-                      <Text style={styles.gridEpisodesText}>
+                      <Text style={[styles.gridEpisodesText, { color: colors.muted }]}>
                         {watched}/{episodeTotal || '?'} eps
                       </Text>
                       {Number(item.rating) > 0 ? (
                         <View style={styles.gridRatingBadge}>
-                          <Ionicons name="star" size={10} color="#eb5b78" />
-                          <Text style={styles.gridRatingText}>{Number(item.rating).toFixed(0)}</Text>
+                          <Ionicons name="star" size={10} color={colors.pink} />
+                          <Text style={[styles.gridRatingText, { color: colors.pink }]}>{Number(item.rating).toFixed(0)}</Text>
                         </View>
                       ) : (
                         <Text style={[styles.gridPercentText, { color: statusColor }]}>{progress}%</Text>
@@ -436,7 +476,13 @@ export default function TrackerScreen({ navigation, route }) {
                 : 'K-Drama';
 
               return (
-                <View key={item.id || item.tmdb_id} style={styles.card}>
+                <View
+                  key={item.id || item.tmdb_id}
+                  style={[
+                    styles.card,
+                    { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+                  ]}
+                >
                   <Pressable
                     style={styles.cardPressable}
                     onPress={() =>
@@ -452,7 +498,7 @@ export default function TrackerScreen({ navigation, route }) {
                           resizeMode="cover"
                         />
                       ) : (
-                        <View style={styles.posterPlaceholder}>
+                        <View style={[styles.posterPlaceholder, { backgroundColor: isDark ? '#1E1C2B' : (colors.panel2 || '#EEF1F6') }]}>
                           <Ionicons name="film-outline" size={20} color={colors.muted} />
                         </View>
                       )}
@@ -462,7 +508,7 @@ export default function TrackerScreen({ navigation, route }) {
                     <View style={styles.cardMain}>
                       {/* Title & Status Pill in clean top row */}
                       <View style={styles.cardHeaderRow}>
-                        <Text style={styles.dramaTitle} numberOfLines={1}>
+                        <Text style={[styles.dramaTitle, { color: colors.text }]} numberOfLines={1}>
                           {drama.title || 'Untitled Drama'}
                         </Text>
                         <Pressable
@@ -490,25 +536,32 @@ export default function TrackerScreen({ navigation, route }) {
                       </View>
 
                       {/* Genre Subtext */}
-                      <Text style={styles.genre} numberOfLines={1}>
+                      <Text style={[styles.genre, { color: colors.muted }]} numberOfLines={1}>
                         {genreText || 'Drama'}
                       </Text>
 
                       {/* Episode Progress & Quick +1 Action */}
                       <View style={styles.episodeProgressRow}>
-                        <Text style={styles.episodes}>
-                          <Text style={styles.episodesCurrent}>{watched}</Text> / {episodeTotal || '?'} eps
+                        <Text style={[styles.episodes, { color: colors.muted }]}>
+                          <Text style={[styles.episodesCurrent, { color: colors.text }]}>{watched}</Text> / {episodeTotal || '?'} eps
                         </Text>
 
                         <View style={styles.progressRightGroup}>
                           {item.status === 'watching' && (
                             <Pressable
-                              style={styles.quickAddEpisodeBtn}
+                              style={[
+                                styles.quickAddEpisodeBtn,
+                                {
+                                  backgroundColor: isDark ? '#272338' : (colors.panel2 || '#EEF1F6'),
+                                  borderColor: colors.border,
+                                  borderWidth: isDark ? 0 : 1,
+                                },
+                              ]}
                               onPress={(e) => handleQuickIncrement(item, e)}
                               hitSlop={6}
                             >
-                              <Ionicons name="add" size={12} color="#FFFFFF" />
-                              <Text style={styles.quickAddEpisodeText}>1 ep</Text>
+                              <Ionicons name="add" size={12} color={colors.text} />
+                              <Text style={[styles.quickAddEpisodeText, { color: colors.text }]}>1 ep</Text>
                             </Pressable>
                           )}
                           <Text style={[styles.percentBadge, { color: statusColor }]}>
@@ -518,7 +571,7 @@ export default function TrackerScreen({ navigation, route }) {
                       </View>
 
                       {/* Sleek Progress Track */}
-                      <View style={styles.progressTrack}>
+                      <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : (colors.line || 'rgba(0,0,0,0.08)') }]}>
                         <View
                           style={[
                             styles.progressFill,
@@ -530,16 +583,16 @@ export default function TrackerScreen({ navigation, route }) {
                       {/* Bottom Meta: Rating and Review */}
                       <View style={styles.bottomRow}>
                         {Number(item.rating) > 0 ? (
-                          <View style={styles.ratingChip}>
-                            <Ionicons name="star" size={11} color="#eb5b78" />
-                            <Text style={styles.ratingChipText}>
+                          <View style={[styles.ratingChip, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.12)' : 'rgba(235, 91, 120, 0.10)' }]}>
+                            <Ionicons name="star" size={11} color={colors.pink} />
+                            <Text style={[styles.ratingChipText, { color: colors.pink }]}>
                               {Number(item.rating).toFixed(0)}/10
                             </Text>
                           </View>
                         ) : null}
 
                         {item.review_notes ? (
-                          <Text style={styles.comment} numberOfLines={1}>
+                          <Text style={[styles.comment, { color: colors.muted }]} numberOfLines={1}>
                             "{item.review_notes}"
                           </Text>
                         ) : null}
@@ -562,12 +615,12 @@ export default function TrackerScreen({ navigation, route }) {
         animationType="fade"
         onRequestClose={handleCloseStatusEditor}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderText}>
-                <Text style={styles.modalTitle}>Update Status</Text>
-                <Text style={styles.modalSubtitle} numberOfLines={1}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Update Status</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.muted }]} numberOfLines={1}>
                   {editingItem?.drama?.title || 'Drama'}
                 </Text>
               </View>
@@ -587,8 +640,14 @@ export default function TrackerScreen({ navigation, route }) {
                     onPress={() => setSelectedStatus(status)}
                     style={[
                       styles.statusOption,
-                      isSelected && {
-                        backgroundColor: `${optionColor}2E`,
+                      {
+                        backgroundColor: isSelected
+                          ? `${optionColor}24`
+                          : isDark
+                          ? '#1E1B30'
+                          : (colors.panel2 || '#EEF1F6'),
+                        borderColor: isSelected ? optionColor : colors.border,
+                        borderWidth: 1,
                       },
                     ]}
                   >
@@ -596,7 +655,8 @@ export default function TrackerScreen({ navigation, route }) {
                     <Text
                       style={[
                         styles.statusOptionText,
-                        isSelected && { color: colors.text, fontWeight: '800' },
+                        { color: colors.text },
+                        isSelected && { fontWeight: '800' },
                       ]}
                     >
                       {status}
@@ -615,12 +675,22 @@ export default function TrackerScreen({ navigation, route }) {
             </View>
 
             <View style={styles.modalActions}>
-              <Pressable onPress={handleCloseStatusEditor} style={styles.cancelModalButton}>
-                <Text style={styles.cancelModalText}>Cancel</Text>
+              <Pressable
+                onPress={handleCloseStatusEditor}
+                style={[
+                  styles.cancelModalButton,
+                  {
+                    backgroundColor: isDark ? '#1C192E' : (colors.panel2 || '#EEF1F6'),
+                    borderColor: colors.border,
+                    borderWidth: isDark ? 0 : 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.cancelModalText, { color: colors.text }]}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleSaveStatus}
-                style={styles.saveModalButton}
+                style={[styles.saveModalButton, { backgroundColor: colors.pink }]}
                 disabled={savingStatus}
               >
                 {savingStatus ? (

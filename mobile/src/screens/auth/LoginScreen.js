@@ -14,6 +14,7 @@ import {
   Modal,
 } from 'react-native';
 import { colors, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,11 +24,11 @@ import { checkPasswordRequirements } from '../../utils/passwordRequirements';
 
 export default function LoginScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { login, savedAccounts } = useAuth();
+  const { colors, isDark } = useTheme();
+  const { login } = useAuth();
   const [email, setEmail] = useState(route?.params?.email || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(route?.params?.message || '');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -130,7 +131,7 @@ export default function LoginScreen({ navigation, route }) {
 
     try {
       // Backend handles validation (422)
-      await login(email, password, rememberMe);
+      await login(email, password);
     } catch (err) {
       if (err.response) {
         if (err.response.status === 422) {
@@ -164,7 +165,7 @@ export default function LoginScreen({ navigation, route }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
     >
       <ScrollView
         contentContainerStyle={[
@@ -176,23 +177,6 @@ export default function LoginScreen({ navigation, route }) {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        {savedAccounts && savedAccounts.length > 0 && (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              if (navigation?.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation?.navigate('AccountChooser');
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={16} color={colors.text} />
-            <Text style={styles.backButtonText}>Profiles</Text>
-          </TouchableOpacity>
-        )}
-
         {/* Brand Header */}
         <View style={styles.header}>
           <Image
@@ -200,11 +184,11 @@ export default function LoginScreen({ navigation, route }) {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.brand}>
-            SARANG<Text style={styles.brandTv}>TV</Text>
+          <Text style={[styles.brand, { color: colors.pink }]}>
+            SARANG<Text style={[styles.brandTv, { color: colors.pink }]}>TV</Text>
           </Text>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Log in to your watchlist.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Welcome back</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>Log in to your watchlist.</Text>
         </View>
 
         {/* Global Error Banner */}
@@ -237,12 +221,12 @@ export default function LoginScreen({ navigation, route }) {
         <View style={styles.form}>
           {/* Email Field */}
           <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <View style={[styles.inputWrapper, fieldErrors.email && styles.inputWrapperError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.email && styles.inputWrapperError]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="you@example.com"
-                placeholderTextColor="#5A5866"
+                placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
@@ -259,12 +243,12 @@ export default function LoginScreen({ navigation, route }) {
 
           {/* Password Field */}
           <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputWrapper, fieldErrors.password && styles.inputWrapperError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.password && styles.inputWrapperError]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="••••••••"
-                placeholderTextColor="#5A5866"
+                placeholderTextColor={colors.muted}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={(val) => {
@@ -282,7 +266,7 @@ export default function LoginScreen({ navigation, route }) {
                 <Ionicons
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={19}
-                  color="#9D5A6C"
+                  color={colors.muted}
                 />
               </Pressable>
             </View>
@@ -304,25 +288,12 @@ export default function LoginScreen({ navigation, route }) {
             }}
             hitSlop={8}
           >
-            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+            <Text style={[styles.forgotPasswordText, { color: colors.pink }]}>Forgot password?</Text>
           </TouchableOpacity>
-
-          {/* Remember Profile Option */}
-          <Pressable
-            style={styles.rememberRow}
-            onPress={() => setRememberMe(!rememberMe)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: rememberMe }}
-          >
-            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-              {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-            </View>
-            <Text style={styles.rememberText}>Save login as a profile</Text>
-          </Pressable>
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            style={[styles.submitButton, { backgroundColor: colors.pink, shadowColor: colors.pink }, loading && styles.submitButtonDisabled]}
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.85}
@@ -339,9 +310,9 @@ export default function LoginScreen({ navigation, route }) {
 
           {/* Switch Prompt */}
           <View style={styles.switchRow}>
-            <Text style={styles.switchPrompt}>No account? </Text>
+            <Text style={[styles.switchPrompt, { color: colors.muted }]}>No account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')} hitSlop={8}>
-              <Text style={styles.switchLink}>Sign up</Text>
+              <Text style={[styles.switchLink, { color: colors.pink }]}>Sign up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -358,13 +329,13 @@ export default function LoginScreen({ navigation, route }) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
                   {forgotStep === 'request' ? 'Reset Password' : 'Create New Password'}
                 </Text>
-                <Text style={styles.modalSubtitle}>
+                <Text style={[styles.modalSubtitle, { color: colors.muted }]}>
                   {forgotStep === 'request'
                     ? 'Receive a reset code to your email'
                     : 'Enter reset code and choose a new secure password'}
@@ -376,7 +347,7 @@ export default function LoginScreen({ navigation, route }) {
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={20} color={colors.text} />
               </Pressable>
             </View>
 
@@ -401,12 +372,12 @@ export default function LoginScreen({ navigation, route }) {
 
               {forgotStep === 'request' ? (
                 <View style={{ marginTop: 8 }}>
-                  <Text style={styles.label}>Account Email</Text>
-                  <View style={styles.inputWrapper}>
+                  <Text style={[styles.label, { color: colors.text }]}>Account Email</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }]}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: colors.text }]}
                       placeholder="you@example.com"
-                      placeholderTextColor="#5A5866"
+                      placeholderTextColor={colors.muted}
                       autoCapitalize="none"
                       keyboardType="email-address"
                       value={forgotEmail}
@@ -419,7 +390,7 @@ export default function LoginScreen({ navigation, route }) {
                   </View>
 
                   <TouchableOpacity
-                    style={[styles.submitButton, { marginTop: 16 }, forgotLoading && styles.submitButtonDisabled]}
+                    style={[styles.submitButton, { backgroundColor: colors.pink, shadowColor: colors.pink, marginTop: 16 }, forgotLoading && styles.submitButtonDisabled]}
                     onPress={handleRequestPasswordReset}
                     disabled={forgotLoading}
                     activeOpacity={0.85}
@@ -435,17 +406,17 @@ export default function LoginScreen({ navigation, route }) {
                     style={{ alignSelf: 'center', marginTop: 14 }}
                     onPress={() => setForgotStep('reset')}
                   >
-                    <Text style={styles.switchLink}>Already have a code? Reset here</Text>
+                    <Text style={[styles.switchLink, { color: colors.pink }]}>Already have a code? Reset here</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={{ marginTop: 8 }}>
-                  <Text style={styles.label}>Email</Text>
-                  <View style={styles.inputWrapper}>
+                  <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }]}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: colors.text }]}
                       placeholder="you@example.com"
-                      placeholderTextColor="#5A5866"
+                      placeholderTextColor={colors.muted}
                       autoCapitalize="none"
                       keyboardType="email-address"
                       value={forgotEmail}
@@ -454,12 +425,12 @@ export default function LoginScreen({ navigation, route }) {
                     />
                   </View>
 
-                  <Text style={[styles.label, { marginTop: 12 }]}>Reset Token / Code</Text>
-                  <View style={[styles.inputWrapper, resetFieldErrors.token && styles.inputWrapperError]}>
+                  <Text style={[styles.label, { color: colors.text, marginTop: 12 }]}>Reset Token / Code</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, resetFieldErrors.token && styles.inputWrapperError]}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: colors.text }]}
                       placeholder="Paste code or token"
-                      placeholderTextColor="#5A5866"
+                      placeholderTextColor={colors.muted}
                       value={forgotToken}
                       onChangeText={(val) => {
                         setForgotToken(val);
@@ -472,12 +443,12 @@ export default function LoginScreen({ navigation, route }) {
                     <Text style={styles.fieldErrorText}>{resetFieldErrors.token[0]}</Text>
                   )}
 
-                  <Text style={[styles.label, { marginTop: 12 }]}>New Password</Text>
-                  <View style={[styles.inputWrapper, resetFieldErrors.password && styles.inputWrapperError]}>
+                  <Text style={[styles.label, { color: colors.text, marginTop: 12 }]}>New Password</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, resetFieldErrors.password && styles.inputWrapperError]}>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: colors.text }]}
                       placeholder="Create a password"
-                      placeholderTextColor="#7A6369"
+                      placeholderTextColor={colors.muted}
                       secureTextEntry={!showResetNewPassword}
                       value={resetNewPassword}
                       onChangeText={(val) => {
@@ -496,7 +467,7 @@ export default function LoginScreen({ navigation, route }) {
                       <Ionicons
                         name={showResetNewPassword ? 'eye-outline' : 'eye-off-outline'}
                         size={19}
-                        color="#9D5A6C"
+                        color={colors.muted}
                       />
                     </Pressable>
                   </View>
@@ -507,17 +478,18 @@ export default function LoginScreen({ navigation, route }) {
                   {/* Password requirements list directly under New Password */}
                   <PasswordRequirementsList password={resetNewPassword} />
 
-                  <Text style={[styles.label, { marginTop: 12 }]}>Confirm New Password</Text>
+                  <Text style={[styles.label, { color: colors.text, marginTop: 12 }]}>Confirm New Password</Text>
                   <View
                     style={[
                       styles.inputWrapper,
+                      { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border },
                       resetFieldErrors.password_confirmation && styles.inputWrapperError,
                     ]}
                   >
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { color: colors.text }]}
                       placeholder="Repeat your password"
-                      placeholderTextColor="#7A6369"
+                      placeholderTextColor={colors.muted}
                       secureTextEntry={!showResetNewPassword}
                       value={resetNewConfirm}
                       onChangeText={(val) => {
@@ -557,14 +529,14 @@ export default function LoginScreen({ navigation, route }) {
 
                   <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
                     <TouchableOpacity
-                      style={[styles.modalSecondaryBtn, { flex: 1 }]}
+                      style={[styles.modalSecondaryBtn, { flex: 1, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.06)', borderColor: colors.border }]}
                       onPress={() => setForgotStep('request')}
                       disabled={forgotLoading}
                     >
-                      <Text style={styles.modalSecondaryBtnText}>Back</Text>
+                      <Text style={[styles.modalSecondaryBtnText, { color: colors.text }]}>Back</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.submitButton, { flex: 2, marginTop: 0 }, forgotLoading && styles.submitButtonDisabled]}
+                      style={[styles.submitButton, { backgroundColor: colors.pink, shadowColor: colors.pink, flex: 2, marginTop: 0 }, forgotLoading && styles.submitButtonDisabled]}
                       onPress={handleConfirmPasswordReset}
                       disabled={forgotLoading}
                     >

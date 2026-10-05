@@ -16,12 +16,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { homeService, trackerService, discoverService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const isSmallPhone = width <= 380;
   const horizontalPadding = isSmallPhone ? 10 : 12;
@@ -91,12 +93,15 @@ export default function HomeScreen({ navigation }) {
     : 0;
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       {/* Top Mobile Bar */}
       <View
         style={[
           styles.topBar,
           {
+            backgroundColor: colors.bg,
+            borderBottomColor: colors.border,
+            borderBottomWidth: isDark ? 0 : 1,
             paddingTop: insets.top > 0 ? insets.top : 8,
             height: (insets.top > 0 ? insets.top : 8) + 54,
           },
@@ -108,7 +113,7 @@ export default function HomeScreen({ navigation }) {
             style={styles.topBarLogoImage}
             resizeMode="contain"
           />
-          <Text style={styles.logo}>
+          <Text style={[styles.logo, { color: colors.text }]}>
             Sarang<Text style={styles.logoTv}>TV</Text>
           </Text>
         </View>
@@ -117,13 +122,14 @@ export default function HomeScreen({ navigation }) {
           <Pressable
             style={({ pressed, hovered }) => [
               styles.topIconButton,
+              { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
               hovered && styles.topIconButtonHovered,
               pressed && styles.topIconButtonPressed,
             ]}
             onPress={() => navigation.navigate('Discover')}
             accessibilityLabel="Search"
           >
-            <Ionicons name="search-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="search-outline" size={20} color={colors.text} />
           </Pressable>
 
           <Pressable
@@ -161,7 +167,7 @@ export default function HomeScreen({ navigation }) {
 
       {/* Main Content */}
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: colors.bg }]}
         contentContainerStyle={[
           styles.content,
           {
@@ -186,10 +192,10 @@ export default function HomeScreen({ navigation }) {
           <>
             {/* Greeting */}
             <View style={styles.greetingBlock}>
-              <Text style={styles.greeting}>Annyeong, {greetingName}! ♡</Text>
+              <Text style={[styles.greeting, { color: colors.text }]}>Annyeong, {greetingName}! ♡</Text>
               <View style={styles.subtitleRow}>
-                <Text style={styles.korean}>무슨 드라마 볼까?</Text>
-                <Text style={styles.english}>What drama should we watch?</Text>
+                <Text style={[styles.korean, { color: colors.pink }]}>무슨 드라마 볼까?</Text>
+                <Text style={[styles.english, { color: colors.muted }]}>What drama should we watch?</Text>
               </View>
             </View>
 
@@ -200,8 +206,10 @@ export default function HomeScreen({ navigation }) {
                 label="Total Tracked"
                 sublabel={`${stats.watching ?? 0} watching`}
                 icon="bookmark-outline"
-                iconColor="#9d8ade"
-                bottomColor="#9d8ade"
+                iconColor={colors.purple}
+                bottomColor={colors.purple}
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'All' })}
               />
               <StatCard
@@ -209,8 +217,10 @@ export default function HomeScreen({ navigation }) {
                 label="Episodes Watched"
                 sublabel={`${stats.completed ?? 0} completed`}
                 icon="play-outline"
-                iconColor="#759bc7"
-                bottomColor="#759bc7"
+                iconColor={colors.blue}
+                bottomColor={colors.blue}
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'Watching' })}
               />
               <StatCard
@@ -218,8 +228,10 @@ export default function HomeScreen({ navigation }) {
                 label="Plan to Watch"
                 sublabel={`${stats.on_hold ?? 0} on hold`}
                 icon="checkmark-outline"
-                iconColor="#4fb487"
-                bottomColor="#4fb487"
+                iconColor={colors.green}
+                bottomColor={colors.green}
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'Completed' })}
               />
               <StatCard
@@ -228,17 +240,19 @@ export default function HomeScreen({ navigation }) {
                 label="Hours Watched"
                 sublabel="Total watch time"
                 icon="time-outline"
-                iconColor="#c6a73d"
-                bottomColor="#c6a73d"
+                iconColor={colors.gold}
+                bottomColor={colors.gold}
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('Profile')}
               />
             </View>
 
             {/* Watching Progress Section */}
-            <SectionTitle text="WATCHING PROGRESS" />
+            <SectionTitle text="WATCHING PROGRESS" colors={colors} />
 
             {currentlyWatching ? (
-              <View style={styles.watchingCard}>
+              <View style={[styles.watchingCard, { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
                 {(currentlyWatching.backdrop_url || currentlyWatching.poster_url) ? (
                   <Image
                     source={{
@@ -248,12 +262,12 @@ export default function HomeScreen({ navigation }) {
                     resizeMode="cover"
                   />
                 ) : null}
-                <View style={styles.watchingBackdropOverlay} />
+                <View style={[styles.watchingBackdropOverlay, { backgroundColor: isDark ? 'rgba(22, 20, 36, 0.7)' : 'rgba(255, 255, 255, 0.85)' }]} />
 
                 <View style={styles.watchingCardContent}>
                   <View style={styles.watchingHeader}>
                     <View style={styles.watchingDot} />
-                    <Text style={styles.watchingEyebrow}>WATCHING PROGRESS</Text>
+                    <Text style={[styles.watchingEyebrow, { color: isDark ? '#A3A1AC' : colors.muted }]}>WATCHING PROGRESS</Text>
                   </View>
 
                   <Pressable
@@ -275,20 +289,22 @@ export default function HomeScreen({ navigation }) {
                       progress={watchingProgress}
                       size={68}
                       strokeWidth={4.5}
+                      colors={colors}
+                      isDark={isDark}
                     />
 
                     <View style={styles.watchingInfo}>
-                      <Text style={styles.watchingTitle} numberOfLines={1}>
+                      <Text style={[styles.watchingTitle, { color: colors.text }]} numberOfLines={1}>
                         {currentlyWatching.title}
                       </Text>
 
-                      <Text style={styles.watchingEpisode} numberOfLines={1}>
+                      <Text style={[styles.watchingEpisode, { color: colors.muted }]} numberOfLines={1}>
                         Ep {watchingEp} of {watchingTotal}
                         {currentlyWatching.runtime ? ` · ${currentlyWatching.runtime}` : ' · ~60 min'}
                       </Text>
 
                       <View style={styles.progressRow}>
-                        <View style={styles.progressTrack}>
+                        <View style={[styles.progressTrack, { backgroundColor: isDark ? '#2b2b35' : (colors.line || 'rgba(0,0,0,0.08)') }]}>
                           <View
                             style={[
                               styles.progressFill,
@@ -301,16 +317,17 @@ export default function HomeScreen({ navigation }) {
                     </View>
                   </Pressable>
 
-                  <View style={styles.watchingFooter}>
+                  <View style={[styles.watchingFooter, { borderTopColor: colors.border }]}>
                     <View>
-                      <Text style={styles.loggedLabel}>LOGGED</Text>
-                      <Text style={styles.loggedValue}>Today</Text>
+                      <Text style={[styles.loggedLabel, { color: colors.muted }]}>LOGGED</Text>
+                      <Text style={[styles.loggedValue, { color: colors.text }]}>Today</Text>
                     </View>
 
                     <View style={styles.watchingActions}>
                       <Pressable
                         style={({ pressed, hovered }) => [
                           styles.detailsButton,
+                          { backgroundColor: isDark ? '#2a2930' : (colors.panel2 || '#EEF1F6') },
                           hovered && styles.detailsButtonHovered,
                           pressed && styles.detailsButtonPressed,
                         ]}
@@ -318,7 +335,7 @@ export default function HomeScreen({ navigation }) {
                           navigation.navigate('DramaDetail', { tmdbId: currentlyWatching.tmdb_id })
                         }
                       >
-                        <Text style={styles.detailsButtonText}>Details</Text>
+                        <Text style={[styles.detailsButtonText, { color: colors.text }]}>Details</Text>
                       </Pressable>
 
                       <Pressable
@@ -348,43 +365,51 @@ export default function HomeScreen({ navigation }) {
                 </View>
               </View>
             ) : (
-              <View style={styles.watchingCardEmpty}>
+              <View style={[styles.watchingCardEmpty, { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
                 <View style={styles.watchingHeader}>
                   <View style={styles.watchingDot} />
-                  <Text style={styles.watchingEyebrow}>WATCHING PROGRESS</Text>
+                  <Text style={[styles.watchingEyebrow, { color: isDark ? '#A3A1AC' : colors.muted }]}>WATCHING PROGRESS</Text>
                 </View>
-                <Text style={styles.noWatchingText}>
+                <Text style={[styles.noWatchingText, { color: colors.muted }]}>
                   Explore dramas and add to your watchlist to start tracking progress.
                 </Text>
               </View>
             )}
 
             {/* Quick Access */}
-            <SectionTitle text="QUICK ACCESS" />
+            <SectionTitle text="QUICK ACCESS" colors={colors} />
 
             <View style={styles.quickGrid}>
               <QuickAccess
                 icon="reader-outline"
-                iconBackground="#252441"
+                iconBackground={colors.purple}
                 title="My Tracker"
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'All' })}
               />
               <QuickAccess
                 icon="add"
-                iconBackground="#302548"
+                iconBackground={colors.pink}
                 title="Add Drama"
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('AddDrama')}
               />
               <QuickAccess
                 icon="pause"
-                iconBackground="#322A3C"
+                iconBackground={colors.gold}
                 title="On Hold"
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'On Hold' })}
               />
               <QuickAccess
                 icon="ticket-outline"
-                iconBackground="#252A43"
+                iconBackground={colors.green}
                 title="Plan to Watch"
+                colors={colors}
+                isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'Plan to Watch' })}
               />
             </View>
@@ -393,15 +418,15 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.trendingHeaderRow}>
               <View style={styles.trendingTitleGroup}>
                 <Ionicons name="flame" size={18} color="#FF4655" />
-                <Text style={styles.trendingSectionTitle}>Top 10 Trending Today</Text>
+                <Text style={[styles.trendingSectionTitle, { color: colors.text }]}>Top 10 Trending Today</Text>
               </View>
               <Pressable
                 onPress={() => navigation.navigate('Discover')}
                 hitSlop={8}
                 style={styles.seeAllButton}
               >
-                <Text style={styles.seeAllText}>See all</Text>
-                <Ionicons name="chevron-forward" size={14} color="#F5A9C4" />
+                <Text style={[styles.seeAllText, { color: colors.pink }]}>See all</Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.pink} />
               </Pressable>
             </View>
 
@@ -433,10 +458,10 @@ export default function HomeScreen({ navigation }) {
                     }
                   >
                     {/* Big Stylized Rank Number (Matching Frontend Top 10 Design) */}
-                    <TrendingRankNumber rankNum={rankNum} />
+                    <TrendingRankNumber rankNum={rankNum} colors={colors} isDark={isDark} />
 
                     {/* Poster Card */}
-                    <View style={styles.trendingPosterWrapper}>
+                    <View style={[styles.trendingPosterWrapper, { backgroundColor: isDark ? '#161622' : colors.card, borderColor: colors.border }]}>
                       <Image
                         source={{ uri: posterUri }}
                         style={styles.trendingPosterImage}
@@ -470,10 +495,10 @@ export default function HomeScreen({ navigation }) {
                       })() : null}
                     </View>
 
-                    <Text style={styles.trendingDramaTitle} numberOfLines={1}>
+                    <Text style={[styles.trendingDramaTitle, { color: colors.text }]} numberOfLines={1}>
                       {drama.title || drama.name}
                     </Text>
-                    <Text style={styles.trendingDramaMeta} numberOfLines={1}>
+                    <Text style={[styles.trendingDramaMeta, { color: colors.muted }]} numberOfLines={1}>
                       {Array.isArray(drama.genres)
                         ? drama.genres.slice(0, 2).join(' · ')
                         : drama.genre || 'K-Drama'}
@@ -486,11 +511,11 @@ export default function HomeScreen({ navigation }) {
             {/* Recommended */}
             <View style={styles.recommendedHeaderRow}>
               <View style={styles.recommendedTitleGroup}>
-                <SectionTitle text="RECOMMENDED FOR YOU" />
+                <SectionTitle text="RECOMMENDED FOR YOU" colors={colors} />
                 {Array.isArray(user?.favorite_genres) && user.favorite_genres.length > 0 && (
                   <View style={styles.genreTagPill}>
-                    <Ionicons name="sparkles" size={11} color="#eb5b78" />
-                    <Text style={styles.genreTagText} numberOfLines={1}>
+                    <Ionicons name="sparkles" size={11} color={colors.pink} />
+                    <Text style={[styles.genreTagText, { color: colors.pink }]} numberOfLines={1}>
                       {user.favorite_genres.slice(0, 2).join(' · ')}
                     </Text>
                   </View>
@@ -508,6 +533,8 @@ export default function HomeScreen({ navigation }) {
                 <RecommendedCard
                   key={String(drama.tmdb_id || drama.id || index)}
                   drama={drama}
+                  colors={colors}
+                  isDark={isDark}
                   onPress={() =>
                     navigation.navigate('DramaDetail', { tmdbId: drama.tmdb_id || drama.id })
                   }
@@ -523,37 +550,38 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-function SectionTitle({ text }) {
-  return <Text style={styles.sectionTitle}>{text}</Text>;
+function SectionTitle({ text, colors }) {
+  return <Text style={[styles.sectionTitle, colors && { color: colors.muted }]}>{text}</Text>;
 }
 
-function StatCard({ value, suffix, label, sublabel, icon, iconColor, bottomColor, onPress }) {
+function StatCard({ value, suffix, label, sublabel, icon, iconColor, bottomColor, colors, isDark, onPress }) {
   return (
     <Pressable
       style={({ pressed, hovered }) => [
         styles.statCard,
-        hovered && styles.statCardHovered,
-        pressed && styles.statCardPressed,
+        { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+        hovered && { transform: [{ scale: 1.02 }] },
+        pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
       ]}
       onPress={onPress}
     >
       <View style={styles.statTop}>
-        <Text style={styles.statValue}>
+        <Text style={[styles.statValue, { color: colors.text }]}>
           {value}
           {suffix ? <Text style={styles.statSuffix}>{suffix}</Text> : null}
         </Text>
         <Ionicons name={icon} size={18} color={iconColor} style={{ opacity: 0.9 }} />
       </View>
       <View style={styles.statBottom}>
-        <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
-        <Text style={styles.statSublabel} numberOfLines={1}>{sublabel}</Text>
+        <Text style={[styles.statLabel, { color: colors.text }]} numberOfLines={1}>{label}</Text>
+        <Text style={[styles.statSublabel, { color: colors.muted }]} numberOfLines={1}>{sublabel}</Text>
       </View>
       <View style={[styles.statBottomBar, { backgroundColor: bottomColor || iconColor }]} />
     </Pressable>
   );
 }
 
-function CircularProgressAvatar({ src, progress = 0, size = 68, strokeWidth = 4.5 }) {
+function CircularProgressAvatar({ src, progress = 0, size = 68, strokeWidth = 4.5, colors, isDark = true }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedProgress = Math.min(100, Math.max(0, Number(progress) || 0));
@@ -567,7 +595,7 @@ function CircularProgressAvatar({ src, progress = 0, size = 68, strokeWidth = 4.
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#272635"
+          stroke={isDark ? '#272635' : (colors?.line || 'rgba(0,0,0,0.1)')}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -593,7 +621,7 @@ function CircularProgressAvatar({ src, progress = 0, size = 68, strokeWidth = 4.
           width: imgSize,
           height: imgSize,
           borderRadius: imgSize / 2,
-          backgroundColor: '#1C1B2A',
+          backgroundColor: isDark ? '#1C1B2A' : (colors?.panel2 || '#EEF1F6'),
         }}
         resizeMode="cover"
       />
@@ -601,20 +629,21 @@ function CircularProgressAvatar({ src, progress = 0, size = 68, strokeWidth = 4.
   );
 }
 
-function QuickAccess({ icon, iconBackground, title, onPress }) {
+function QuickAccess({ icon, iconBackground, title, colors, isDark, onPress }) {
   return (
     <Pressable
       style={({ pressed, hovered }) => [
         styles.quickCard,
-        hovered && styles.quickCardHovered,
-        pressed && styles.quickCardPressed,
+        { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+        hovered && { transform: [{ scale: 1.02 }] },
+        pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
       ]}
       onPress={onPress}
     >
-      <View style={[styles.quickIcon, { backgroundColor: iconBackground }]}>
-        <Ionicons name={icon} size={16} color="#B8A5FF" />
+      <View style={[styles.quickIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }]}>
+        <Ionicons name={icon} size={16} color={iconBackground} />
       </View>
-      <Text style={styles.quickTitle} numberOfLines={1}>
+      <Text style={[styles.quickTitle, { color: colors.text }]} numberOfLines={1}>
         {title}
       </Text>
       <Ionicons name="chevron-forward" size={12} color={colors.muted} />
@@ -622,35 +651,50 @@ function QuickAccess({ icon, iconBackground, title, onPress }) {
   );
 }
 
-function TrendingRankNumber({ rankNum }) {
+function TrendingRankNumber({ rankNum, colors, isDark = true }) {
+  const fillColor = isDark ? '#151522' : (colors?.card || '#FFFFFF');
+  const strokeColor = colors?.pink || '#eb5b78';
+  const shadowColor = isDark ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.15)';
+
   if (Platform.OS === 'web') {
     return (
       <View style={styles.rankContainer} pointerEvents="none">
-        <Text style={styles.giantRankWeb}>{rankNum}</Text>
+        <Text
+          style={[
+            styles.giantRankWeb,
+            {
+              color: fillColor,
+              WebkitTextStroke: `1.5px ${strokeColor}`,
+              textShadow: `2px 2px 0px ${shadowColor}`,
+            },
+          ]}
+        >
+          {rankNum}
+        </Text>
       </View>
     );
   }
 
   return (
     <View style={styles.rankContainer} pointerEvents="none">
-      {/* 2px Solid Black Drop Shadow */}
-      <Text style={styles.giantRankShadow}>{rankNum}</Text>
-      {/* 8-direction 1px pink stroke outline (#F5A9C4) */}
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: -1 }, { translateY: -1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 0 }, { translateY: -1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 1 }, { translateY: -1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: -1 }, { translateY: 0 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 1 }, { translateY: 0 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: -1 }, { translateY: 1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 0 }, { translateY: 1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { transform: [{ translateX: 1 }, { translateY: 1 }] }]}>{rankNum}</Text>
-      {/* Center fill (#151522) */}
-      <Text style={styles.giantRankFill}>{rankNum}</Text>
+      {/* 2px Drop Shadow */}
+      <Text style={[styles.giantRankShadow, { color: shadowColor }]}>{rankNum}</Text>
+      {/* 8-direction 1px pink stroke outline */}
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1 }, { translateY: -1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 0 }, { translateY: -1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1 }, { translateY: -1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1 }, { translateY: 0 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1 }, { translateY: 0 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1 }, { translateY: 1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 0 }, { translateY: 1 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1 }, { translateY: 1 }] }]}>{rankNum}</Text>
+      {/* Center fill */}
+      <Text style={[styles.giantRankFill, { color: fillColor }]}>{rankNum}</Text>
     </View>
   );
 }
 
-function RecommendedCard({ drama, onPress }) {
+function RecommendedCard({ drama, colors, isDark, onPress }) {
   const rating = Number(drama?.rating) || 0;
   const image =
     drama?.poster_url ||
@@ -665,8 +709,9 @@ function RecommendedCard({ drama, onPress }) {
     <Pressable
       style={({ pressed, hovered }) => [
         styles.recommendedCard,
-        hovered && styles.recommendedCardHovered,
-        pressed && styles.recommendedCardPressed,
+        { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+        hovered && { transform: [{ scale: 1.02 }] },
+        pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
       ]}
       onPress={onPress}
     >
@@ -700,10 +745,10 @@ function RecommendedCard({ drama, onPress }) {
           );
         })() : null}
       </View>
-      <Text style={styles.recommendedTitle} numberOfLines={1}>
+      <Text style={[styles.recommendedTitle, { color: colors.text }]} numberOfLines={1}>
         {drama.title || drama.name}
       </Text>
-      <Text style={styles.recommendedMeta} numberOfLines={1}>
+      <Text style={[styles.recommendedMeta, { color: colors.muted }]} numberOfLines={1}>
         {Array.isArray(drama.genres) ? drama.genres.join(', ') : drama.genre || 'Drama'}
       </Text>
     </Pressable>

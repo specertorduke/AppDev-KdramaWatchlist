@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { discoverService, trackerService } from '../../services/api';
 
 const STATUSES = [
@@ -43,19 +44,31 @@ const formatAddedDate = (dateStr) => {
   }
 };
 
-const getStatusColor = (status) => {
-  if (!status) return '#eb5b78';
-  const formatted = status.replace(/_/g, ' ').toLowerCase();
-  if (formatted.includes('watch') && !formatted.includes('plan')) return STATUS_COLORS.Watching;
-  if (formatted.includes('complete')) return STATUS_COLORS.Completed;
-  if (formatted.includes('plan')) return STATUS_COLORS['Plan to Watch'];
-  if (formatted.includes('hold')) return STATUS_COLORS['On Hold'];
-  if (formatted.includes('drop')) return STATUS_COLORS.Dropped;
-  return '#eb5b78';
-};
-
 export default function DramaDetailScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
+
+  const getStatusColor = (status) => {
+    if (!status) return colors.pink;
+    const formatted = status.replace(/_/g, ' ').toLowerCase();
+    if (formatted.includes('watch') && !formatted.includes('plan')) {
+      return isDark ? '#60A5FA' : (colors.blue || '#2B6CB0');
+    }
+    if (formatted.includes('complete')) {
+      return isDark ? '#10B981' : (colors.green || '#047857');
+    }
+    if (formatted.includes('plan')) {
+      return isDark ? '#FFD76A' : (colors.gold || '#B87A04');
+    }
+    if (formatted.includes('hold')) {
+      return isDark ? '#F59E0B' : '#D97706';
+    }
+    if (formatted.includes('drop')) {
+      return colors.danger || '#EF4444';
+    }
+    return colors.pink;
+  };
+
   const tmdbId = route.params?.tmdbId;
   const { width } = useWindowDimensions();
   const [drama, setDrama] = useState(null);
@@ -237,7 +250,7 @@ export default function DramaDetailScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingScreen}>
+      <View style={[styles.loadingScreen, { backgroundColor: colors.bg }]}>
         <ActivityIndicator size="large" color={colors.redBright} />
       </View>
     );
@@ -245,8 +258,8 @@ export default function DramaDetailScreen({ route, navigation }) {
 
   if (!drama) {
     return (
-      <View style={styles.loadingScreen}>
-        <Text style={styles.errorText}>Drama not found.</Text>
+      <View style={[styles.loadingScreen, { backgroundColor: colors.bg }]}>
+        <Text style={[styles.errorText, { color: colors.muted }]}>Drama not found.</Text>
       </View>
     );
   }
@@ -318,7 +331,7 @@ export default function DramaDetailScreen({ route, navigation }) {
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: colors.bg }]}
       contentContainerStyle={[
         styles.content,
         {
@@ -332,19 +345,23 @@ export default function DramaDetailScreen({ route, navigation }) {
       {/* Top Bar / Back */}
       <View style={styles.topBar}>
         <Pressable
-          style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+          style={({ pressed }) => [
+            styles.backButton,
+            { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+            pressed && styles.backButtonPressed,
+          ]}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
           <Ionicons name="chevron-back" size={20} color={colors.text} />
-          <Text style={styles.backText}>Back</Text>
+          <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
         </Pressable>
       </View>
 
       {/* Hero Section */}
       <View style={styles.hero}>
-        <View style={styles.posterWrap}>
+        <View style={[styles.posterWrap, { backgroundColor: colors.card }]}>
           {posterImage ? (
             <Image source={{ uri: posterImage }} style={styles.poster} resizeMode="cover" />
           ) : (
@@ -354,12 +371,12 @@ export default function DramaDetailScreen({ route, navigation }) {
 
         <View style={styles.heroInfo}>
           <View style={styles.titleGroup}>
-            <Text style={styles.title} numberOfLines={2}>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
               {drama.title || drama.name}
             </Text>
 
             {drama.original_title ? (
-              <Text style={styles.koreanTitle} numberOfLines={1}>
+              <Text style={[styles.koreanTitle, { color: colors.pink }]} numberOfLines={1}>
                 {drama.original_title}
               </Text>
             ) : null}
@@ -367,28 +384,28 @@ export default function DramaDetailScreen({ route, navigation }) {
 
           {/* Clean metadata line */}
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>{drama.release_year || '2025'}</Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>{drama.release_year || '2025'}</Text>
             {networksDisplay ? (
               <>
-                <Text style={styles.metaDot}>•</Text>
-                <Text style={styles.metaText}>{networksDisplay}</Text>
+                <Text style={[styles.metaDot, { color: colors.muted }]}>•</Text>
+                <Text style={[styles.metaText, { color: colors.muted }]}>{networksDisplay}</Text>
               </>
             ) : null}
-            <Text style={styles.metaDot}>•</Text>
-            <Text style={styles.metaText}>{episodesTotal} Episodes</Text>
+            <Text style={[styles.metaDot, { color: colors.muted }]}>•</Text>
+            <Text style={[styles.metaText, { color: colors.muted }]}>{episodesTotal} Episodes</Text>
           </View>
 
           {/* Dedicated TMDB Rating line with badge & votes */}
           {tmdbScore ? (
             <View style={styles.tmdbRatingRow}>
-              <View style={styles.tmdbBadge}>
-                <Text style={styles.tmdbBadgeText}>TMDB</Text>
+              <View style={[styles.tmdbBadge, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.14)' : 'rgba(235, 91, 120, 0.12)' }]}>
+                <Text style={[styles.tmdbBadgeText, { color: colors.pink }]}>TMDB</Text>
               </View>
-              <Text style={styles.metaStarRating}>
-                ★ {tmdbScore} <Text style={styles.metaStarRatingSlash}>/ 10</Text>
+              <Text style={[styles.metaStarRating, { color: colors.pink }]}>
+                ★ {tmdbScore} <Text style={[styles.metaStarRatingSlash, { color: colors.muted }]}>/ 10</Text>
               </Text>
               {tmdbVoteCount ? (
-                <Text style={styles.tmdbVoteText}>
+                <Text style={[styles.tmdbVoteText, { color: colors.muted }]}>
                   ({tmdbVoteCount >= 1000 ? `${(tmdbVoteCount / 1000).toFixed(1)}k` : tmdbVoteCount} votes)
                 </Text>
               ) : null}
@@ -399,8 +416,8 @@ export default function DramaDetailScreen({ route, navigation }) {
           {Array.isArray(drama.genres) && drama.genres.length > 0 && (
             <View style={styles.genreRow}>
               {drama.genres.slice(0, 3).map((g) => (
-                <View key={g} style={styles.genreTag}>
-                  <Text style={styles.genreTagText}>{g}</Text>
+                <View key={g} style={[styles.genreTag, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                  <Text style={[styles.genreTagText, { color: colors.textSecondary || colors.text }]}>{g}</Text>
                 </View>
               ))}
             </View>
@@ -411,7 +428,14 @@ export default function DramaDetailScreen({ route, navigation }) {
       {/* Primary Action Buttons */}
       <View style={styles.actionRow}>
         <Pressable
-          style={[styles.watchlistButton, tracker && styles.watchlistButtonActive]}
+          style={[
+            styles.watchlistButton,
+            {
+              backgroundColor: tracker ? colors.card : colors.pink,
+              borderColor: colors.border,
+              borderWidth: isDark ? 0 : 1,
+            },
+          ]}
           onPress={handleToggleList}
           disabled={savingStatus}
           accessibilityRole="button"
@@ -420,15 +444,19 @@ export default function DramaDetailScreen({ route, navigation }) {
           <Ionicons
             name={tracker ? 'checkmark-circle' : 'add'}
             size={19}
-            color={tracker ? '#eb5b78' : '#FFFFFF'}
+            color={tracker ? colors.pink : '#FFFFFF'}
           />
-          <Text style={[styles.watchlistButtonText, tracker && styles.watchlistButtonTextActive]}>
+          <Text style={[styles.watchlistButtonText, { color: tracker ? colors.pink : '#FFFFFF' }]}>
             {tracker ? 'In Watchlist' : 'Add to Watchlist'}
           </Text>
         </Pressable>
 
         <Pressable
-          style={[styles.favoriteButton, isFavorite && styles.favoriteButtonActive]}
+          style={[
+            styles.favoriteButton,
+            { backgroundColor: isFavorite ? 'rgba(255,70,85,0.18)' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+            isFavorite && styles.favoriteButtonActive,
+          ]}
           onPress={handleToggleFavorite}
           accessibilityRole="button"
           accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
@@ -442,29 +470,29 @@ export default function DramaDetailScreen({ route, navigation }) {
       </View>
 
       {/* PROGRESS TRACKING SECTION */}
-      <View style={styles.sectionContainer}>
+      <View style={[styles.sectionContainer, { borderBottomColor: colors.border }]}>
         <View style={styles.progressHeaderRow}>
-          <Text style={styles.progressHeaderTitle}>PROGRESS</Text>
-          <Text style={styles.progressHeaderMeta}>
+          <Text style={[styles.progressHeaderTitle, { color: colors.muted }]}>PROGRESS</Text>
+          <Text style={[styles.progressHeaderMeta, { color: colors.muted }]}>
             {watchedEpisodes}/{episodesTotal} eps · added {formatAddedDate(tracker?.created_at || tracker?.updated_at)}
           </Text>
         </View>
 
         {/* Exact Progress Track */}
-        <View style={styles.detailProgressTrack}>
+        <View style={[styles.detailProgressTrack, { backgroundColor: isDark ? '#232230' : (colors.line || 'rgba(0,0,0,0.08)') }]}>
           <View
             style={[
               styles.detailProgressBar,
-              { width: `${progress}%` },
+              { width: `${progress}%`, backgroundColor: colors.pink },
             ]}
           />
         </View>
 
         <View style={styles.detailProgressInfoRow}>
-          <Text style={styles.progressRemaining}>
+          <Text style={[styles.progressRemaining, { color: colors.muted }]}>
             ~{Math.max(1, episodesTotal - watchedEpisodes)}h remaining
           </Text>
-          <Text style={styles.progressPctText}>{progress}%</Text>
+          <Text style={[styles.progressPctText, { color: colors.pink }]}>{progress}%</Text>
         </View>
 
         {/* Status Filter Scroll */}
@@ -488,10 +516,14 @@ export default function DramaDetailScreen({ route, navigation }) {
                   styles.statusChip,
                   active
                     ? {
-                        backgroundColor: `${chipColor}33`,
+                        backgroundColor: `${chipColor}24`,
+                        borderColor: chipColor,
+                        borderWidth: 1,
                       }
                     : {
-                        backgroundColor: '#161424',
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderWidth: isDark ? 0 : 1,
                       },
                 ]}
               >
@@ -504,7 +536,7 @@ export default function DramaDetailScreen({ route, navigation }) {
                 <Text
                   style={[
                     styles.statusChipText,
-                    { color: active ? '#FFFFFF' : chipColor },
+                    { color: active ? chipColor : colors.muted },
                     active && { fontWeight: '900' },
                   ]}
                 >
@@ -517,21 +549,21 @@ export default function DramaDetailScreen({ route, navigation }) {
       </View>
 
       {/* SYNOPSIS SECTION */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>SYNOPSIS</Text>
-        <Text style={styles.synopsisText}>
+      <View style={[styles.sectionContainer, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>SYNOPSIS</Text>
+        <Text style={[styles.synopsisText, { color: colors.text }]}>
           {drama.overview ||
             'A cold detective and a runaway heiress are bound together by a decade-old secret buried beneath the city’s glittering surface. Love was never part of the plan.'}
         </Text>
       </View>
 
       {/* SEASONS & EPISODES SECTION */}
-      <View style={styles.sectionContainer}>
+      <View style={[styles.sectionContainer, { borderBottomColor: colors.border }]}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {allSeasons.length > 1 ? 'SEASONS & EPISODES' : 'EPISODES'}
           </Text>
-          <Text style={styles.sectionCountText}>
+          <Text style={[styles.sectionCountText, { color: colors.muted }]}>
             {currentSeason ? `${currentSeason.episode_count || currentSeasonEpisodes} Episodes` : `${episodesTotal} Total`}
           </Text>
         </View>
@@ -556,13 +588,18 @@ export default function DramaDetailScreen({ route, navigation }) {
                   }}
                   style={[
                     styles.seasonTabPill,
-                    isActive && styles.seasonTabPillActive,
+                    {
+                      backgroundColor: isActive ? (isDark ? '#2A2438' : colors.pink) : colors.card,
+                      borderColor: colors.border,
+                      borderWidth: isDark ? 0 : 1,
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.seasonTabPillText,
-                      isActive && styles.seasonTabPillTextActive,
+                      { color: isActive ? '#FFFFFF' : colors.muted },
+                      isActive && { fontWeight: '800' },
                     ]}
                   >
                     {seasonName}
@@ -580,32 +617,62 @@ export default function DramaDetailScreen({ route, navigation }) {
             return (
               <Pressable
                 key={ep.number}
-                style={({ pressed }) => [styles.episodeRow, pressed && styles.episodeRowPressed]}
+                style={({ pressed }) => [
+                  styles.episodeRow,
+                  { borderBottomColor: colors.border },
+                  pressed && styles.episodeRowPressed,
+                ]}
                 onPress={() => {
                   const next = watched ? ep.number - 1 : ep.number;
                   setWatchedEpisodes(next);
                   saveTrackerChanges(undefined, next);
                 }}
               >
-                <View style={[styles.episodeBadge, watched && styles.episodeBadgeWatched]}>
-                  <Text style={[styles.episodeBadgeText, watched && styles.episodeBadgeTextWatched]}>
+                <View
+                  style={[
+                    styles.episodeBadge,
+                    {
+                      backgroundColor: watched ? 'rgba(235, 91, 120, 0.18)' : colors.card,
+                      borderColor: colors.border,
+                      borderWidth: isDark ? 0 : 1,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.episodeBadgeText,
+                      { color: watched ? colors.pink : colors.text },
+                    ]}
+                  >
                     {ep.number}
                   </Text>
                 </View>
 
                 <View style={styles.episodeContent}>
                   <Text
-                    style={[styles.episodeTitle, watched && styles.episodeTitleWatched]}
+                    style={[
+                      styles.episodeTitle,
+                      { color: watched ? colors.muted : colors.text },
+                    ]}
                     numberOfLines={1}
                   >
                     {ep.title}
                   </Text>
-                  <Text style={styles.episodeSubtitle}>
+                  <Text style={[styles.episodeSubtitle, { color: colors.muted }]}>
                     {watched ? 'Watched' : 'Mark as watched'}
                   </Text>
                 </View>
 
-                <View style={[styles.episodeCheckCircle, watched && styles.episodeCheckCircleActive]}>
+                <View
+                  style={[
+                    styles.episodeCheckCircle,
+                    {
+                      backgroundColor: watched ? colors.pink : colors.card,
+                      borderColor: colors.border,
+                      borderWidth: isDark ? 0 : 1,
+                    },
+                  ]}
+                >
                   {watched ? (
                     <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                   ) : (
@@ -619,11 +686,14 @@ export default function DramaDetailScreen({ route, navigation }) {
 
         {hasMoreEpisodes && (
           <Pressable
-            style={styles.showMoreButton}
+            style={[
+              styles.showMoreButton,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : (colors.panel2 || '#ECEEF4') },
+            ]}
             onPress={() => setShowAllEpisodes((prev) => !prev)}
             accessibilityRole="button"
           >
-            <Text style={styles.showMoreButtonText}>
+            <Text style={[styles.showMoreButtonText, { color: colors.pink }]}>
               {showAllEpisodes
                 ? `Show Fewer Episodes`
                 : `View All ${episodeList.length} Episodes (${episodeList.length - INITIAL_VISIBLE_COUNT} more)`}
@@ -631,16 +701,16 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Ionicons
               name={showAllEpisodes ? 'chevron-up' : 'chevron-down'}
               size={14}
-              color="#eb5b78"
+              color={colors.pink}
             />
           </Pressable>
         )}
       </View>
 
       {/* MY RATING SECTION */}
-      <View style={styles.sectionContainer}>
+      <View style={[styles.sectionContainer, { borderBottomColor: colors.border }]}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>MY RATING</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>MY RATING</Text>
           {selectedRating > 0 && (
             <Pressable
               onPress={() => {
@@ -679,14 +749,14 @@ export default function DramaDetailScreen({ route, navigation }) {
                 <Ionicons
                   name={isFilled ? 'star' : 'star-outline'}
                   size={24}
-                  color={isFilled ? '#eb5b78' : '#3c3748'}
+                  color={isFilled ? colors.pink : isDark ? '#3c3748' : '#CBD5E1'}
                 />
               </Pressable>
             );
           })}
         </View>
 
-        <Text style={styles.detailRatingScore}>
+        <Text style={[styles.detailRatingScore, { color: colors.pink }]}>
           {selectedRating > 0 ? `${selectedRating} / 10` : 'Not rated yet'}
         </Text>
 
@@ -700,13 +770,16 @@ export default function DramaDetailScreen({ route, navigation }) {
           multiline
           textAlignVertical="top"
           placeholder="Write your personal thoughts, favorite moments, or critique..."
-          placeholderTextColor="rgba(255,255,255,0.3)"
-          style={styles.notesInput}
+          placeholderTextColor={colors.muted}
+          style={[
+            styles.notesInput,
+            { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1, color: colors.text },
+          ]}
         />
 
         <View style={styles.notesActionRow}>
           <Pressable
-            style={[styles.saveAllButton, savingStatus && styles.saveButtonDisabled]}
+            style={[styles.saveAllButton, { backgroundColor: colors.pink }, savingStatus && styles.saveButtonDisabled]}
             onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes)}
             disabled={savingStatus}
           >
@@ -741,8 +814,8 @@ export default function DramaDetailScreen({ route, navigation }) {
       </View>
 
       {/* SERIES INFO / DETAILS */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>INFORMATION</Text>
+      <View style={[styles.sectionContainer, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>INFORMATION</Text>
         <DetailRow label="Native Title" value={drama.original_title || '—'} />
         <DetailRow
           label="Genres"
@@ -767,10 +840,10 @@ export default function DramaDetailScreen({ route, navigation }) {
 
       {/* FULL CAST SECTION */}
       {castList.length > 0 && (
-        <View style={styles.sectionContainer}>
+        <View style={[styles.sectionContainer, { borderBottomColor: colors.border }]}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>FULL CAST</Text>
-            <Text style={styles.sectionCountText}>{castList.length} Actors</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>FULL CAST</Text>
+            <Text style={[styles.sectionCountText, { color: colors.muted }]}>{castList.length} Actors</Text>
           </View>
 
           <View style={styles.castList}>
@@ -782,14 +855,14 @@ export default function DramaDetailScreen({ route, navigation }) {
                 <View key={actor.id || `${actor.name}-${idx}`} style={styles.castRow}>
                   <Image
                     source={{ uri: actorAvatar }}
-                    style={styles.castAvatar}
+                    style={[styles.castAvatar, { backgroundColor: isDark ? '#1E1C2B' : (colors.panel2 || '#ECEEF4') }]}
                     resizeMode="cover"
                   />
                   <View style={styles.castTextWrap}>
-                    <Text style={styles.castName} numberOfLines={1}>
+                    <Text style={[styles.castName, { color: colors.text }]} numberOfLines={1}>
                       {actor.name}
                     </Text>
-                    <Text style={styles.castRole} numberOfLines={1}>
+                    <Text style={[styles.castRole, { color: colors.muted }]} numberOfLines={1}>
                       {actor.role || actor.character ? `as ${actor.role || actor.character}` : 'as Cast'}
                     </Text>
                   </View>
@@ -800,16 +873,19 @@ export default function DramaDetailScreen({ route, navigation }) {
 
           {hasMoreCast && (
             <Pressable
-              style={styles.showMoreButton}
+              style={[
+                styles.showMoreButton,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : (colors.panel2 || '#ECEEF4') },
+              ]}
               onPress={() => setShowAllCast((prev) => !prev)}
             >
-              <Text style={styles.showMoreButtonText}>
+              <Text style={[styles.showMoreButtonText, { color: colors.pink }]}>
                 {showAllCast ? 'Show Less' : `Show all ${castList.length} cast members`}
               </Text>
               <Ionicons
                 name={showAllCast ? 'chevron-up' : 'chevron-down'}
                 size={14}
-                color="#eb5b78"
+                color={colors.pink}
               />
             </Pressable>
           )}
@@ -822,12 +898,13 @@ export default function DramaDetailScreen({ route, navigation }) {
 }
 
 function DetailRow({ label, value, last = false }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.detailRow, last && styles.detailRowLast]}>
-      <Text style={styles.detailLabel} numberOfLines={1}>
+    <View style={[styles.detailRow, { borderBottomColor: colors.border }, last && styles.detailRowLast]}>
+      <Text style={[styles.detailLabel, { color: colors.muted }]} numberOfLines={1}>
         {label}
       </Text>
-      <Text style={styles.detailValue} numberOfLines={1}>
+      <Text style={[styles.detailValue, { color: colors.text }]} numberOfLines={1}>
         {value}
       </Text>
     </View>

@@ -2,24 +2,37 @@ import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import AuthNavigator from './AuthNavigator';
 import AppNavigator from './AppNavigator';
-import { colors } from '../theme';
 
 export default function RootNavigator() {
-  const { isAuthenticated, isLoading, isChoosingAccount, needsOnboarding } = useAuth();
+  const { isAuthenticated, isLoading, needsOnboarding } = useAuth();
+  const { colors, isDark } = useTheme();
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.bg }]}>
         <ActivityIndicator size="large" color={colors.redBright} />
       </View>
     );
   }
 
+  const navTheme = {
+    dark: isDark,
+    colors: {
+      primary: colors.primary,
+      background: colors.bg,
+      card: colors.card,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.pink,
+    },
+  };
+
   return (
-    <NavigationContainer>
-      {isAuthenticated && !isChoosingAccount ? (
+    <NavigationContainer theme={navTheme}>
+      {isAuthenticated ? (
         <AppNavigator initialRouteName={needsOnboarding ? 'GenreSelection' : 'MainTabs'} />
       ) : (
         <AuthNavigator />
@@ -31,7 +44,6 @@ export default function RootNavigator() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },

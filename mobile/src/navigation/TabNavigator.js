@@ -9,6 +9,7 @@ import TrackerScreen from '../screens/main/TrackerScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import ChatbotModal, { ChatbotFloatingTrigger } from '../components/ChatbotModal';
 import { colors } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -45,11 +46,23 @@ const items = [
 
 function CustomTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const bottomInset = insets.bottom > 0 ? insets.bottom : 8;
 
   return (
     <View style={[styles.outerContainer, { paddingBottom: bottomInset + 4 }]} pointerEvents="box-none">
-      <View style={styles.floatingBar}>
+      <View
+        style={[
+          styles.floatingBar,
+          {
+            backgroundColor: colors.tabBarBg,
+            borderWidth: isDark ? 0 : 1,
+            borderColor: colors.border,
+            shadowOpacity: isDark ? 0.45 : 0.12,
+            shadowColor: isDark ? '#000000' : '#4A4660',
+          },
+        ]}
+      >
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
           const itemConfig = items.find((i) => i.name === route.name) || items[0];
@@ -77,16 +90,32 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 pressed && styles.itemPressed,
               ]}
             >
-              <View style={[styles.itemContent, isFocused && styles.itemContentActive]}>
+              <View
+                style={[
+                  styles.itemContent,
+                  isFocused && [
+                    styles.itemContentActive,
+                    { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.15)' : 'rgba(235, 91, 120, 0.12)' },
+                  ],
+                ]}
+              >
                 <Ionicons
                   name={isFocused ? itemConfig.activeIcon : itemConfig.icon}
                   size={21}
-                  color={isFocused ? '#eb5b78' : 'rgba(255,255,255,0.45)'}
+                  color={isFocused ? colors.pink : colors.tabBarInactive}
                 />
-                <Text style={[styles.label, isFocused && styles.labelActive]}>
+                <Text
+                  style={[
+                    styles.label,
+                    { color: isFocused ? (isDark ? '#FFFFFF' : colors.pink) : colors.tabBarInactive },
+                    isFocused && styles.labelActive,
+                  ]}
+                >
                   {itemConfig.label}
                 </Text>
-                {isFocused && <View style={styles.activeIndicatorDot} />}
+                {isFocused && (
+                  <View style={[styles.activeIndicatorDot, { backgroundColor: colors.pink }]} />
+                )}
               </View>
             </Pressable>
           );
@@ -179,7 +208,6 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   labelActive: {
-    color: '#FFFFFF',
     fontWeight: '800',
   },
   activeIndicatorDot: {

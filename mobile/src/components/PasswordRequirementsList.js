@@ -2,18 +2,20 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PASSWORD_REQUIREMENTS, getPasswordStrength } from '../utils/passwordRequirements';
+import { useTheme } from '../context/ThemeContext';
 
 export default function PasswordRequirementsList({
   password = '',
   currentPassword = null,
   isChangePassword = false,
 }) {
+  const { colors, isDark } = useTheme();
   const pwd = password || '';
   const strength = getPasswordStrength(pwd);
 
   const getSegmentColor = (segIndex) => {
     if (segIndex > strength.score) {
-      return '#36272D';
+      return isDark ? '#36272D' : '#E2E4EB';
     }
     switch (strength.key) {
       case 'weak':
@@ -21,11 +23,11 @@ export default function PasswordRequirementsList({
       case 'fair':
         return '#F59E0B';
       case 'good':
-        return '#EB5B78';
+        return colors.pink || '#EB5B78';
       case 'strong':
         return '#10B981';
       default:
-        return '#36272D';
+        return isDark ? '#36272D' : '#E2E4EB';
     }
   };
 
@@ -36,11 +38,11 @@ export default function PasswordRequirementsList({
       case 'fair':
         return '#F59E0B';
       case 'good':
-        return '#EB5B78';
+        return colors.pink || '#EB5B78';
       case 'strong':
         return '#10B981';
       default:
-        return '#8D8B98';
+        return colors.muted;
     }
   };
 
@@ -54,10 +56,10 @@ export default function PasswordRequirementsList({
         <Ionicons
           name={isMet ? 'checkmark-circle' : 'ellipse-outline'}
           size={14}
-          color={isMet ? '#10B981' : '#8D8B98'}
+          color={isMet ? '#10B981' : colors.muted}
           style={styles.reqIcon}
         />
-        <Text style={[styles.reqLabel, isMet && styles.reqLabelMet]}>
+        <Text style={[styles.reqLabel, { color: isMet ? '#10B981' : colors.muted }, isMet && styles.reqLabelMet]}>
           {req.label}
         </Text>
       </View>
@@ -104,10 +106,10 @@ export default function PasswordRequirementsList({
                 <Ionicons
                   name={isDiffMet ? 'checkmark-circle' : 'ellipse-outline'}
                   size={14}
-                  color={isDiffMet ? '#10B981' : '#8D8B98'}
+                  color={isDiffMet ? '#10B981' : colors.muted}
                   style={styles.reqIcon}
                 />
-                <Text style={[styles.reqLabel, isDiffMet && styles.reqLabelMet]}>
+                <Text style={[styles.reqLabel, { color: isDiffMet ? '#10B981' : colors.muted }, isDiffMet && styles.reqLabelMet]}>
                   Different from current password
                 </Text>
               </>
@@ -118,8 +120,8 @@ export default function PasswordRequirementsList({
 
       {/* Breach Check Indicator */}
       <View style={styles.breachNotice}>
-        <Ionicons name="shield-checkmark-outline" size={13} color="#8D8B98" />
-        <Text style={styles.breachNoticeText}>Checked against known data breaches</Text>
+        <Ionicons name="shield-checkmark-outline" size={13} color={colors.muted} />
+        <Text style={[styles.breachNoticeText, { color: colors.muted }]}>Checked against known data breaches</Text>
       </View>
     </View>
   );

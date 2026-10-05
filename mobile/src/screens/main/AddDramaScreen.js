@@ -13,10 +13,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { discoverService, trackerService } from '../../services/api';
 
 export default function AddDramaScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const [search, setSearch] = useState('');
   const [dramas, setDramas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,19 +87,22 @@ export default function AddDramaScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       {/* Header */}
       <View
         style={[
           styles.header,
           {
+            backgroundColor: colors.bg,
+            borderBottomColor: colors.border,
+            borderBottomWidth: isDark ? 0 : 1,
             paddingTop: insets.top > 0 ? insets.top : 12,
             height: (insets.top > 0 ? insets.top : 12) + 52,
           },
         ]}
       >
         <View style={styles.headerLeft}>
-          <Text style={styles.title}>Add Drama</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Add Drama</Text>
         </View>
 
         <Pressable
@@ -105,19 +110,24 @@ export default function AddDramaScreen({ navigation }) {
           hitSlop={10}
           style={({ pressed }) => [styles.cancelButton, pressed && styles.cancelPressed]}
         >
-          <Text style={styles.cancelText}>Done</Text>
+          <Text style={[styles.cancelText, { color: colors.pink }]}>Done</Text>
         </Pressable>
       </View>
 
       {/* Search Input */}
-      <View style={styles.searchWrapper}>
+      <View
+        style={[
+          styles.searchWrapper,
+          { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+        ]}
+      >
         <Ionicons name="search-outline" size={16} color={colors.muted} style={styles.searchIcon} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder="Search dramas to add..."
           placeholderTextColor={colors.muted}
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.text }]}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
@@ -138,13 +148,13 @@ export default function AddDramaScreen({ navigation }) {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.redBright} />
+            <ActivityIndicator size="large" color={colors.pink} />
           </View>
         ) : dramas.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="search-outline" size={30} color={colors.muted} />
-            <Text style={styles.emptyTitle}>No dramas found</Text>
-            <Text style={styles.emptyText}>Try searching for another title.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No dramas found</Text>
+            <Text style={[styles.emptyText, { color: colors.muted }]}>Try searching for another title.</Text>
           </View>
         ) : (
           dramas.map((drama) => {
@@ -155,9 +165,15 @@ export default function AddDramaScreen({ navigation }) {
             const rating = Number(drama.rating || 0).toFixed(1);
 
             return (
-              <View key={String(tmdbId)} style={styles.dramaRow}>
+              <View
+                key={String(tmdbId)}
+                style={[
+                  styles.dramaRow,
+                  { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+                ]}
+              >
                 {/* Poster */}
-                <View style={styles.posterWrapper}>
+                <View style={[styles.posterWrapper, { backgroundColor: isDark ? '#1C1B2A' : (colors.panel2 || '#EEF1F6') }]}>
                   {poster ? (
                     <Image source={{ uri: poster }} style={styles.poster} resizeMode="cover" />
                   ) : (
@@ -169,17 +185,17 @@ export default function AddDramaScreen({ navigation }) {
 
                 {/* Info */}
                 <View style={styles.dramaInfo}>
-                  <Text style={styles.dramaTitle} numberOfLines={1}>
+                  <Text style={[styles.dramaTitle, { color: colors.text }]} numberOfLines={1}>
                     {drama.title || drama.name}
                   </Text>
-                  <Text style={styles.meta} numberOfLines={1}>
+                  <Text style={[styles.meta, { color: colors.muted }]} numberOfLines={1}>
                     {Array.isArray(drama.genres) ? drama.genres.join(' · ') : drama.genre || 'Drama'}
                     {' · '}
                     {drama.release_year || '2024'}
                   </Text>
                   <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={10} color="#FF9EB0" />
-                    <Text style={styles.rating}>{rating}</Text>
+                    <Ionicons name="star" size={10} color={colors.pink} />
+                    <Text style={[styles.rating, { color: colors.pink }]}>{rating}</Text>
                   </View>
                 </View>
 
@@ -189,6 +205,7 @@ export default function AddDramaScreen({ navigation }) {
                   disabled={alreadyAdded || isAdding}
                   style={[
                     styles.addButton,
+                    { backgroundColor: colors.pink },
                     alreadyAdded && styles.addedButton,
                     isAdding && styles.addingButton,
                   ]}

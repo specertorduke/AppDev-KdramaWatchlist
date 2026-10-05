@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Keyboard } from 'react-native';
 import { useChatbot, QUICK_PROMPTS } from '../context/ChatbotContext';
+import { useTheme } from '../context/ThemeContext';
 import { colors } from '../theme';
 
 // Simple markdown formatter for React Native (bold **text** and bullets)
@@ -48,6 +49,7 @@ const renderFormattedAiText = (text, defaultStyle, boldStyle) => {
 };
 
 export default function ChatbotModal() {
+  const { colors, isDark } = useTheme();
   const {
     isOpen,
     closeChat,
@@ -90,10 +92,10 @@ export default function ChatbotModal() {
       <View style={styles.backdrop}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.container}
+          style={[styles.container, { backgroundColor: colors.bg, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}
         >
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
             <View style={styles.headerTitleRow}>
               <View style={styles.logoCircle}>
                 <Image
@@ -104,10 +106,10 @@ export default function ChatbotModal() {
               </View>
               <View>
                 <View style={styles.titleRow}>
-                  <Text style={styles.titleText}>
-                    Sarang<Text style={styles.titleTv}>TV</Text>{' '}
+                  <Text style={[styles.titleText, { color: colors.pink }]}>
+                    Sarang<Text style={[styles.titleTv, { color: colors.pink }]}>TV</Text>{' '}
                   </Text>
-                  <Text style={styles.titleAccent}>AI</Text>
+                  <Text style={[styles.titleAccent, { color: colors.pink }]}>AI</Text>
                 </View>
                 <View style={styles.statusRow}>
                   <View style={styles.statusDot} />
@@ -118,7 +120,11 @@ export default function ChatbotModal() {
 
             <View style={styles.headerControls}>
               <Pressable
-                style={({ pressed }) => [styles.headerBtn, pressed && styles.btnPressed]}
+                style={({ pressed }) => [
+                  styles.headerBtn,
+                  { backgroundColor: isDark ? '#1E1B30' : (colors.panel2 || '#EEF1F6') },
+                  pressed && styles.btnPressed,
+                ]}
                 onPress={clearHistory}
                 accessibilityRole="button"
                 accessibilityLabel="Reset conversation"
@@ -127,7 +133,11 @@ export default function ChatbotModal() {
               </Pressable>
 
               <Pressable
-                style={({ pressed }) => [styles.headerBtn, pressed && styles.btnPressed]}
+                style={({ pressed }) => [
+                  styles.headerBtn,
+                  { backgroundColor: isDark ? '#1E1B30' : (colors.panel2 || '#EEF1F6') },
+                  pressed && styles.btnPressed,
+                ]}
                 onPress={closeChat}
                 accessibilityRole="button"
                 accessibilityLabel="Close chat"
@@ -168,7 +178,16 @@ export default function ChatbotModal() {
                   <View
                     style={[
                       styles.bubble,
-                      isUser ? styles.bubbleUser : styles.bubbleAi,
+                      isUser
+                        ? [styles.bubbleUser, { backgroundColor: colors.pink }]
+                        : [
+                            styles.bubbleAi,
+                            {
+                              backgroundColor: isDark ? '#19172A' : colors.card,
+                              borderColor: colors.border,
+                              borderWidth: isDark ? 0 : 1,
+                            },
+                          ],
                       msg.isError && styles.bubbleError,
                     ]}
                   >
@@ -176,7 +195,7 @@ export default function ChatbotModal() {
                       <Text
                         style={[
                           styles.bubbleText,
-                          isUser ? styles.bubbleTextUser : styles.bubbleTextAi,
+                          isUser ? styles.bubbleTextUser : [styles.bubbleTextAi, { color: colors.text }],
                           msg.isError && styles.bubbleTextError,
                         ]}
                       >
@@ -185,8 +204,8 @@ export default function ChatbotModal() {
                     ) : (
                       renderFormattedAiText(
                         msg.text,
-                        [styles.bubbleText, styles.bubbleTextAi],
-                        styles.bubbleTextBold
+                        [styles.bubbleText, styles.bubbleTextAi, { color: colors.text }],
+                        [styles.bubbleTextBold, { color: colors.pink }]
                       )
                     )}
 
@@ -214,9 +233,20 @@ export default function ChatbotModal() {
                     resizeMode="contain"
                   />
                 </View>
-                <View style={[styles.bubble, styles.bubbleAi, styles.typingBubble]}>
-                  <ActivityIndicator size="small" color="#eb5b78" />
-                  <Text style={styles.typingText}>Finding recommendations...</Text>
+                <View
+                  style={[
+                    styles.bubble,
+                    styles.bubbleAi,
+                    styles.typingBubble,
+                    {
+                      backgroundColor: isDark ? '#19172A' : colors.card,
+                      borderColor: colors.border,
+                      borderWidth: isDark ? 0 : 1,
+                    },
+                  ]}
+                >
+                  <ActivityIndicator size="small" color={colors.pink} />
+                  <Text style={[styles.typingText, { color: colors.muted }]}>Finding recommendations...</Text>
                 </View>
               </View>
             )}
@@ -225,7 +255,7 @@ export default function ChatbotModal() {
           {/* Quick Prompts Chips (Shown when 1 or few messages) */}
           {messages.length <= 2 && !loading && (
             <View style={styles.quickPromptsContainer}>
-              <Text style={styles.quickPromptsLabel}>TRY ASKING:</Text>
+              <Text style={[styles.quickPromptsLabel, { color: colors.muted }]}>TRY ASKING:</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -236,11 +266,16 @@ export default function ChatbotModal() {
                     key={prompt}
                     style={({ pressed }) => [
                       styles.chip,
+                      {
+                        backgroundColor: isDark ? '#1B192E' : colors.card,
+                        borderColor: colors.border,
+                        borderWidth: isDark ? 0 : 1,
+                      },
                       pressed && styles.chipPressed,
                     ]}
                     onPress={() => handleSend(prompt)}
                   >
-                    <Text style={styles.chipText}>{prompt}</Text>
+                    <Text style={[styles.chipText, { color: colors.text }]}>{prompt}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -248,12 +283,12 @@ export default function ChatbotModal() {
           )}
 
           {/* Input Bar */}
-          <View style={styles.inputBar}>
-            <View style={styles.inputWrapper}>
+          <View style={[styles.inputBar, { backgroundColor: colors.card, borderTopColor: colors.border, borderTopWidth: 1 }]}>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || (isDark ? '#1E1B30' : '#ECEEF4'), borderColor: colors.border }]}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: colors.text }]}
                 placeholder="Ask about K-Dramas, tropes, recs..."
-                placeholderTextColor="#6D6B78"
+                placeholderTextColor={colors.muted}
                 value={input}
                 onChangeText={setInput}
                 maxLength={500}
@@ -262,14 +297,16 @@ export default function ChatbotModal() {
                 returnKeyType="send"
               />
               {input.length > 400 && (
-                <Text style={styles.charCount}>{input.length}/500</Text>
+                <Text style={[styles.charCount, { color: colors.muted }]}>{input.length}/500</Text>
               )}
             </View>
 
             <Pressable
               style={({ pressed }) => [
                 styles.sendBtn,
-                isInputValid ? styles.sendBtnActive : styles.sendBtnDisabled,
+                isInputValid
+                  ? [styles.sendBtnActive, { backgroundColor: colors.pink, shadowColor: colors.pink }]
+                  : [styles.sendBtnDisabled, { backgroundColor: isDark ? '#1C1A2E' : (colors.panel2 || '#E0E0E0') }],
                 pressed && isInputValid && styles.btnPressed,
               ]}
               onPress={() => handleSend()}
@@ -278,7 +315,7 @@ export default function ChatbotModal() {
               <Ionicons
                 name="send"
                 size={16}
-                color={isInputValid ? '#FFFFFF' : '#5A5866'}
+                color={isInputValid ? '#FFFFFF' : colors.muted}
               />
             </Pressable>
           </View>
@@ -291,14 +328,19 @@ export default function ChatbotModal() {
 export function ChatbotFloatingTrigger() {
   const insets = useSafeAreaInsets();
   const { toggleChat, isOpen } = useChatbot();
+  const { colors, isDark } = useTheme();
   const bottomOffset = 78 + (insets.bottom > 0 ? insets.bottom : 8);
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.floatingTrigger,
-        { bottom: bottomOffset },
-        isOpen && styles.floatingTriggerActive,
+        {
+          bottom: bottomOffset,
+          backgroundColor: isOpen ? colors.pink : (isDark ? '#171624' : '#FFFFFF'),
+          borderColor: colors.pink,
+        },
+        isOpen && [styles.floatingTriggerActive, { backgroundColor: colors.pink }],
         pressed && styles.floatingTriggerPressed,
       ]}
       onPress={toggleChat}
@@ -310,7 +352,7 @@ export function ChatbotFloatingTrigger() {
           <Ionicons name="close" size={24} color="#FFFFFF" />
         ) : (
           <View style={styles.triggerIconWrapper}>
-            <Feather name="message-square" size={22} color="#eb5b78" />
+            <Feather name="message-square" size={22} color={colors.pink} />
             <Ionicons name="sparkles" size={11} color="#FACC15" style={styles.triggerSparkleBadge} />
           </View>
         )}

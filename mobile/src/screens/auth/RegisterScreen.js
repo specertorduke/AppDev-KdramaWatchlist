@@ -14,6 +14,7 @@ import {
   Modal,
 } from 'react-native';
 import { colors, spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,13 +23,13 @@ import { checkPasswordRequirements } from '../../utils/passwordRequirements';
 
 export default function RegisterScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const { register, sendSignupOtp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [policyModal, setPolicyModal] = useState(null); // 'terms' | 'privacy' | null
   const [loading, setLoading] = useState(false);
@@ -149,7 +150,6 @@ export default function RegisterScreen({ navigation }) {
         email.trim(),
         password,
         passwordConfirmation,
-        rememberMe,
         termsAccepted,
         otp.trim()
       );
@@ -159,7 +159,6 @@ export default function RegisterScreen({ navigation }) {
         navigation.navigate('OtpVerification', {
           email: email.trim(),
           message: data?.message || 'Registration successful. A verification code has been sent to your email.',
-          rememberMe,
           mode: 'signup',
         });
       }
@@ -188,7 +187,7 @@ export default function RegisterScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bg }]}
     >
       <ScrollView
         contentContainerStyle={[
@@ -206,8 +205,8 @@ export default function RegisterScreen({ navigation }) {
           onPress={() => navigation.goBack()}
           hitSlop={10}
         >
-          <Ionicons name="arrow-back" size={16} color="#8D8B98" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Ionicons name="arrow-back" size={16} color={colors.text} />
+          <Text style={[styles.backButtonText, { color: colors.text }]}>Back</Text>
         </TouchableOpacity>
 
         {/* Brand Header */}
@@ -217,11 +216,11 @@ export default function RegisterScreen({ navigation }) {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.brand}>
-            SARANG<Text style={styles.brandTv}>TV</Text>
+          <Text style={[styles.brand, { color: colors.pink }]}>
+            SARANG<Text style={[styles.brandTv, { color: colors.pink }]}>TV</Text>
           </Text>
-          <Text style={styles.title}>Start your watchlist</Text>
-          <Text style={styles.subtitle}>Create an account to begin tracking.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Start your watchlist</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>Create an account to begin tracking.</Text>
         </View>
 
         {/* Global Success Banner */}
@@ -244,12 +243,12 @@ export default function RegisterScreen({ navigation }) {
         <View style={styles.form}>
           {/* Name Field */}
           <View style={styles.field}>
-            <Text style={styles.label}>Name</Text>
-            <View style={[styles.inputWrapper, fieldErrors.name && styles.inputWrapperError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Name</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.name && styles.inputWrapperError]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="DramaFan2026"
-                placeholderTextColor="#5A5866"
+                placeholderTextColor={colors.muted}
                 value={name}
                 onChangeText={(val) => {
                   setName(val);
@@ -264,12 +263,12 @@ export default function RegisterScreen({ navigation }) {
 
           {/* Email Field */}
           <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <View style={[styles.inputWrapper, fieldErrors.email && styles.inputWrapperError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.email && styles.inputWrapperError]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="you@example.com"
-                placeholderTextColor="#5A5866"
+                placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
@@ -287,7 +286,7 @@ export default function RegisterScreen({ navigation }) {
           {/* In-Form Email Verification Code Field */}
           <View style={styles.field}>
             <View style={styles.otpLabelRow}>
-              <Text style={styles.label}>Verification Code</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Verification Code</Text>
               {otpSent && (
                 <Text style={styles.otpSentStatus}>
                   <Ionicons name="checkmark-circle" size={12} color="#10B981" /> Code sent to email
@@ -299,13 +298,14 @@ export default function RegisterScreen({ navigation }) {
                 style={[
                   styles.inputWrapper,
                   styles.otpInputWrapper,
+                  { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border },
                   fieldErrors.otp && styles.inputWrapperError,
                 ]}
               >
                 <TextInput
-                  style={[styles.input, styles.otpInput]}
+                  style={[styles.input, styles.otpInput, { color: colors.text }]}
                   placeholder="6-digit code"
-                  placeholderTextColor="#5A5866"
+                  placeholderTextColor={colors.muted}
                   keyboardType="number-pad"
                   maxLength={6}
                   value={otp}
@@ -319,7 +319,8 @@ export default function RegisterScreen({ navigation }) {
               <TouchableOpacity
                 style={[
                   styles.sendOtpButton,
-                  (isSendingOtp || cooldown > 0 || !email.trim()) && styles.sendOtpButtonDisabled,
+                  { backgroundColor: colors.pink },
+                  (isSendingOtp || cooldown > 0 || !email.trim()) && { backgroundColor: isDark ? '#2A2735' : (colors.panel2 || '#EEF1F6'), opacity: 0.7 },
                 ]}
                 onPress={handleSendOtp}
                 disabled={isSendingOtp || cooldown > 0 || !email.trim()}
@@ -328,9 +329,9 @@ export default function RegisterScreen({ navigation }) {
                 {isSendingOtp ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : cooldown > 0 ? (
-                  <Text style={styles.sendOtpButtonText}>{cooldown}s</Text>
+                  <Text style={[styles.sendOtpButtonText, { color: colors.muted }]}>{cooldown}s</Text>
                 ) : (
-                  <Text style={styles.sendOtpButtonText}>
+                  <Text style={[styles.sendOtpButtonText, (isSendingOtp || cooldown > 0 || !email.trim()) && { color: colors.muted }]}>
                     {otpSent ? 'Resend' : 'Send Code'}
                   </Text>
                 )}
@@ -343,12 +344,12 @@ export default function RegisterScreen({ navigation }) {
 
           {/* Password Field */}
           <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputWrapper, fieldErrors.password && styles.inputWrapperError]}>
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.password && styles.inputWrapperError]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="Create a password"
-                placeholderTextColor="#7A6369"
+                placeholderTextColor={colors.muted}
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={(val) => {
@@ -366,7 +367,7 @@ export default function RegisterScreen({ navigation }) {
                 <Ionicons
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={19}
-                  color="#9D5A6C"
+                  color={colors.muted}
                 />
               </Pressable>
             </View>
@@ -380,17 +381,18 @@ export default function RegisterScreen({ navigation }) {
 
           {/* Confirm Password Field */}
           <View style={styles.field}>
-            <Text style={styles.label}>Confirm Password</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
             <View
               style={[
                 styles.inputWrapper,
+                { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border },
                 fieldErrors.password_confirmation && styles.inputWrapperError,
               ]}
             >
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder="Repeat your password"
-                placeholderTextColor="#7A6369"
+                placeholderTextColor={colors.muted}
                 secureTextEntry={!showPassword}
                 value={passwordConfirmation}
                 onChangeText={(val) => {
@@ -428,26 +430,14 @@ export default function RegisterScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Remember Profile Option */}
-          <Pressable
-            style={styles.rememberRow}
-            onPress={() => setRememberMe(!rememberMe)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: rememberMe }}
-          >
-            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-              {rememberMe && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-            </View>
-            <Text style={styles.rememberText}>Save login as a profile</Text>
-          </Pressable>
-
           {/* Terms & Privacy Policy Agreement Option */}
           <View style={styles.termsGroup}>
             <View style={styles.termsRow}>
               <Pressable
                 style={[
                   styles.checkbox,
-                  termsAccepted && styles.checkboxChecked,
+                  { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border },
+                  termsAccepted && [styles.checkboxChecked, { backgroundColor: colors.pink, borderColor: colors.pink }],
                   fieldErrors.terms_privacy_accepted && styles.checkboxError,
                 ]}
                 onPress={() => {
@@ -466,13 +456,13 @@ export default function RegisterScreen({ navigation }) {
               >
                 {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
               </Pressable>
-              <Text style={styles.termsText}>
+              <Text style={[styles.termsText, { color: colors.text }]}>
                 I agree to the{' '}
-                <Text style={styles.termsLink} onPress={() => setPolicyModal('terms')}>
+                <Text style={[styles.termsLink, { color: colors.pink }]} onPress={() => setPolicyModal('terms')}>
                   Terms of Service
                 </Text>{' '}
                 and{' '}
-                <Text style={styles.termsLink} onPress={() => setPolicyModal('privacy')}>
+                <Text style={[styles.termsLink, { color: colors.pink }]} onPress={() => setPolicyModal('privacy')}>
                   Data Privacy Policy
                 </Text>
               </Text>
@@ -486,7 +476,7 @@ export default function RegisterScreen({ navigation }) {
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            style={[styles.submitButton, { backgroundColor: colors.pink, shadowColor: colors.pink }, loading && styles.submitButtonDisabled]}
             onPress={handleRegister}
             disabled={loading}
             activeOpacity={0.85}
@@ -503,9 +493,9 @@ export default function RegisterScreen({ navigation }) {
 
           {/* Switch Prompt */}
           <View style={styles.switchRow}>
-            <Text style={styles.switchPrompt}>Already have an account? </Text>
+            <Text style={[styles.switchPrompt, { color: colors.muted }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')} hitSlop={8}>
-              <Text style={styles.switchLink}>Log in</Text>
+              <Text style={[styles.switchLink, { color: colors.pink }]}>Log in</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -519,15 +509,15 @@ export default function RegisterScreen({ navigation }) {
         onRequestClose={() => setPolicyModal(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <View style={styles.modalTitleRow}>
                 <Ionicons
                   name={policyModal === 'terms' ? 'document-text-outline' : 'shield-checkmark-outline'}
                   size={20}
-                  color="#EB5B78"
+                  color={colors.pink}
                 />
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
                   {policyModal === 'terms' ? 'Terms of Service' : 'Data Privacy Policy'}
                 </Text>
               </View>
@@ -536,79 +526,79 @@ export default function RegisterScreen({ navigation }) {
                 style={styles.modalCloseButton}
                 hitSlop={10}
               >
-                <Ionicons name="close" size={20} color="#8D8B98" />
+                <Ionicons name="close" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={true}>
-              <Text style={styles.modalDate}>Effective: September 2026</Text>
+              <Text style={[styles.modalDate, { color: colors.muted }]}>Effective: September 2026</Text>
               {policyModal === 'terms' ? (
                 <>
-                  <Text style={styles.sectionHeading}>1. Agreement to Terms</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>1. Agreement to Terms</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     By creating a SarangTV account, you agree to these Terms of Service. SarangTV is
                     a platform for tracking, discovering, and logging your personal Korean Drama
                     viewing journey.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>2. User Account and Security</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>2. User Account and Security</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     You are responsible for safeguarding your login credentials. Each account is
                     intended for individual use to maintain personalized watchlist data, ratings, and
                     private notes.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>3. Personal Tracking & Content</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>3. Personal Tracking & Content</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     Your watchlist, watching statuses, ratings, and episode progress are stored for
                     personal non-commercial entertainment management. Automated scraping or abuse of
                     SarangTV services is strictly prohibited.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>4. Third-Party Metadata</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>4. Third-Party Metadata</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     K-Drama metadata, titles, images, and cast information are provided via The
                     Movie Database (TMDB) API and remain the intellectual property of their respective
                     creators and broadcasters.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>5. Account Termination</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>5. Account Termination</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     You may terminate your account at any time. Upon termination, all personal
                     watchlist entries and account records can be permanently deleted.
                   </Text>
                 </>
               ) : (
                 <>
-                  <Text style={styles.sectionHeading}>1. Information We Collect</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>1. Information We Collect</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     We collect your name, email address, and encrypted password during registration.
                     As you use the application, we store your personal watchlist items, episode
                     progress, star ratings, and personal notes.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>2. How We Use Your Information</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>2. How We Use Your Information</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     Your information is used solely to provide and synchronize your watchlist across
                     sessions and devices. We never sell, rent, or monetize your personal data to
                     third parties or advertisers.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>3. Third-Party Integrations</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>3. Third-Party Integrations</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     SarangTV queries TMDB for drama catalog information and poster assets. No user
                     identifying details or personal data are shared with TMDB or external services.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>4. Data Security</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>4. Data Security</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     We use industry-standard encryption, password hashing, and token-based
                     authentication (Laravel Sanctum) to ensure your account and watchlist data remain
                     safe and private.
                   </Text>
 
-                  <Text style={styles.sectionHeading}>5. Your Privacy Rights</Text>
-                  <Text style={styles.sectionBody}>
+                  <Text style={[styles.sectionHeading, { color: colors.text }]}>5. Your Privacy Rights</Text>
+                  <Text style={[styles.sectionBody, { color: colors.muted }]}>
                     You retain full control over your data. You may review, update, or permanently
                     delete your account and tracking history at any time.
                   </Text>
@@ -616,9 +606,9 @@ export default function RegisterScreen({ navigation }) {
               )}
             </ScrollView>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
               <TouchableOpacity
-                style={styles.modalAcceptButton}
+                style={[styles.modalAcceptButton, { backgroundColor: colors.pink }]}
                 onPress={() => {
                   setTermsAccepted(true);
                   if (fieldErrors.terms_privacy_accepted) {

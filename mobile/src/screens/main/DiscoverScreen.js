@@ -12,11 +12,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import DramaCard from '../../components/DramaCard';
 import { discoverService } from '../../services/api';
 
 export default function DiscoverScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const [query, setQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [selectedGenreId, setSelectedGenreId] = useState(null);
@@ -106,12 +108,15 @@ export default function DiscoverScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       {/* Header */}
       <View
         style={[
           styles.topHeader,
           {
+            backgroundColor: colors.bg,
+            borderBottomColor: colors.border,
+            borderBottomWidth: isDark ? 0 : 1,
             paddingTop: insets.top > 0 ? insets.top : 8,
             height: (insets.top > 0 ? insets.top : 8) + 54,
           },
@@ -124,16 +129,20 @@ export default function DiscoverScreen({ navigation }) {
               style={styles.logoImage}
               resizeMode="contain"
             />
-            <Text style={styles.brand}>
-              Sarang<Text style={styles.brandTv}>TV</Text>
+            <Text style={[styles.brand, { color: colors.text }]}>
+              Sarang<Text style={[styles.brandTv, { color: colors.pink }]}>TV</Text>
             </Text>
           </View>
-          <Text style={styles.pageTitle}>Discover</Text>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Discover</Text>
         </View>
 
         <Pressable
           onPress={() => setShowSearch((current) => !current)}
-          style={({ pressed }) => [styles.searchButton, pressed && styles.searchButtonPressed]}
+          style={({ pressed }) => [
+            styles.searchButton,
+            { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+            pressed && styles.searchButtonPressed,
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Search dramas"
         >
@@ -146,7 +155,7 @@ export default function DiscoverScreen({ navigation }) {
       </View>
 
       <ScrollView
-        style={styles.screen}
+        style={[styles.screen, { backgroundColor: colors.bg }]}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: Math.max(insets.bottom, 16) + 85 },
@@ -156,14 +165,19 @@ export default function DiscoverScreen({ navigation }) {
       >
         {/* Search Box */}
         {showSearch && (
-          <View style={styles.searchBox}>
+          <View
+            style={[
+              styles.searchBox,
+              { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+            ]}
+          >
             <Ionicons name="search-outline" size={17} color={colors.muted} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Search dramas..."
               placeholderTextColor={colors.muted}
-              style={styles.input}
+              style={[styles.input, { color: colors.text }]}
               autoCapitalize="none"
               autoCorrect={false}
               autoFocus
@@ -204,7 +218,7 @@ export default function DiscoverScreen({ navigation }) {
               ]}
               accessibilityLabel="Previous featured drama"
             >
-              <Ionicons name="chevron-back" size={15} color={colors.text} />
+              <Ionicons name="chevron-back" size={15} color="#FFFFFF" />
             </Pressable>
 
             {/* Right Arrow */}
@@ -217,13 +231,13 @@ export default function DiscoverScreen({ navigation }) {
               ]}
               accessibilityLabel="Next featured drama"
             >
-              <Ionicons name="chevron-forward" size={15} color={colors.text} />
+              <Ionicons name="chevron-forward" size={15} color="#FFFFFF" />
             </Pressable>
 
             {/* Hero Content */}
             <View style={styles.heroContent}>
-              <Text style={styles.heroEyebrow}>#1 THIS WEEK</Text>
-              <Text style={styles.heroTitle} numberOfLines={1}>
+              <Text style={[styles.heroEyebrow, { color: colors.pink }]}>#1 THIS WEEK</Text>
+              <Text style={[styles.heroTitle, { color: '#FFFFFF' }]} numberOfLines={1}>
                 {featuredDrama.title || featuredDrama.name}
               </Text>
 
@@ -236,6 +250,7 @@ export default function DiscoverScreen({ navigation }) {
                   }
                   style={({ pressed }) => [
                     styles.detailsButton,
+                    { backgroundColor: colors.pink },
                     pressed && styles.detailsButtonPressed,
                   ]}
                 >
@@ -245,7 +260,7 @@ export default function DiscoverScreen({ navigation }) {
 
                 <View style={styles.rating}>
                   <Ionicons name="star" size={11} color={colors.gold} />
-                  <Text style={styles.ratingText}>
+                  <Text style={[styles.ratingText, { color: '#FFFFFF' }]}>
                     {Number(featuredDrama.rating || 9.4).toFixed(1)}
                   </Text>
                 </View>
@@ -261,7 +276,7 @@ export default function DiscoverScreen({ navigation }) {
                   style={styles.heroDotButton}
                 >
                   <View
-                    style={[styles.heroDot, index === featuredIndex && styles.heroDotActive]}
+                    style={[styles.heroDot, index === featuredIndex && [styles.heroDotActive, { backgroundColor: colors.pink }]]}
                   />
                 </Pressable>
               ))}
@@ -284,11 +299,21 @@ export default function DiscoverScreen({ navigation }) {
                 onPress={() => setSelectedGenreId(item.id)}
                 style={({ pressed }) => [
                   styles.filter,
-                  isActive && styles.filterActive,
+                  {
+                    backgroundColor: isActive ? (isDark ? '#2A2438' : colors.pink) : colors.card,
+                    borderColor: colors.border,
+                    borderWidth: isDark ? 0 : 1,
+                  },
                   pressed && styles.filterPressed,
                 ]}
               >
-                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                <Text
+                  style={[
+                    styles.filterText,
+                    { color: isActive ? '#FFFFFF' : colors.muted },
+                    isActive && { fontWeight: '800' },
+                  ]}
+                >
                   {item.name}
                 </Text>
               </Pressable>
@@ -298,26 +323,31 @@ export default function DiscoverScreen({ navigation }) {
 
         {/* Result Header */}
         <View style={styles.resultHeader}>
-          <Text style={styles.resultTitle}>
+          <Text style={[styles.resultTitle, { color: colors.text }]}>
             {selectedGenreId
               ? genres.find((g) => g.id === selectedGenreId)?.name || 'Dramas'
               : 'All Dramas'}
           </Text>
-          <Text style={styles.resultCount}>{dramas.length} results</Text>
+          <Text style={[styles.resultCount, { color: colors.muted }]}>{dramas.length} results</Text>
         </View>
 
         {/* Drama Grid */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.redBright} />
+            <ActivityIndicator size="large" color={colors.pink} />
           </View>
         ) : dramas.length === 0 ? (
           <View style={styles.empty}>
-            <View style={styles.emptyIcon}>
+            <View
+              style={[
+                styles.emptyIcon,
+                { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+              ]}
+            >
               <Ionicons name="search-outline" size={26} color={colors.muted} />
             </View>
-            <Text style={styles.emptyTitle}>No dramas found</Text>
-            <Text style={styles.emptyText}>Try another search or genre.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No dramas found</Text>
+            <Text style={[styles.emptyText, { color: colors.muted }]}>Try another search or genre.</Text>
           </View>
         ) : (
           <View style={styles.grid}>

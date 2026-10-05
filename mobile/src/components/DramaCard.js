@@ -7,8 +7,10 @@ import {
   View,
 } from 'react-native';
 import { colors } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function DramaCard({ drama, onPress }) {
+  const { colors } = useTheme();
   if (!drama) return null;
 
   const rating = Number(drama.rating) || 0;
@@ -38,7 +40,13 @@ export default function DramaCard({ drama, onPress }) {
     >
       {({ pressed, hovered }) => (
         <>
-          <View style={[styles.posterWrap, hovered && styles.posterWrapHover]}>
+          <View
+            style={[
+              styles.posterWrap,
+              { backgroundColor: colors.card, borderColor: colors.border },
+              hovered && styles.posterWrapHover,
+            ]}
+          >
             {image ? (
               <Image
                 source={{ uri: image }}
@@ -88,7 +96,9 @@ export default function DramaCard({ drama, onPress }) {
                 <View
                   style={[
                     styles.statusBadge,
-                    { backgroundColor: 'rgba(12, 11, 20, 0.94)' },
+                    {
+                      backgroundColor: 'rgba(12, 11, 20, 0.94)',
+                    },
                     hovered && styles.statusBadgeHover,
                   ]}
                 >
@@ -107,11 +117,11 @@ export default function DramaCard({ drama, onPress }) {
             {hovered && <View pointerEvents="none" style={styles.hoverOverlay} />}
           </View>
 
-          <Text style={[styles.title, hovered && styles.titleHover]} numberOfLines={1}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {title}
           </Text>
 
-          <Text style={[styles.meta, hovered && styles.metaHover]} numberOfLines={1}>
+          <Text style={[styles.meta, { color: colors.muted }]} numberOfLines={1}>
             {genres} {episodes ? `· ${episodes} eps` : ''}
           </Text>
         </>
