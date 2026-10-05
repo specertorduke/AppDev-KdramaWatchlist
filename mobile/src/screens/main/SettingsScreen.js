@@ -17,6 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { authService } from '../../services/api';
+import PasswordRequirementsList from '../../components/PasswordRequirementsList';
+import { checkPasswordRequirements } from '../../utils/passwordRequirements';
 
 export default function SettingsScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -32,6 +35,72 @@ export default function SettingsScreen({ navigation, route }) {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Change Password state
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentChangePassword, setCurrentChangePassword] = useState('');
+  const [newChangePassword, setNewChangePassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentChangePassword, setShowCurrentChangePassword] = useState(false);
+  const [showNewChangePassword, setShowNewChangePassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
+
+  const handleChangePassword = async () => {
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+
+    if (!currentChangePassword) {
+      setPasswordChangeError('Please enter your current password.');
+      return;
+    }
+
+    const { allRulesMet, isMatch, isDifferent } = checkPasswordRequirements(
+      newChangePassword,
+      confirmNewPassword,
+      currentChangePassword
+    );
+
+    if (!allRulesMet) {
+      setPasswordChangeError('New password must meet all complexity requirements.');
+      return;
+    }
+    if (!isMatch) {
+      setPasswordChangeError('The password confirmation does not match.');
+      return;
+    }
+    if (!isDifferent) {
+      setPasswordChangeError('The new password must be different from your current password.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await authService.changePassword({
+        current_password: currentChangePassword,
+        password: newChangePassword,
+        password_confirmation: confirmNewPassword,
+      });
+      setPasswordChangeSuccess(res?.data?.message || 'Password updated successfully!');
+      setTimeout(() => {
+        setShowChangePasswordModal(false);
+        setCurrentChangePassword('');
+        setNewChangePassword('');
+        setConfirmNewPassword('');
+        setPasswordChangeSuccess('');
+      }, 2000);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.errors?.password?.[0] ||
+        err?.response?.data?.errors?.current_password?.[0] ||
+        err?.response?.data?.message ||
+        'Failed to change password. Please check your credentials.';
+      setPasswordChangeError(msg);
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   useEffect(() => {
     if (route?.params?.openDeleteModal) {
@@ -146,6 +215,41 @@ export default function SettingsScreen({ navigation, route }) {
           <Text style={styles.aboutLabel}>Theme</Text>
           <Text style={styles.aboutValue}>Dark Cinematic</Text>
         </View>
+      </View>
+
+      {/* Security: Password Change */}
+      <View style={styles.panel}>
+        <Text style={styles.sectionTitle}>SECURITY</Text>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.deleteAccountRow,
+            pressed && styles.deleteAccountRowPressed,
+          ]}
+          onPress={() => {
+            setCurrentChangePassword('');
+            setNewChangePassword('');
+            setConfirmNewPassword('');
+            setPasswordChangeError('');
+            setPasswordChangeSuccess('');
+            setShowChangePasswordModal(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Change Password"
+        >
+          <View style={styles.deleteAccountLeft}>
+            <View style={[styles.deleteIconWrap, { backgroundColor: 'rgba(235, 91, 120, 0.15)' }]}>
+              <Ionicons name="key-outline" size={17} color={colors.pink} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Change Password</Text>
+              <Text style={styles.rowSubtitle}>
+                Update your account password with security validation
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color="#8D8B98" />
+        </Pressable>
       </View>
 
       {/* Danger Zone: Account Deletion */}
@@ -263,6 +367,157 @@ export default function SettingsScreen({ navigation, route }) {
                 )}
               </Pressable>
             </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={showChangePasswordModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => !isUpdatingPassword && setShowChangePasswordModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.deleteWarningIconWrap, { backgroundColor: 'rgba(235, 91, 120, 0.15)' }]}>
+                <Ionicons name="key-outline" size={24} color={colors.pink} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Change Password</Text>
+                <Text style={styles.modalSubtitle}>Update your account password</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => !isUpdatingPassword && setShowChangePasswordModal(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {passwordChangeSuccess ? (
+                <View style={[styles.deleteErrorBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <Text style={[styles.deleteErrorText, { color: '#10B981' }]}>{passwordChangeSuccess}</Text>
+                </View>
+              ) : null}
+
+              {passwordChangeError ? (
+                <View style={styles.deleteErrorBox}>
+                  <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                  <Text style={styles.deleteErrorText}>{passwordChangeError}</Text>
+                </View>
+              ) : null}
+
+              <View style={{ marginTop: 6 }}>
+                <Text style={styles.inputSubLabel}>CURRENT PASSWORD</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    value={currentChangePassword}
+                    onChangeText={(text) => {
+                      setCurrentChangePassword(text);
+                      if (passwordChangeError) setPasswordChangeError('');
+                    }}
+                    placeholder="Enter current password"
+                    placeholderTextColor="#555166"
+                    secureTextEntry={!showCurrentChangePassword}
+                    editable={!isUpdatingPassword}
+                  />
+                  <Pressable
+                    onPress={() => setShowCurrentChangePassword(!showCurrentChangePassword)}
+                    style={styles.eyeButton}
+                    hitSlop={10}
+                  >
+                    <Ionicons
+                      name={showCurrentChangePassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={18}
+                      color="#716C77"
+                    />
+                  </Pressable>
+                </View>
+
+                <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>NEW PASSWORD</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    value={newChangePassword}
+                    onChangeText={(text) => {
+                      setNewChangePassword(text);
+                      if (passwordChangeError) setPasswordChangeError('');
+                    }}
+                    placeholder="Min. 8 chars, uppercase, number & symbol"
+                    placeholderTextColor="#555166"
+                    secureTextEntry={!showNewChangePassword}
+                    editable={!isUpdatingPassword}
+                  />
+                  <Pressable
+                    onPress={() => setShowNewChangePassword(!showNewChangePassword)}
+                    style={styles.eyeButton}
+                    hitSlop={10}
+                  >
+                    <Ionicons
+                      name={showNewChangePassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={18}
+                      color="#716C77"
+                    />
+                  </Pressable>
+                </View>
+
+                <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>CONFIRM NEW PASSWORD</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    value={confirmNewPassword}
+                    onChangeText={(text) => {
+                      setConfirmNewPassword(text);
+                      if (passwordChangeError) setPasswordChangeError('');
+                    }}
+                    placeholder="Repeat new password"
+                    placeholderTextColor="#555166"
+                    secureTextEntry={!showNewChangePassword}
+                    editable={!isUpdatingPassword}
+                  />
+                </View>
+
+                {/* Requirements list shown dynamically */}
+                <PasswordRequirementsList
+                  password={newChangePassword}
+                  confirmation={confirmNewPassword}
+                  currentPassword={currentChangePassword}
+                  isChangePassword={true}
+                />
+
+                <View style={[styles.modalBtnRow, { marginTop: 16 }]}>
+                  <Pressable
+                    style={styles.cancelBtn}
+                    onPress={() => setShowChangePasswordModal(false)}
+                    disabled={isUpdatingPassword}
+                  >
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.deleteBtn, { backgroundColor: colors.pink }, isUpdatingPassword && { opacity: 0.7 }]}
+                    onPress={handleChangePassword}
+                    disabled={isUpdatingPassword}
+                  >
+                    {isUpdatingPassword ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.deleteBtnText}>Update Password</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>

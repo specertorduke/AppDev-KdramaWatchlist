@@ -145,15 +145,15 @@ class ProfileTest extends TestCase
     public function test_user_can_update_password_via_patch_auth_password(): void
     {
         $user = User::factory()->create([
-            'password' => 'currentpassword123',
+            'password' => 'OldKdrama@Pass2026!',
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->patchJson('/api/v1/auth/password', [
-                'current_password'      => 'currentpassword123',
-                'password'              => 'brandnewpassword123',
-                'password_confirmation' => 'brandnewpassword123',
+                'current_password'      => 'OldKdrama@Pass2026!',
+                'password'              => 'NewKdrama@Pass2026#',
+                'password_confirmation' => 'NewKdrama@Pass2026#',
             ]);
 
         $response->assertStatus(200)
@@ -162,7 +162,7 @@ class ProfileTest extends TestCase
         // Verify login works with new password
         $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email'    => $user->email,
-            'password' => 'brandnewpassword123',
+            'password' => 'NewKdrama@Pass2026#',
         ]);
         $loginResponse->assertStatus(200);
     }
@@ -170,15 +170,15 @@ class ProfileTest extends TestCase
     public function test_user_can_update_password_via_put_user_password(): void
     {
         $user = User::factory()->create([
-            'password' => 'currentpassword123',
+            'password' => 'OldKdrama@Pass2026!',
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->putJson('/api/v1/user/password', [
-                'current_password'      => 'currentpassword123',
-                'password'              => 'updatedsecretpass123',
-                'password_confirmation' => 'updatedsecretpass123',
+                'current_password'      => 'OldKdrama@Pass2026!',
+                'password'              => 'UpdatedSecretPass@2026#',
+                'password_confirmation' => 'UpdatedSecretPass@2026#',
             ]);
 
         $response->assertStatus(200)
@@ -188,15 +188,15 @@ class ProfileTest extends TestCase
     public function test_user_cannot_update_password_with_invalid_current_password(): void
     {
         $user = User::factory()->create([
-            'password' => 'correctpassword123',
+            'password' => 'OldKdrama@Pass2026!',
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->patchJson('/api/v1/auth/password', [
                 'current_password'      => 'wrongpassword123',
-                'password'              => 'brandnewpassword123',
-                'password_confirmation' => 'brandnewpassword123',
+                'password'              => 'NewKdrama@Pass2026#',
+                'password_confirmation' => 'NewKdrama@Pass2026#',
             ]);
 
         $response->assertStatus(422)

@@ -17,6 +17,8 @@ import { colors, spacing } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import PasswordRequirementsList from '../../components/PasswordRequirementsList';
+import { checkPasswordRequirements } from '../../utils/passwordRequirements';
 
 export default function RegisterScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -33,6 +35,9 @@ export default function RegisterScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const hasTypedConfirm = Boolean(passwordConfirmation && passwordConfirmation.length > 0);
+  const passwordsMatch = Boolean(hasTypedConfirm && password && password === passwordConfirmation);
 
   // In-form OTP state
   const [otp, setOtp] = useState('');
@@ -112,6 +117,22 @@ export default function RegisterScreen({ navigation }) {
       setFieldErrors((prev) => ({
         ...prev,
         otp: ['Please enter the 6-digit verification code sent to your email.'],
+      }));
+      return;
+    }
+
+    const { allRulesMet, isMatch } = checkPasswordRequirements(password, passwordConfirmation);
+    if (!allRulesMet) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        password: ['Password must meet all complexity requirements.'],
+      }));
+      return;
+    }
+    if (!isMatch) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        password_confirmation: ['The password confirmation does not match.'],
       }));
       return;
     }
@@ -326,8 +347,8 @@ export default function RegisterScreen({ navigation }) {
             <View style={[styles.inputWrapper, fieldErrors.password && styles.inputWrapperError]}>
               <TextInput
                 style={styles.input}
-                placeholder="Min. 8 characters"
-                placeholderTextColor="#5A5866"
+                placeholder="Create a password"
+                placeholderTextColor="#7A6369"
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={(val) => {
@@ -339,17 +360,22 @@ export default function RegisterScreen({ navigation }) {
                 onPress={() => setShowPassword((prev) => !prev)}
                 style={styles.eyeButton}
                 hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               >
                 <Ionicons
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={19}
-                  color="#716C77"
+                  color="#9D5A6C"
                 />
               </Pressable>
             </View>
             {fieldErrors.password && (
               <Text style={styles.fieldErrorText}>{fieldErrors.password[0]}</Text>
             )}
+
+            {/* Strength meter and compact checklist directly under Password */}
+            <PasswordRequirementsList password={password} />
           </View>
 
           {/* Confirm Password Field */}
@@ -364,7 +390,7 @@ export default function RegisterScreen({ navigation }) {
               <TextInput
                 style={styles.input}
                 placeholder="Repeat your password"
-                placeholderTextColor="#5A5866"
+                placeholderTextColor="#7A6369"
                 secureTextEntry={!showPassword}
                 value={passwordConfirmation}
                 onChangeText={(val) => {
@@ -378,6 +404,28 @@ export default function RegisterScreen({ navigation }) {
             {fieldErrors.password_confirmation && (
               <Text style={styles.fieldErrorText}>{fieldErrors.password_confirmation[0]}</Text>
             )}
+
+            <View style={styles.pwdMatchWrap}>
+              {hasTypedConfirm ? (
+                <View style={styles.pwdMatchRow}>
+                  <Ionicons
+                    name={passwordsMatch ? 'checkmark-circle' : 'close-circle'}
+                    size={13}
+                    color={passwordsMatch ? '#10B981' : '#FF7691'}
+                  />
+                  <Text
+                    style={[
+                      styles.pwdMatchText,
+                      passwordsMatch ? styles.pwdMatchTextSuccess : styles.pwdMatchTextError,
+                    ]}
+                  >
+                    {passwordsMatch ? 'Passwords match' : "Passwords don't match yet"}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.pwdMatchSpacer}> </Text>
+              )}
+            </View>
           </View>
 
           {/* Remember Profile Option */}
@@ -730,9 +778,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    color: '#C5C1CC',
-    fontSize: 13,
-    fontWeight: '600',
+    color: '#B76C7E',
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     marginBottom: 7,
   },
   inputWrapper: {
@@ -740,7 +790,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#12121A',
     borderWidth: 1,
-    borderColor: '#242330',
+    borderColor: '#36272D',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 48,
@@ -762,6 +812,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
     fontWeight: '500',
+  },
+  pwdMatchWrap: {
+    minHeight: 20,
+    marginTop: 6,
+    justifyContent: 'center',
+  },
+  pwdMatchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  pwdMatchText: {
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+  pwdMatchTextSuccess: {
+    color: '#10B981',
+  },
+  pwdMatchTextError: {
+    color: '#FF7691',
+  },
+  pwdMatchSpacer: {
+    fontSize: 12,
+    lineHeight: 16,
+    opacity: 0,
   },
   rememberRow: {
     flexDirection: 'row',

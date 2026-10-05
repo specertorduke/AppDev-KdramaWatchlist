@@ -27,9 +27,11 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { colors } from '../../theme';
-import { userService } from '../../services/api';
+import { userService, authService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { pickAndCompressAvatar, takeAndCompressAvatar } from '../../services/imageService';
+import PasswordRequirementsList from '../../components/PasswordRequirementsList';
+import { checkPasswordRequirements } from '../../utils/passwordRequirements';
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -68,6 +70,15 @@ export default function ProfileScreen({ navigation }) {
   const [emailError, setEmailError] = useState('');
   const [emailSuccess, setEmailSuccess] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
+
+  // Password Change States
+  const [showPasswordChangeFlow, setShowPasswordChangeFlow] = useState(false);
+  const [currentChangePassword, setCurrentChangePassword] = useState('');
+  const [newChangePassword, setNewChangePassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const AVATAR_ICONS = [
     { id: 'heart', icon: 'heart', label: 'Romance Lead' },
@@ -129,6 +140,12 @@ export default function ProfileScreen({ navigation }) {
     setEmailOtp('');
     setEmailError('');
     setEmailSuccess('');
+    setShowPasswordChangeFlow(false);
+    setCurrentChangePassword('');
+    setNewChangePassword('');
+    setConfirmNewPassword('');
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
     setShowEditModal(true);
   };
 
@@ -243,6 +260,53 @@ export default function ProfileScreen({ navigation }) {
       setEmailError(msg);
     } finally {
       setIsVerifyingOtp(false);
+    }
+  };
+
+  // Change Password with client-side validation against all password requirements
+  const handleChangePasswordSubmit = async () => {
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+
+    if (!currentChangePassword) {
+      setPasswordChangeError('Current password is required.');
+      return;
+    }
+
+    if (newChangePassword === currentChangePassword) {
+      setPasswordChangeError('The new password must be different from your current password.');
+      return;
+    }
+
+    const { isValid, missingRules } = checkPasswordRequirements(newChangePassword, confirmNewPassword);
+    if (!isValid) {
+      setPasswordChangeError(`Password does not meet requirements:\n• ${missingRules.join('\n• ')}`);
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      await authService.changePassword({
+        current_password: currentChangePassword,
+        password: newChangePassword,
+        password_confirmation: confirmNewPassword,
+      });
+
+      setPasswordChangeSuccess('Password updated successfully!');
+      setCurrentChangePassword('');
+      setNewChangePassword('');
+      setConfirmNewPassword('');
+      setShowPasswordChangeFlow(false);
+      Alert.alert('Success', 'Your password has been changed successfully.');
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors?.password?.[0] ||
+        e?.response?.data?.errors?.current_password?.[0] ||
+        'Failed to update password. Please check your credentials.';
+      setPasswordChangeError(msg);
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -800,7 +864,144 @@ export default function ProfileScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* SECTION 3: AVATAR & DRAMA PERSONA */}
+              {/* SECTION 3: PASSWORD & SECURITY */}
+              <View style={styles.editSection}>
+                <Text style={styles.editSectionHeading}>PASSWORD & SECURITY</Text>
+
+                {!showPasswordChangeFlow ? (
+                  <View style={styles.emailCard}>
+                    <View style={styles.emailCurrentRow}>
+                      <View style={styles.emailCurrentLeft}>
+                        <Ionicons name="lock-closed-outline" size={17} color="#a6a1b2" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.emailCurrentText}>Account Password</Text>
+                          <Text style={{ color: '#8D8B98', fontSize: 11, marginTop: 2 }}>
+                            Must meet all 8+ char, mixed-case, number & symbol rules
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.changeEmailTriggerBtn,
+                        pressed && styles.buttonPressed,
+                      ]}
+                      onPress={() => {
+                        setShowPasswordChangeFlow(true);
+                        setCurrentChangePassword('');
+                        setNewChangePassword('');
+                        setConfirmNewPassword('');
+                        setPasswordChangeError('');
+                        setPasswordChangeSuccess('');
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Change password"
+                    >
+                      <Ionicons name="key-outline" size={14} color="#eb5b78" />
+                      <Text style={styles.changeEmailTriggerText}>Change Password</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View style={styles.emailFlowCard}>
+                    <View style={styles.emailFlowStepHeader}>
+                      <Ionicons name="shield-checkmark-outline" size={16} color="#eb5b78" />
+                      <Text style={styles.emailFlowTitle}>Change Account Password</Text>
+                    </View>
+                    <Text style={styles.emailFlowDesc}>
+                      Enter your current password and pick a strong new password that differs from your current one.
+                    </Text>
+
+                    <Text style={styles.inputSubLabel}>CURRENT PASSWORD</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={currentChangePassword}
+                      onChangeText={(t) => {
+                        setCurrentChangePassword(t);
+                        if (passwordChangeError) setPasswordChangeError('');
+                      }}
+                      placeholder="Enter current password"
+                      placeholderTextColor="#686577"
+                      secureTextEntry
+                    />
+
+                    <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>NEW PASSWORD</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={newChangePassword}
+                      onChangeText={(t) => {
+                        setNewChangePassword(t);
+                        if (passwordChangeError) setPasswordChangeError('');
+                      }}
+                      placeholder="Min 8 chars, uppercase, lowercase, number, symbol"
+                      placeholderTextColor="#686577"
+                      secureTextEntry
+                    />
+
+                    <Text style={[styles.inputSubLabel, { marginTop: 12 }]}>CONFIRM NEW PASSWORD</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={confirmNewPassword}
+                      onChangeText={(t) => {
+                        setConfirmNewPassword(t);
+                        if (passwordChangeError) setPasswordChangeError('');
+                      }}
+                      placeholder="Re-enter new password"
+                      placeholderTextColor="#686577"
+                      secureTextEntry
+                    />
+
+                    <PasswordRequirementsList
+                      password={newChangePassword}
+                      confirmPassword={confirmNewPassword}
+                    />
+
+                    {passwordChangeError ? (
+                      <View style={styles.emailErrorBox}>
+                        <Ionicons name="alert-circle" size={15} color="#EF4444" />
+                        <Text style={styles.emailErrorText}>{passwordChangeError}</Text>
+                      </View>
+                    ) : null}
+
+                    <View style={styles.emailBtnRow}>
+                      <Pressable
+                        style={styles.emailSecondaryBtn}
+                        onPress={() => {
+                          setShowPasswordChangeFlow(false);
+                          setPasswordChangeError('');
+                        }}
+                        disabled={isUpdatingPassword}
+                      >
+                        <Text style={styles.emailSecondaryBtnText}>Cancel</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.emailPrimaryBtn, isUpdatingPassword && { opacity: 0.7 }]}
+                        onPress={handleChangePasswordSubmit}
+                        disabled={isUpdatingPassword}
+                      >
+                        {isUpdatingPassword ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark-circle-outline" size={14} color="#FFFFFF" />
+                            <Text style={styles.emailPrimaryBtnText}>Update Password</Text>
+                          </>
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+
+                {passwordChangeSuccess ? (
+                  <View style={styles.emailSuccessBox}>
+                    <Ionicons name="checkmark-circle" size={15} color="#10B981" />
+                    <Text style={styles.emailSuccessText}>{passwordChangeSuccess}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* SECTION 4: AVATAR & DRAMA PERSONA */}
               <View style={styles.editSection}>
                 <Text style={styles.editSectionHeading}>PROFILE PICTURE & PERSONA</Text>
 
