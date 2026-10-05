@@ -23,8 +23,8 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'John Doe',
             'email'                  => 'john@example.com',
-            'password'               => 'password123',
-            'password_confirmation'  => 'password123',
+            'password'               => 'Kdrama@SecurePass2026!',
+            'password_confirmation'  => 'Kdrama@SecurePass2026!',
             'terms_privacy_accepted' => true,
             'device_name'            => 'mobile-app',
         ]);
@@ -95,8 +95,8 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'Jane Doe',
             'email'                  => 'jane.agreement@example.com',
-            'password'               => 'password123',
-            'password_confirmation'  => 'password123',
+            'password'               => 'Kdrama@SecurePass2026!',
+            'password_confirmation'  => 'Kdrama@SecurePass2026!',
             'terms_privacy_accepted' => true,
         ]);
 
@@ -223,15 +223,15 @@ class AuthTest extends TestCase
     public function test_authenticated_user_can_change_password(): void
     {
         $user = User::factory()->create([
-            'password' => 'oldpassword123',
+            'password' => 'OldKdrama@Pass2026!',
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/auth/change-password', [
-                'current_password'      => 'oldpassword123',
-                'password'              => 'newpassword123',
-                'password_confirmation' => 'newpassword123',
+                'current_password'      => 'OldKdrama@Pass2026!',
+                'password'              => 'NewKdrama@Pass2026#',
+                'password_confirmation' => 'NewKdrama@Pass2026#',
             ]);
 
         $response->assertStatus(200)
@@ -240,7 +240,7 @@ class AuthTest extends TestCase
         // Verify login with new password
         $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email'    => $user->email,
-            'password' => 'newpassword123',
+            'password' => 'NewKdrama@Pass2026#',
         ]);
         $loginResponse->assertStatus(200);
     }
@@ -248,15 +248,15 @@ class AuthTest extends TestCase
     public function test_user_cannot_change_password_with_incorrect_current_password(): void
     {
         $user = User::factory()->create([
-            'password' => 'oldpassword123',
+            'password' => 'OldKdrama@Pass2026!',
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/auth/change-password', [
                 'current_password'      => 'wrongpassword',
-                'password'              => 'newpassword123',
-                'password_confirmation' => 'newpassword123',
+                'password'              => 'NewKdrama@Pass2026#',
+                'password_confirmation' => 'NewKdrama@Pass2026#',
             ]);
 
         $response->assertStatus(422)
@@ -280,7 +280,7 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->create([
             'email'    => 'reset@example.com',
-            'password' => 'oldpassword123',
+            'password' => 'OldKdrama@Pass2026!',
         ]);
         $user->createToken('active_token');
 
@@ -289,8 +289,8 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/auth/reset-password', [
             'token'                 => $token,
             'email'                 => 'reset@example.com',
-            'password'              => 'brandnewpassword123',
-            'password_confirmation' => 'brandnewpassword123',
+            'password'              => 'BrandNew@Pass2026#',
+            'password_confirmation' => 'BrandNew@Pass2026#',
         ]);
 
         $response->assertStatus(200);
@@ -301,7 +301,7 @@ class AuthTest extends TestCase
         // Verify login with new password
         $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email'    => 'reset@example.com',
-            'password' => 'brandnewpassword123',
+            'password' => 'BrandNew@Pass2026#',
         ]);
         $loginResponse->assertStatus(200);
     }
@@ -315,8 +315,8 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/auth/reset-password', [
             'token'                 => 'invalid-token',
             'email'                 => 'reset_fail@example.com',
-            'password'              => 'brandnewpassword123',
-            'password_confirmation' => 'brandnewpassword123',
+            'password'              => 'BrandNew@Pass2026#',
+            'password_confirmation' => 'BrandNew@Pass2026#',
         ]);
 
         $response->assertStatus(422)
@@ -567,8 +567,8 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'In Form User',
             'email'                  => 'inform@example.com',
-            'password'               => 'password123',
-            'password_confirmation'  => 'password123',
+            'password'               => 'Kdrama@SecurePass2026!',
+            'password_confirmation'  => 'Kdrama@SecurePass2026!',
             'terms_privacy_accepted' => true,
             'otp'                    => '654321',
             'device_name'            => 'mobile-app',
@@ -611,8 +611,8 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'Failed User',
             'email'                  => 'inform_fail@example.com',
-            'password'               => 'password123',
-            'password_confirmation'  => 'password123',
+            'password'               => 'Kdrama@SecurePass2026!',
+            'password_confirmation'  => 'Kdrama@SecurePass2026!',
             'terms_privacy_accepted' => true,
             'otp'                    => '000000',
         ]);
@@ -624,5 +624,106 @@ class AuthTest extends TestCase
         $this->assertDatabaseMissing('users', [
             'email' => 'inform_fail@example.com',
         ]);
+    }
+
+    public function test_registration_requires_password_with_min_8_chars(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'Short Pass',
+            'email'                  => 'short@example.com',
+            'password'               => 'Ab1!',
+            'password_confirmation'  => 'Ab1!',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_registration_requires_password_with_uppercase_and_lowercase(): void
+    {
+        // Missing uppercase
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'No Upper',
+            'email'                  => 'noupper@example.com',
+            'password'               => 'nouppercase123!',
+            'password_confirmation'  => 'nouppercase123!',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+
+        // Missing lowercase
+        $response2 = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'No Lower',
+            'email'                  => 'nolower@example.com',
+            'password'               => 'NOLOWERCASE123!',
+            'password_confirmation'  => 'NOLOWERCASE123!',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $response2->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_registration_requires_password_with_number(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'No Number',
+            'email'                  => 'nonumber@example.com',
+            'password'               => 'NoNumbersInPassword!',
+            'password_confirmation'  => 'NoNumbersInPassword!',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_registration_requires_password_with_symbol(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'No Symbol',
+            'email'                  => 'nosymbol@example.com',
+            'password'               => 'NoSymbolsInPass123',
+            'password_confirmation'  => 'NoSymbolsInPass123',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_registration_requires_matching_password_confirmation(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'name'                   => 'Mismatch',
+            'email'                  => 'mismatch@example.com',
+            'password'               => 'Kdrama@SecurePass2026!',
+            'password_confirmation'  => 'Different@SecurePass2026#',
+            'terms_privacy_accepted' => true,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_change_password_requires_different_new_password(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'OldKdrama@Pass2026!',
+        ]);
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/auth/change-password', [
+                'current_password'      => 'OldKdrama@Pass2026!',
+                'password'              => 'OldKdrama@Pass2026!',
+                'password_confirmation' => 'OldKdrama@Pass2026!',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
     }
 }

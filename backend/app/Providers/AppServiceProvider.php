@@ -24,11 +24,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Configure default password rules
+        // Configure default password rules for both local and production environments
         Password::defaults(function () {
-            return app()->isProduction()
-                ? Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()
-                : Password::min(8);
+            return Password::min(8)
+                ->letters()
+                ->mixedCase()
+                ->numbers()
+                ->symbols()
+                ->uncompromised();
         });
 
         // Configure api rate limiter
