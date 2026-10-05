@@ -8,9 +8,10 @@ import {
 } from 'react-native';
 import { colors } from '../theme';
 import { useTheme } from '../context/ThemeContext';
+import { toDisplayStatus, getStatusColor } from '../utils/statusHelper';
 
 export default function DramaCard({ drama, onPress }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   if (!drama) return null;
 
   const rating = Number(drama.rating) || 0;
@@ -68,36 +69,19 @@ export default function DramaCard({ drama, onPress }) {
 
             {/* Top Right Status Badge */}
             {status ? (() => {
-              const s = String(status).toLowerCase().replace(/_/g, ' ');
-              let badgeColor = '#eb5b78';
-              let badgeBg = 'rgba(235, 91, 120, 0.22)';
-              if (s.includes('watch') && !s.includes('plan')) {
-                badgeColor = '#60A5FA';
-                badgeBg = 'rgba(96, 165, 250, 0.22)';
-              } else if (s.includes('complet')) {
-                badgeColor = '#10B981';
-                badgeBg = 'rgba(16, 185, 129, 0.22)';
-              } else if (s.includes('plan')) {
-                badgeColor = '#FFD76A';
-                badgeBg = 'rgba(255, 215, 106, 0.22)';
-              } else if (s.includes('hold')) {
-                badgeColor = '#F59E0B';
-                badgeBg = 'rgba(245, 158, 11, 0.22)';
-              } else if (s.includes('drop')) {
-                badgeColor = '#EF4444';
-                badgeBg = 'rgba(239, 68, 68, 0.22)';
-              }
-
-              const formattedText = String(status)
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, (c) => c.toUpperCase());
+              const badgeColor = getStatusColor(status, colors, isDark);
+              const formattedText = toDisplayStatus(status);
 
               return (
                 <View
                   style={[
                     styles.statusBadge,
                     {
-                      backgroundColor: 'rgba(12, 11, 20, 0.94)',
+                      backgroundColor: isDark ? 'rgba(12, 11, 20, 0.90)' : (colors.card || '#FFFFFF'),
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : (colors.border || 'rgba(0, 0, 0, 0.10)'),
+                      borderWidth: 1,
+                      shadowColor: isDark ? '#000000' : '#4A4660',
+                      shadowOpacity: isDark ? 0.45 : 0.14,
                     },
                     hovered && styles.statusBadgeHover,
                   ]}

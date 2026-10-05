@@ -17,46 +17,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { trackerService } from '../../services/api';
-
-const STATUS_OPTIONS = [
-  'Watching',
-  'Completed',
-  'Plan to Watch',
-  'On Hold',
-  'Dropped',
-];
-
-const STATUS_COLORS = {
-  Watching: '#60A5FA',
-  Completed: '#10B981',
-  'Plan to Watch': '#FFD76A',
-  'On Hold': '#F59E0B',
-  Dropped: '#EF4444',
-};
+import {
+  STATUS_OPTIONS,
+  toDisplayStatus,
+  toApiStatus,
+  getStatusColor as getHelperStatusColor,
+} from '../../utils/statusHelper';
 
 export default function TrackerScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
 
   const getStatusColor = (status) => {
-    if (!status) return colors.muted;
-    const formatted = status.replace(/_/g, ' ').toLowerCase();
-    if (formatted.includes('watch') && !formatted.includes('plan')) {
-      return isDark ? '#60A5FA' : (colors.blue || '#2B6CB0');
-    }
-    if (formatted.includes('complete')) {
-      return isDark ? '#10B981' : (colors.green || '#047857');
-    }
-    if (formatted.includes('plan')) {
-      return isDark ? '#FFD76A' : (colors.gold || '#B87A04');
-    }
-    if (formatted.includes('hold')) {
-      return isDark ? '#F59E0B' : '#D97706';
-    }
-    if (formatted.includes('drop')) {
-      return colors.danger || '#EF4444';
-    }
-    return colors.muted;
+    return getHelperStatusColor(status, colors, isDark);
   };
 
   const [activeTab, setActiveTab] = useState(route?.params?.initialTab || 'All');
@@ -113,9 +86,7 @@ export default function TrackerScreen({ navigation, route }) {
 
   const handleOpenStatusEditor = (item) => {
     setEditingItem(item);
-    const rawStatus = item.status || 'plan_to_watch';
-    const displayStatus = rawStatus.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    setSelectedStatus(STATUS_OPTIONS.includes(displayStatus) ? displayStatus : 'Plan to Watch');
+    setSelectedStatus(toDisplayStatus(item.status));
     setStatusModalVisible(true);
   };
 
@@ -128,7 +99,7 @@ export default function TrackerScreen({ navigation, route }) {
     if (!editingItem) return;
     setSavingStatus(true);
     try {
-      const apiStatus = selectedStatus.toLowerCase().replace(/ /g, '_');
+      const apiStatus = toApiStatus(selectedStatus);
       await trackerService.updateProgress(editingItem.tmdb_id, {
         status: apiStatus,
       });
@@ -354,9 +325,7 @@ export default function TrackerScreen({ navigation, route }) {
               const episodeTotal = Number(item.total_episodes) || Number(drama.total_episodes) || 0;
               const watched = Number(item.current_episode) || 0;
               const progress = episodeTotal > 0 ? Math.round((watched / episodeTotal) * 100) : 0;
-              const displayStatus = String(item.status || 'plan_to_watch')
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, (c) => c.toUpperCase());
+              const displayStatus = toDisplayStatus(item.status);
               const statusColor = getStatusColor(displayStatus);
               const posterSource = drama.poster_url || drama.image || drama.poster || null;
 
@@ -459,9 +428,7 @@ export default function TrackerScreen({ navigation, route }) {
               const episodeTotal = Number(item.total_episodes) || Number(drama.total_episodes) || 0;
               const watched = Number(item.current_episode) || 0;
               const progress = episodeTotal > 0 ? Math.round((watched / episodeTotal) * 100) : 0;
-              const displayStatus = String(item.status || 'plan_to_watch')
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, (c) => c.toUpperCase());
+              const displayStatus = toDisplayStatus(item.status);
               const statusColor = getStatusColor(displayStatus);
               const posterSource = drama.poster_url || drama.image || drama.poster || null;
 

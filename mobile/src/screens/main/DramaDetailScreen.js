@@ -16,22 +16,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { discoverService, trackerService } from '../../services/api';
+import {
+  STATUS_OPTIONS,
+  toDisplayStatus,
+  toApiStatus,
+  getStatusColor as getHelperStatusColor,
+} from '../../utils/statusHelper';
 
-const STATUSES = [
-  'Watching',
-  'Completed',
-  'Plan to Watch',
-  'On Hold',
-  'Dropped',
-];
-
-const STATUS_COLORS = {
-  Watching: '#60A5FA',
-  Completed: '#10B981',
-  'Plan to Watch': '#FFD76A',
-  'On Hold': '#F59E0B',
-  Dropped: '#EF4444',
-};
+const STATUSES = STATUS_OPTIONS;
 
 const formatAddedDate = (dateStr) => {
   if (!dateStr) return 'Recently';
@@ -49,24 +41,7 @@ export default function DramaDetailScreen({ route, navigation }) {
   const { colors, isDark } = useTheme();
 
   const getStatusColor = (status) => {
-    if (!status) return colors.pink;
-    const formatted = status.replace(/_/g, ' ').toLowerCase();
-    if (formatted.includes('watch') && !formatted.includes('plan')) {
-      return isDark ? '#60A5FA' : (colors.blue || '#2B6CB0');
-    }
-    if (formatted.includes('complete')) {
-      return isDark ? '#10B981' : (colors.green || '#047857');
-    }
-    if (formatted.includes('plan')) {
-      return isDark ? '#FFD76A' : (colors.gold || '#B87A04');
-    }
-    if (formatted.includes('hold')) {
-      return isDark ? '#F59E0B' : '#D97706';
-    }
-    if (formatted.includes('drop')) {
-      return colors.danger || '#EF4444';
-    }
-    return colors.pink;
+    return getHelperStatusColor(status, colors, isDark);
   };
 
   const tmdbId = route.params?.tmdbId;
@@ -98,10 +73,7 @@ export default function DramaDetailScreen({ route, navigation }) {
           const t = trackerRes.data.data;
           setTracker(t);
           const rawStatus = t.status || 'plan_to_watch';
-          const displayStatus = rawStatus
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, (c) => c.toUpperCase());
-          setSelectedStatus(STATUSES.includes(displayStatus) ? displayStatus : 'Plan to Watch');
+          setSelectedStatus(toDisplayStatus(rawStatus));
           setWatchedEpisodes(Number(t.current_episode || 0));
           setSelectedRating(Number(t.rating || 0));
           setNotes(t.review_notes || '');
@@ -133,7 +105,7 @@ export default function DramaDetailScreen({ route, navigation }) {
   ) => {
     setSavingStatus(true);
     setSaveMessage('');
-    const statusToSave = (overrideStatus || selectedStatus).toLowerCase().replace(/ /g, '_');
+    const statusToSave = toApiStatus(overrideStatus || selectedStatus);
     const epToSave = overrideEpisodes !== undefined ? overrideEpisodes : watchedEpisodes;
     const rawRating = overrideRating !== undefined ? overrideRating : selectedRating;
     const ratingToSave = Number(rawRating) >= 1 && Number(rawRating) <= 10 ? Math.round(Number(rawRating)) : null;
@@ -155,9 +127,7 @@ export default function DramaDetailScreen({ route, navigation }) {
       didAutoStart = true;
     }
 
-    const displayFinalStatus = finalStatus
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const displayFinalStatus = toDisplayStatus(finalStatus);
 
     // Immediately update local state for instant real-time feedback
     setSelectedStatus(displayFinalStatus);
@@ -503,7 +473,7 @@ export default function DramaDetailScreen({ route, navigation }) {
           style={styles.statusScroll}
         >
           {STATUSES.map((st) => {
-            const active = selectedStatus === st;
+            const active = toDisplayStatus(selectedStatus) === st;
             const chipColor = getStatusColor(st);
             return (
               <Pressable

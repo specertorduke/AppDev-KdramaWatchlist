@@ -19,6 +19,7 @@ import { colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { homeService, trackerService, discoverService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { toDisplayStatus, getStatusColor } from '../../utils/statusHelper';
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -468,24 +469,21 @@ export default function HomeScreen({ navigation }) {
                         resizeMode="cover"
                       />
                       {(drama.watch_status || drama.status) ? (() => {
-                        const s = String(drama.watch_status || drama.status).toLowerCase().replace(/_/g, ' ');
-                        let badgeColor = '#eb5b78';
-                        if (s.includes('watch') && !s.includes('plan')) {
-                          badgeColor = '#60A5FA';
-                        } else if (s.includes('complet')) {
-                          badgeColor = '#10B981';
-                        } else if (s.includes('plan')) {
-                          badgeColor = '#FFD76A';
-                        } else if (s.includes('hold')) {
-                          badgeColor = '#F59E0B';
-                        } else if (s.includes('drop')) {
-                          badgeColor = '#EF4444';
-                        }
-                        const formattedText = String(drama.watch_status || drama.status)
-                          .replace(/_/g, ' ')
-                          .replace(/\b\w/g, (c) => c.toUpperCase());
+                        const formattedText = toDisplayStatus(drama.watch_status || drama.status);
+                        const badgeColor = getStatusColor(formattedText, colors, isDark);
                         return (
-                          <View style={styles.cardStatusBadge}>
+                          <View
+                            style={[
+                              styles.cardStatusBadge,
+                              {
+                                backgroundColor: isDark ? 'rgba(12, 11, 20, 0.90)' : (colors.card || '#FFFFFF'),
+                                borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : (colors.border || 'rgba(0, 0, 0, 0.10)'),
+                                borderWidth: 1,
+                                shadowColor: isDark ? '#000000' : '#4A4660',
+                                shadowOpacity: isDark ? 0.45 : 0.14,
+                              },
+                            ]}
+                          >
                             <View style={[styles.cardStatusDot, { backgroundColor: badgeColor }]} />
                             <Text style={[styles.cardStatusText, { color: badgeColor }]} numberOfLines={1}>
                               {formattedText}
@@ -719,24 +717,21 @@ function RecommendedCard({ drama, colors, isDark, onPress }) {
         <Image source={{ uri: image }} style={styles.recommendedImage} resizeMode="cover" />
 
         {status ? (() => {
-          const s = String(status).toLowerCase().replace(/_/g, ' ');
-          let badgeColor = '#eb5b78';
-          if (s.includes('watch') && !s.includes('plan')) {
-            badgeColor = '#60A5FA';
-          } else if (s.includes('complet')) {
-            badgeColor = '#10B981';
-          } else if (s.includes('plan')) {
-            badgeColor = '#FFD76A';
-          } else if (s.includes('hold')) {
-            badgeColor = '#F59E0B';
-          } else if (s.includes('drop')) {
-            badgeColor = '#EF4444';
-          }
-          const formattedText = String(status)
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, (c) => c.toUpperCase());
+          const formattedText = toDisplayStatus(status);
+          const badgeColor = getStatusColor(formattedText, colors, isDark);
           return (
-            <View style={styles.cardStatusBadge}>
+            <View
+              style={[
+                styles.cardStatusBadge,
+                {
+                  backgroundColor: isDark ? 'rgba(12, 11, 20, 0.90)' : (colors.card || '#FFFFFF'),
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : (colors.border || 'rgba(0, 0, 0, 0.10)'),
+                  borderWidth: 1,
+                  shadowColor: isDark ? '#000000' : '#4A4660',
+                  shadowOpacity: isDark ? 0.45 : 0.14,
+                },
+              ]}
+            >
               <View style={[styles.cardStatusDot, { backgroundColor: badgeColor }]} />
               <Text style={[styles.cardStatusText, { color: badgeColor }]} numberOfLines={1}>
                 {formattedText}
@@ -1290,7 +1285,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 3,
-    backgroundColor: 'rgba(12, 11, 20, 0.92)',
+    backgroundColor: 'rgba(12, 11, 20, 0.90)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
