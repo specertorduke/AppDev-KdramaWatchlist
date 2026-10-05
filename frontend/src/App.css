@@ -4736,6 +4736,141 @@
   background: rgba(239, 68, 68, 0.2);
 }
 
+/* Password & Security Section in Edit Profile Modal */
+.edit-profile-section.edit-password-section,
+.edit-password-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-section-heading {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #8d8b98;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edit-password-card,
+.edit-email-card {
+  background: #141220;
+  border: 1px solid #27243b;
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.edit-password-card:hover,
+.edit-email-card:hover {
+  border-color: #353050;
+  background: #171426;
+}
+
+.edit-password-current-row,
+.edit-email-current-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edit-password-current-left,
+.edit-email-current-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-password-icon-wrap,
+.edit-email-current-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(235, 91, 120, 0.12);
+  border: 1px solid rgba(235, 91, 120, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #eb5b78;
+  flex-shrink: 0;
+}
+
+.edit-password-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.edit-password-info strong {
+  color: #f0eee8;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.edit-password-info span {
+  color: #8d8b98;
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+
+.edit-password-change-trigger-btn,
+.edit-email-change-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(235, 91, 120, 0.12);
+  border: 1px solid rgba(235, 91, 120, 0.3);
+  color: #eb5b78;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 160ms ease;
+}
+
+.edit-password-change-trigger-btn:hover,
+.edit-email-change-trigger-btn:hover {
+  background: rgba(235, 91, 120, 0.22);
+  border-color: #eb5b78;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.edit-password-change-trigger-btn:active,
+.edit-email-change-trigger-btn:active {
+  transform: translateY(0);
+}
+
+.edit-password-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-password-flow-card,
+.edit-email-flow-container {
+  background: #141220;
+  border: 1px solid #2d2944;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: modalFadeIn 180ms ease;
+}
+
+.edit-password-input-wrap .edit-profile-input {
+  padding-right: 42px;
+}
+
 /* Danger Zone in Edit Profile Modal */
 .edit-profile-danger-zone {
   margin-top: 10px;
