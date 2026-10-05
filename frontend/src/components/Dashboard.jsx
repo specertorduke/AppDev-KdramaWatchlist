@@ -65,6 +65,49 @@ const statusColors = {
   'on hold': '#F59E0B',
   dropped: '#EF4444',
 }
+const EMPTY_FAVORITE_GENRES = []
+const FAVORITE_GENRE_TMDB_IDS = {
+  romance: 18,
+  comedy: 35,
+  drama: 18,
+  mystery: 9648,
+  'mystery & thriller': 9648,
+  action: 10759,
+  'action & adventure': 10759,
+  'sci-fi & fantasy': 10765,
+  'fantasy & sci-fi': 10765,
+  'sci-fi': 10765,
+  crime: 80,
+  'crime & law': 80,
+  family: 10751,
+  'slice of life & family': 10751,
+}
+
+function getFavoriteGenreIds(genres) {
+  return [...new Set(genres
+    .map((genre) => FAVORITE_GENRE_TMDB_IDS[String(genre).trim().toLowerCase()])
+    .filter(Boolean))]
+}
+
+function interleaveRecommendations(groups, limit = 20) {
+  const recommendations = []
+  const seenIds = new Set()
+  const maxGroupSize = Math.max(0, ...groups.map((group) => group.length))
+
+  for (let index = 0; index < maxGroupSize && recommendations.length < limit; index += 1) {
+    for (const group of groups) {
+      const drama = group[index]
+      const id = drama?.tmdb_id || drama?.id
+      if (!id || seenIds.has(String(id))) continue
+
+      seenIds.add(String(id))
+      recommendations.push(mapDramaCard(drama, recommendations.length))
+      if (recommendations.length >= limit) break
+    }
+  }
+
+  return recommendations
+}
 
 function getStatusKey(status) {
   return String(status || '').trim().toLowerCase().replace(/[_-]+/g, ' ')
@@ -2222,107 +2265,56 @@ function Dashboard() {
   const { user } = useAuth()
   const { stats } = useWatchlist()
   const firstName = user?.name ? user.name.split(' ')[0] : 'Fan'
-  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : []
+  const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : EMPTY_FAVORITE_GENRES
+  const favoriteGenreIds = useMemo(() => getFavoriteGenreIds(favoriteGenres), [favoriteGenres])
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
   const [recommendedList, setRecommendedList] = useState([])
-  const [discoverList, setDiscoverList] = useState([])
   const [curatedRecommended, setCuratedRecommended] = useState([])
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(true)
 
   useEffect(() => {
+    let isCurrent = true
+
     async function loadDashboardData() {
       setIsLoadingRecommended(true)
       try {
-        const [homeRes, discoverRes] = await Promise.allSettled([
-          discoverService.getHome(),
+        const responses = await Promise.allSettled([
           discoverService.getDiscover({ page: 1 }),
+          ...favoriteGenreIds.map((genre_id) => discoverService.getDiscover({ page: 1, genre_id })),
         ])
+        const [discoverRes, ...genreResponses] = responses
+
+        if (!isCurrent) return
 
         if (discoverRes.status === 'fulfilled' && discoverRes.value?.data?.length > 0) {
           const mapped = discoverRes.value.data.map((d, index) => mapDramaCard(d, index))
           setRecommendedList(mapped.slice(0, 10))
-          setDiscoverList(mapped)
         } else {
           setRecommendedList([])
-          setDiscoverList([])
         }
 
-        if (
-          homeRes.status === 'fulfilled' &&
-          homeRes.value?.data?.recommended &&
-          Array.isArray(homeRes.value.data.recommended) &&
-          homeRes.value.data.recommended.length > 0
-        ) {
-          const mappedHome = homeRes.value.data.recommended.map((d, index) => mapDramaCard(d, index))
-          setCuratedRecommended(mappedHome)
-        }
+        const recommendationGroups = genreResponses
+          .filter((response) => response.status === 'fulfilled')
+          .map((response) => response.value?.data || [])
+        setCuratedRecommended(interleaveRecommendations(recommendationGroups))
       } catch {
-        setRecommendedList([])
-        setDiscoverList([])
+        if (isCurrent) {
+          setRecommendedList([])
+          setCuratedRecommended([])
+        }
       } finally {
-        setIsLoadingRecommended(false)
+        if (isCurrent) setIsLoadingRecommended(false)
       }
     }
     loadDashboardData()
-  }, [])
 
-  const normalizeGenre = (value) => String(value ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  const recommendedForYou = useMemo(() => {
-    if (!favoriteGenres.length) return []
-
-    const preferredGenres = favoriteGenres.map((genre) => normalizeGenre(genre))
-
-    return discoverList.filter((drama) => {
-      const rawGenres = Array.isArray(drama.genres)
-        ? drama.genres
-        : typeof drama.genres === 'string'
-          ? drama.genres.split(/[|,&/]/)
-          : []
-
-      const dramaGenres = rawGenres
-        .map((genre) => String(genre).trim())
-        .filter(Boolean)
-
-      return dramaGenres.some((genre) => {
-        const normalized = normalizeGenre(genre)
-
-        return preferredGenres.some((preferred) => {
-          if (preferred === 'mystery and thriller') {
-            return normalized.includes('mystery') || normalized.includes('thriller')
-          }
-          if (preferred === 'action and adventure') {
-            return normalized.includes('action') || normalized.includes('adventure')
-          }
-          if (preferred === 'sci fi and fantasy' || preferred === 'science fiction and fantasy' || preferred === 'scifi and fantasy') {
-            return normalized.includes('sci') || normalized.includes('fantasy') || normalized.includes('science fiction')
-          }
-          if (preferred === 'slice of life and family') {
-            return normalized.includes('family') || normalized.includes('slice of life')
-          }
-
-          return normalized === preferred || normalized.includes(preferred)
-        })
-      })
-    }).slice(0, 10)
-  }, [discoverList, favoriteGenres])
-
-  const displayRecommended = useMemo(() => {
-    if (curatedRecommended.length > 0) {
-      return curatedRecommended
+    return () => {
+      isCurrent = false
     }
-    if (recommendedForYou.length > 0) {
-      return recommendedForYou
-    }
-    return discoverList.slice(0, 10)
-  }, [curatedRecommended, recommendedForYou, discoverList])
+  }, [favoriteGenreIds])
+
+  const displayRecommended = curatedRecommended
 
   const handleDramaClick = async (drama) => {
     const tmdbId = drama.tmdb_id || drama.id
@@ -2449,7 +2441,11 @@ function Dashboard() {
                     />
                   ))
                 ) : (
-                  <p className="recommended-empty-text">No recommendations available right now.</p>
+                  <p className="recommended-empty-text">
+                    {favoriteGenres.length
+                      ? 'No dramas matched your favorite genres right now.'
+                      : 'Choose your favorite genres to get recommendations.'}
+                  </p>
                 )}
               </div>
             </section>
