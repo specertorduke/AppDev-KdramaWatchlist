@@ -1192,6 +1192,46 @@
   color: #f09ab0;
 }
 
+.dashboard-search-form {
+  width: min(280px, 30vw);
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 8px 0 12px;
+  border: 1px solid #302b3b;
+  border-radius: 999px;
+  background: #111019;
+  color: #aaa7ae;
+}
+
+.dashboard-search-form:focus-within {
+  border-color: #eb5b78;
+  box-shadow: 0 0 0 3px rgba(235, 91, 120, 0.12);
+}
+
+.dashboard-search-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f4eff2;
+  font: inherit;
+  font-size: 13px;
+}
+
+.dashboard-search-form input::placeholder {
+  color: #77747d;
+}
+
+.dashboard-actions .dashboard-search-close {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+}
+
 .profile-avatar {
   width: 43px;
   height: 43px;
@@ -1763,6 +1803,10 @@
     gap: 14px;
   }
 
+  .dashboard-search-form {
+    width: min(220px, 48vw);
+  }
+
   .profile-avatar {
     width: 37px;
     height: 37px;
@@ -2146,6 +2190,20 @@
   color: #eb5b78;
 }
 .discover-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.discover-search-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  margin: 10px 0 22px;
+}
+
+.discover-search-header h1 {
+  margin: 0;
+  color: #f4eff2;
+  font-size: clamp(20px, 3vw, 28px);
+}
+
 .discover-card { min-width: 0; transition: transform 180ms ease; }
 .discover-card:hover { transform: translateY(-3px); }
 .discover-poster { position: relative; height: 267px; border: 1px solid #24232d; border-radius: 12px; background-position: center; background-size: cover; overflow: hidden; }

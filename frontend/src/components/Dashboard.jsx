@@ -398,11 +398,28 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
 
 function DashboardHeader({ activeTab }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef(null)
   const { user } = useAuth()
   const navigate = useNavigate()
 
   const displayName = user?.name || dashboardUser.name
   const avatarUrl = user?.avatar || dashboardUser.avatar
+
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus()
+  }, [isSearchOpen])
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
+    const query = searchQuery.trim()
+    if (!query) return
+
+    navigate(`/discover?query=${encodeURIComponent(query)}`)
+    setIsSearchOpen(false)
+    setSearchQuery('')
+  }
 
   return (
     <header className="dashboard-header">
@@ -417,9 +434,34 @@ function DashboardHeader({ activeTab }) {
         <Link className={activeTab === 'profile' ? 'active' : ''} to="/profile"><UserRound size={19} /><span>Profile</span></Link>
       </nav>
       <div className="dashboard-actions">
-        <button type="button" aria-label="Search dramas" onClick={() => navigate('/discover')}>
-          <Search size={20} />
-        </button>
+        {isSearchOpen ? (
+          <form className="dashboard-search-form" role="search" onSubmit={handleSearchSubmit}>
+            <Search size={17} aria-hidden="true" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search dramas..."
+              aria-label="Search dramas"
+            />
+            <button
+              className="dashboard-search-close"
+              type="button"
+              aria-label="Close search"
+              onClick={() => {
+                setIsSearchOpen(false)
+                setSearchQuery('')
+              }}
+            >
+              <X size={17} />
+            </button>
+          </form>
+        ) : (
+          <button type="button" aria-label="Search dramas" onClick={() => setIsSearchOpen(true)}>
+            <Search size={20} />
+          </button>
+        )}
         <button className="profile-avatar" type="button" aria-label="Open profile" onClick={() => setProfileOpen((open) => !open)}>
           {user?.avatarType === 'persona' || (!user?.avatarType && user?.avatarIcon) ? (
             <DramaPersonaAvatar
@@ -1098,6 +1140,7 @@ const DISCOVER_GENRES = [
 ]
 
 function DiscoverPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isAddDramaOpen, setIsAddDramaOpen] = useState(false)
@@ -1109,6 +1152,7 @@ function DiscoverPage() {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const pillsRef = useRef(null)
+  const searchQuery = searchParams.get('query')?.trim() || ''
 
   const topDrama = top5List[currentSlide] || top5List[0] || null
 
@@ -1138,7 +1182,6 @@ function DiscoverPage() {
         if (discRes?.data && discRes.data.length > 0) {
           const mapped = discRes.data.map((d, index) => mapDramaCard(d, index))
           setTop5List(mapped.slice(0, 5))
-          setGridDramas(mapped)
         }
 
         if (genRes?.data && genRes.data.length > 0) {
@@ -1158,6 +1201,36 @@ function DiscoverPage() {
     loadData()
   }, [])
 
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadGrid() {
+      setIsLoading(true)
+      try {
+        const response = searchQuery
+          ? await discoverService.searchDramas({ query: searchQuery })
+          : await discoverService.getDiscover({
+              page: 1,
+              genre_id: genreList.find((genre) => genre.name === selectedGenre)?.id || null,
+            })
+
+        if (!isCancelled) {
+          const mapped = (response?.data || []).map((drama, index) => mapDramaCard(drama, index))
+          setGridDramas(mapped)
+        }
+      } catch {
+        if (!isCancelled) setGridDramas([])
+      } finally {
+        if (!isCancelled) setIsLoading(false)
+      }
+    }
+
+    loadGrid()
+    return () => {
+      isCancelled = true
+    }
+  }, [searchQuery, selectedGenre, genreList])
+
   const handlePrevSlide = () => {
     if (top5List.length === 0) return
     setCurrentSlide((prev) => (prev - 1 + top5List.length) % top5List.length)
@@ -1176,20 +1249,7 @@ function DiscoverPage() {
 
   const handleGenreSelect = async (genreObj) => {
     setSelectedGenre(genreObj.name)
-    setIsLoading(true)
-    try {
-      const res = await discoverService.getDiscover({ page: 1, genre_id: genreObj.id || null })
-      if (res?.data && res.data.length > 0) {
-        const mapped = res.data.map((d, index) => mapDramaCard(d, index))
-        setGridDramas(mapped)
-      } else {
-        setGridDramas([])
-      }
-    } catch {
-      setGridDramas([])
-    } finally {
-      setIsLoading(false)
-    }
+    if (searchQuery) setSearchParams({})
   }
 
   const handleOpenDetails = async (drama) => {
@@ -1218,100 +1278,117 @@ function DiscoverPage() {
         <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
       ) : (
         <>
-          {/* Top 5 Carousel */}
-          {topDrama ? (
-            <section className="discover-hero" style={{ backgroundImage: `url(${topDrama.image || topDrama.backdrop || DEFAULT_BACKDROP_IMAGE})` }}>
-              <button className="discover-back" type="button" onClick={handlePrevSlide} aria-label="Previous drama">
-                <ChevronLeft size={22} />
-              </button>
-              <div className="discover-hero-copy">
-                <span>{topDrama.weekHighlight || `#${currentSlide + 1} THIS WEEK`}</span>
-                <h1>{topDrama.title}</h1>
-                <div>
-                  <button className="view-details" type="button" onClick={() => handleOpenDetails(topDrama)}>
-                    ▣ &nbsp;View Details
+          {!searchQuery && (
+            <>
+              {/* Top 5 Carousel */}
+              {topDrama ? (
+                <section className="discover-hero" style={{ backgroundImage: `url(${topDrama.image || topDrama.backdrop || DEFAULT_BACKDROP_IMAGE})` }}>
+                  <button className="discover-back" type="button" onClick={handlePrevSlide} aria-label="Previous drama">
+                    <ChevronLeft size={22} />
                   </button>
-                  <b>★ {topDrama.rating}</b>
-                </div>
-              </div>
-              <button className="discover-next" type="button" onClick={handleNextSlide} aria-label="Next drama">
-                <ChevronRight size={22} />
-              </button>
+                  <div className="discover-hero-copy">
+                    <span>{topDrama.weekHighlight || `#${currentSlide + 1} THIS WEEK`}</span>
+                    <h1>{topDrama.title}</h1>
+                    <div>
+                      <button className="view-details" type="button" onClick={() => handleOpenDetails(topDrama)}>
+                        ▣ &nbsp;View Details
+                      </button>
+                      <b>★ {topDrama.rating}</b>
+                    </div>
+                  </div>
+                  <button className="discover-next" type="button" onClick={handleNextSlide} aria-label="Next drama">
+                    <ChevronRight size={22} />
+                  </button>
 
-              {/* Carousel Slide Indicators */}
-              <div className="carousel-dots">
-                {top5List.map((d, index) => (
+                  {/* Carousel Slide Indicators */}
+                  <div className="carousel-dots">
+                    {top5List.map((d, index) => (
+                      <button
+                        key={d.id || index}
+                        type="button"
+                        className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+                        onClick={() => setCurrentSlide(index)}
+                        aria-label={`Go to slide ${index + 1}: ${d.title}`}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : isLoading ? (
+                <section className="discover-hero" style={{ minHeight: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
+                </section>
+              ) : null}
+
+              {/* Horizontal Genre Pills (Chips) */}
+              <div className="genre-chips-wrapper">
+                {canScrollLeft && (
                   <button
-                    key={d.id || index}
                     type="button"
-                    className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
-                    onClick={() => setCurrentSlide(index)}
-                    aria-label={`Go to slide ${index + 1}: ${d.title}`}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : isLoading ? (
-            <section className="discover-hero" style={{ minHeight: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
-            </section>
-          ) : null}
-
-          {/* Horizontal Genre Pills (Chips) */}
-          <div className="genre-chips-wrapper">
-            {canScrollLeft && (
-              <button
-                type="button"
-                className="genre-scroll-btn genre-scroll-btn-left"
-                onClick={() => handleScroll('left')}
-                aria-label="Scroll genres left"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            )}
-
-            <div
-              className="genre-chips-track"
-              ref={pillsRef}
-              onScroll={checkScroll}
-              role="tablist"
-              aria-label="Filter dramas by genre"
-            >
-              {genreList.map((g) => {
-                const isSelected = selectedGenre === g.name
-                return (
-                  <button
-                    key={g.id ?? g.name}
-                    type="button"
-                    role="tab"
-                    aria-selected={isSelected}
-                    className={`genre-chip ${isSelected ? 'active' : ''}`}
-                    onClick={() => handleGenreSelect(g)}
+                    className="genre-scroll-btn genre-scroll-btn-left"
+                    onClick={() => handleScroll('left')}
+                    aria-label="Scroll genres left"
                   >
-                    {g.name}
+                    <ChevronLeft size={16} />
                   </button>
-                )
-              })}
-            </div>
+                )}
 
-            {canScrollRight && (
+                <div
+                  className="genre-chips-track"
+                  ref={pillsRef}
+                  onScroll={checkScroll}
+                  role="tablist"
+                  aria-label="Filter dramas by genre"
+                >
+                  {genreList.map((g) => {
+                    const isSelected = selectedGenre === g.name
+                    return (
+                      <button
+                        key={g.id ?? g.name}
+                        type="button"
+                        role="tab"
+                        aria-selected={isSelected}
+                        className={`genre-chip ${isSelected ? 'active' : ''}`}
+                        onClick={() => handleGenreSelect(g)}
+                      >
+                        {g.name}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {canScrollRight && (
+                  <button
+                    type="button"
+                    className="genre-scroll-btn genre-scroll-btn-right"
+                    onClick={() => handleScroll('right')}
+                    aria-label="Scroll genres right"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {searchQuery && (
+            <div className="discover-search-header">
               <button
+                className="detail-back-btn"
                 type="button"
-                className="genre-scroll-btn genre-scroll-btn-right"
-                onClick={() => handleScroll('right')}
-                aria-label="Scroll genres right"
+                onClick={() => setSearchParams({})}
               >
-                <ChevronRight size={16} />
+                <ChevronLeft size={16} /> Back to Discover
               </button>
-            )}
-          </div>
+              <h1>Search results for “{searchQuery}”</h1>
+            </div>
+          )}
 
           {/* Discover Grid */}
           <section className="discover-grid">
-            {isLoading && gridDramas.length === 0 ? (
-              <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
+            {isLoading ? (
+              <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }} role="status" aria-live="polite">
                 <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
-                <h3>Loading K-Dramas...</h3>
+                <h3>{searchQuery ? `Searching for “${searchQuery}”...` : 'Loading K-Dramas...'}</h3>
               </div>
             ) : gridDramas.length > 0 ? (
               gridDramas.map((drama) => (
@@ -1329,8 +1406,12 @@ function DiscoverPage() {
             ) : (
               <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
                 <Film size={36} />
-                <h3>No K-Dramas available</h3>
-                <p>No dramas found for "{selectedGenre}". Try selecting another genre.</p>
+                <h3>{searchQuery ? 'No dramas found' : 'No K-Dramas available'}</h3>
+                <p>
+                  {searchQuery
+                    ? `No dramas matched "${searchQuery}". Try another title or actor.`
+                    : `No dramas found for "${selectedGenre}". Try selecting another genre.`}
+                </p>
                 <button
                   type="button"
                   className="genre-clear-btn"
