@@ -6,6 +6,7 @@ export default function PasswordRequirementsList({
   password = '',
   currentPassword = null,
   isChangePassword = false,
+  showBreachNotice = false,
 }) {
   const pwd = password || ''
   const strength = getPasswordStrength(pwd)
@@ -65,10 +66,12 @@ export default function PasswordRequirementsList({
       </ul>
 
       {/* Breach check indicator */}
-      <div className="pwd-breach-notice">
-        <ShieldCheck size={14} className="pwd-breach-icon" aria-hidden="true" />
-        <span>Checked against known data breaches</span>
-      </div>
+      {showBreachNotice && (
+        <div className="pwd-breach-notice">
+          <ShieldCheck size={14} className="pwd-breach-icon" aria-hidden="true" />
+          <span>Checked against known data breaches</span>
+        </div>
+      )}
     </div>
   )
 }

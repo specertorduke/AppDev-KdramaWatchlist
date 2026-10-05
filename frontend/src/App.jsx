@@ -373,7 +373,7 @@ function AuthPage({ mode }) {
                 )}
 
                 {/* Strength meter and compact checklist directly under Password */}
-                <PasswordRequirementsList password={formData.password} />
+                <PasswordRequirementsList password={formData.password} showBreachNotice={false} />
               </div>
 
               <div className="auth-field auth-field-full">
