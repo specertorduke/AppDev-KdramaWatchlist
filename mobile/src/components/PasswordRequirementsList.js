@@ -8,6 +8,7 @@ export default function PasswordRequirementsList({
   password = '',
   currentPassword = null,
   isChangePassword = false,
+  showBreachNotice = false,
 }) {
   const { colors, isDark } = useTheme();
   const pwd = password || '';
@@ -118,11 +119,13 @@ export default function PasswordRequirementsList({
         </View>
       )}
 
-      {/* Breach Check Indicator */}
-      <View style={styles.breachNotice}>
-        <Ionicons name="shield-checkmark-outline" size={13} color={colors.muted} />
-        <Text style={[styles.breachNoticeText, { color: colors.muted }]}>Checked against known data breaches</Text>
-      </View>
+      {/* Breach check indicator (hidden by default) */}
+      {showBreachNotice && (
+        <View style={styles.breachNotice}>
+          <Ionicons name="shield-checkmark-outline" size={13} color={colors.muted} />
+          <Text style={[styles.breachNoticeText, { color: colors.muted }]}>Checked against known data breaches</Text>
+        </View>
+      )}
     </View>
   );
 }
