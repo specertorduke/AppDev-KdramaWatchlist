@@ -36,7 +36,10 @@ export default function RootNavigator() {
   return (
     <NavigationContainer theme={navTheme}>
       {isAuthenticated ? (
-        <AppNavigator initialRouteName={needsOnboarding ? 'GenreSelection' : 'MainTabs'} />
+        <AppNavigator
+          key={needsOnboarding ? 'onboarding-stack' : 'main-stack'}
+          initialRouteName={needsOnboarding ? 'GenreSelection' : 'MainTabs'}
+        />
       ) : (
         <AuthNavigator />
       )}

@@ -4,6 +4,18 @@ import { authService, userService, setOnUnauthorizedCallback } from '../services
 
 const AuthContext = createContext(null);
 
+const DEFAULT_PROFILE_AVATAR = 'https://raw.githubusercontent.com/specertorduke/AppDev-KdramaWatchlist/main/frontend/public/default-profile.svg';
+
+const withDefaultProfileAvatar = (accountUser) => {
+  if (!accountUser) return accountUser;
+  const avatar = accountUser.avatar || accountUser.avatar_url || DEFAULT_PROFILE_AVATAR;
+  return {
+    ...accountUser,
+    avatar,
+    avatar_url: accountUser.avatar_url || avatar,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
@@ -27,7 +39,8 @@ export const AuthProvider = ({ children }) => {
 
       if (storedToken && storedUser) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(withDefaultProfileAvatar(parsedUser));
       }
     } catch (e) {
       console.error('Failed to load stored auth:', e);
@@ -39,10 +52,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await authService.login({ email, password });
     const { user: userData, token: authToken } = response.data;
-    setUser(userData);
+    const userWithAvatar = withDefaultProfileAvatar(userData);
+    setUser(userWithAvatar);
     setToken(authToken);
     await AsyncStorage.setItem('auth_token', authToken);
-    await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
+    await AsyncStorage.setItem('auth_user', JSON.stringify(userWithAvatar));
     return response.data;
   };
 
@@ -79,7 +93,8 @@ export const AuthProvider = ({ children }) => {
       }
     }
     const response = await authService.register(payload);
-    const { user: userData, token: authToken } = response.data;
+    const { user: rawUserData, token: authToken } = response.data;
+    const userData = withDefaultProfileAvatar(rawUserData);
     if (authToken && userData) {
       setUser(userData);
       setToken(authToken);
@@ -189,7 +204,8 @@ export const AuthProvider = ({ children }) => {
 
   const verifyOtp = async ({ email, otp }) => {
     const response = await authService.verifyOtp({ email, otp });
-    const { user: userData, token: authToken } = response.data;
+    const { user: rawUserData, token: authToken } = response.data;
+    const userData = withDefaultProfileAvatar(rawUserData);
     if (authToken && userData) {
       setUser(userData);
       setToken(authToken);
@@ -239,6 +255,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const setSession = async (newToken, newUser, shouldOnboard = false) => {
+    const normalizedUser = withDefaultProfileAvatar(newUser);
+    setUser(normalizedUser);
+    setToken(newToken);
+    if (newToken) {
+      await AsyncStorage.setItem('auth_token', newToken);
+    }
+    if (normalizedUser) {
+      await AsyncStorage.setItem('auth_user', JSON.stringify(normalizedUser));
+    }
+    setNeedsOnboarding(shouldOnboard);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -258,6 +287,7 @@ export const AuthProvider = ({ children }) => {
         sendSignupOtp,
         verifyOtp,
         resendOtp,
+        setSession,
         logout,
       }}
     >

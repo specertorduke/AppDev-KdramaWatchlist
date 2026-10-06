@@ -499,6 +499,7 @@ function ProfileMenu({ onClose }) {
       <Link to="/tracker" onClick={onClose}>My Tracker</Link>
       <Link to="/stats" onClick={onClose}>Stats & History</Link>
       <Link to="/profile" onClick={onClose}>Profile</Link>
+      <Link to="/settings" onClick={onClose}>Settings</Link>
       <button type="button" onClick={handleLogout}>
         <LogOut size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
         Sign Out
@@ -696,9 +697,7 @@ function TrendingCard({ drama, index, onClick }) {
   return (
     <button className="trending-card" type="button" onClick={onClick}>
       <span className="trending-rank" aria-hidden="true">{index + 1}</span>
-      <span className="trending-poster" style={{ backgroundImage: `url(${poster})` }}>
-        {Number(drama.rating) > 0 && <span className="trending-rating">★ {Number(drama.rating).toFixed(1)}</span>}
-      </span>
+      <span className="trending-poster" style={{ backgroundImage: `url(${poster})` }} />
       <span className="trending-title">{drama.title}</span>
       <span className="trending-meta">{drama.meta || drama.genres || 'K-Drama'}</span>
     </button>
