@@ -27,6 +27,9 @@
   --color-hero-text: #F7F3F6;
   --color-hero-dot: rgba(255, 255, 255, 0.3);
   --color-hero-dot-hover: rgba(255, 255, 255, 0.6);
+  --color-hero-arrow-bg: rgba(8, 8, 14, 0.32);
+  --color-hero-arrow-border: rgba(255, 255, 255, 0.24);
+  --color-hero-arrow-text: #fff;
   --color-control-bg: #14121a;
   --color-control-hover: #221825;
   --color-control-text: #a097a8;
@@ -61,6 +64,9 @@
   --color-hero-text: #111019;
   --color-hero-dot: rgba(17, 16, 25, 0.35);
   --color-hero-dot-hover: rgba(17, 16, 25, 0.6);
+  --color-hero-arrow-bg: rgba(255, 255, 255, 0.34);
+  --color-hero-arrow-border: rgba(17, 16, 25, 0.14);
+  --color-hero-arrow-text: #111019;
   --color-control-bg: #FFFFFF;
   --color-control-hover: #ECEEF4;
   --color-control-text: #4A4858;
@@ -92,6 +98,9 @@
   --color-hero-text: #2C221A;
   --color-hero-dot: rgba(44, 34, 26, 0.35);
   --color-hero-dot-hover: rgba(44, 34, 26, 0.6);
+  --color-hero-arrow-bg: rgba(255, 255, 255, 0.34);
+  --color-hero-arrow-border: rgba(44, 34, 26, 0.16);
+  --color-hero-arrow-text: #2C221A;
   --color-control-bg: #FFFFFF;
   --color-control-hover: #F3E8D8;
   --color-control-text: #5F5145;

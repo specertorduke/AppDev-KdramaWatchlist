@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   Heart,
   Ticket,
-  UsersRound,
   UserRound,
   Zap,
   Loader2,
@@ -500,7 +499,6 @@ function ProfileMenu({ onClose }) {
       <Link to="/tracker" onClick={onClose}>My Tracker</Link>
       <Link to="/stats" onClick={onClose}>Stats & History</Link>
       <Link to="/profile" onClick={onClose}>Profile</Link>
-      <Link to="/login" onClick={onClose}>Switch Account</Link>
       <button type="button" onClick={handleLogout}>
         <LogOut size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
         Sign Out
@@ -572,10 +570,10 @@ function CurrentDrama({ onDetailsClick }) {
         <div className="current-drama-content" style={{ padding: '24px' }}>
           <div className="watching-label"><i /> Watching progress</div>
           <div style={{ marginTop: '14px', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '17px', color: '#f0ecf3', margin: '0 0 6px', fontFamily: 'Georgia, serif' }}>
+            <h3 style={{ fontSize: '17px', color: 'var(--color-text)', margin: '0 0 6px', fontFamily: 'Georgia, serif' }}>
               No drama currently watching
             </h3>
-            <p style={{ fontSize: '13px', color: '#8c8697', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
               Add a K-Drama to your tracker and set its status as Watching to track your episodes.
             </p>
           </div>
@@ -920,7 +918,7 @@ function DramaDetailView({ drama, onBack }) {
               onClick={handleToggleFavorite}
               aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             >
-              <Heart size={18} fill={isFavorite ? '#eb5b78' : 'none'} color={isFavorite ? '#eb5b78' : '#8e889b'} />
+              <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
             </button>
           </div>
         </div>
@@ -1983,7 +1981,6 @@ function ProfilePage() {
           </span>
           <ChevronRight />
         </button>
-        <Link to="/login"><UsersRound /> <span><b>Switch Account</b><small>Change active profile</small></span><ChevronRight /></Link>
       </section>
       <button className="signout-button" type="button" onClick={handleLogout}>
         <LogOut size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Sign Out

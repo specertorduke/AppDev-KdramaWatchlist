@@ -6,7 +6,6 @@ import { ThemeProvider } from './context/ThemeContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage } from './components/Dashboard.jsx'
 import StatsHistoryPage from './components/StatsHistoryPage.jsx'
-import AccountSwitcher from './components/AccountSwitcher.jsx'
 import OtpVerification from './components/OtpVerification.jsx'
 import GenreOnboarding from './components/GenreOnboarding.jsx'
 import PasswordRequirementsList from './components/PasswordRequirementsList.jsx'
@@ -48,8 +47,7 @@ function LandingPage() {
 function AuthPage({ mode }) {
   const isSignup = mode === 'signup'
   const navigate = useNavigate()
-  const { login, sendSignupOtp, savedAccounts, setSession } = useAuth()
-  const [showLoginForm, setShowLoginForm] = useState(false)
+  const { login, sendSignupOtp, setSession } = useAuth()
   const [showOtpVerification, setShowOtpVerification] = useState(false)
   const [otpNotice, setOtpNotice] = useState('')
 
@@ -158,19 +156,6 @@ function AuthPage({ mode }) {
         notice={otpNotice}
         onCancel={() => setShowOtpVerification(false)}
         onSuccess={() => navigate('/onboarding', { replace: true })}
-      />
-    )
-  }
-
-  if (!isSignup && !showLoginForm) {
-    return (
-      <AccountSwitcher
-        onAddAccount={(acc) => {
-          if (acc?.email) {
-            setFormData((prev) => ({ ...prev, email: acc.email, password: '' }))
-          }
-          setShowLoginForm(true)
-        }}
       />
     )
   }
@@ -286,13 +271,7 @@ function AuthPage({ mode }) {
           <button
             type="button"
             className="back-link"
-            onClick={() => {
-              if (!isSignup) {
-                setShowLoginForm(false)
-              } else {
-                navigate('/')
-              }
-            }}
+            onClick={() => navigate('/')}
             aria-label="Back"
           >
             <ArrowLeft size={14} strokeWidth={2} aria-hidden="true" />
@@ -730,7 +709,7 @@ function AuthPage({ mode }) {
 
               {forgotStep === 'request' ? (
                 <form onSubmit={handleRequestPasswordReset} className="auth-fields-stack">
-                  <p style={{ color: '#a6a1b2', fontSize: '13.5px', marginBottom: '8px' }}>
+                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '13.5px', marginBottom: '8px' }}>
                     Enter the email associated with your SarangTV account. We will send you a password reset code.
                   </p>
                   <label className="auth-field">
@@ -764,7 +743,7 @@ function AuthPage({ mode }) {
                 </form>
               ) : (
                 <form onSubmit={handleConfirmPasswordReset} className="auth-fields-stack">
-                  <p style={{ color: '#a6a1b2', fontSize: '13.5px', marginBottom: '8px' }}>
+                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '13.5px', marginBottom: '8px' }}>
                     Enter your reset token and your new password.
                   </p>
                   <label className="auth-field">
@@ -896,7 +875,7 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/signup" element={<AuthPage mode="signup" />} />
-              <Route path="/switch-account" element={<AuthPage mode="login" />} />
+              <Route path="/switch-account" element={<Navigate to="/login" replace />} />
               <Route
                 path="/onboarding"
                 element={
