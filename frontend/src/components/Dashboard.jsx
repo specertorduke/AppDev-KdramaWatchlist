@@ -741,6 +741,7 @@ function DramaDetailView({ drama, onBack }) {
   const [myNotes, setMyNotes] = useState(savedItem?.notes || drama.myNotes || '')
   const [noteSaved, setNoteSaved] = useState(false)
   const [showAllEpisodes, setShowAllEpisodes] = useState(false)
+  const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false)
   const [episodesList, setEpisodesList] = useState(() => {
     const total = Number(drama.episodes) || 16
     const watched = savedItem?.current_episode ?? savedItem?.watchedCount ?? drama.current_episode ?? drama.watchedCount ?? (savedItem?.status === 'Watching' ? 1 : 0)
@@ -824,6 +825,23 @@ function DramaDetailView({ drama, onBack }) {
     }
   }
 
+  const handleRemoveFromWatchlist = () => {
+    removeFromWatchlist(dramaId)
+    setStatus(null)
+    setShowRemoveConfirmation(false)
+  }
+
+  useEffect(() => {
+    if (!showRemoveConfirmation) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setShowRemoveConfirmation(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showRemoveConfirmation])
+
   const statusOptions = ['Watching', 'Completed', 'Plan to Watch', 'On Hold', 'Dropped']
 
   return (
@@ -902,10 +920,7 @@ function DramaDetailView({ drama, onBack }) {
                 <button
                   className="detail-remove-button"
                   type="button"
-                  onClick={() => {
-                    removeFromWatchlist(dramaId)
-                    setStatus(null)
-                  }}
+                  onClick={() => setShowRemoveConfirmation(true)}
                   title="Remove from Watchlist"
                 >
                   <Trash2 size={16} /> Remove
@@ -1118,6 +1133,49 @@ function DramaDetailView({ drama, onBack }) {
           </article>
         </div>
       </div>
+      {showRemoveConfirmation && (
+        <div
+          className="modal-overlay danger-modal-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowRemoveConfirmation(false)
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-drama-confirmation-title"
+          aria-describedby="remove-drama-confirmation-description"
+        >
+          <section className="remove-drama-confirmation-card">
+            <div className="delete-modal-header">
+              <span className="delete-warning-icon-wrap">
+                <Trash2 size={21} color="#EF4444" />
+              </span>
+              <div>
+                <h3 id="remove-drama-confirmation-title">Remove from watchlist?</h3>
+                <p>This action cannot be undone.</p>
+              </div>
+            </div>
+            <p className="delete-modal-description" id="remove-drama-confirmation-description">
+              Remove <strong>{drama.title}</strong>? Its watch progress, rating, and notes will also be deleted.
+            </p>
+            <div className="delete-modal-actions">
+              <button
+                className="delete-modal-btn-cancel"
+                type="button"
+                onClick={() => setShowRemoveConfirmation(false)}
+              >
+                Keep Drama
+              </button>
+              <button
+                className="delete-modal-btn-confirm"
+                type="button"
+                onClick={handleRemoveFromWatchlist}
+              >
+                <Trash2 size={14} /> Remove Drama
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

@@ -1417,16 +1417,22 @@
 }
 
 .profile-avatar {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  flex: 0 0 43px;
   width: 43px;
   height: 43px;
-  padding: 2px !important;
-  border: 2px solid #61374c !important;
+  padding: 2px;
+  border: 2px solid var(--color-primary);
   border-radius: 50%;
   overflow: hidden;
+  background: var(--color-panel-raised);
 }
 
 .profile-avatar img,
 .current-avatar {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1992,6 +1998,7 @@
   }
 
   .profile-avatar {
+    flex-basis: 37px;
     width: 37px;
     height: 37px;
   }
@@ -4977,6 +4984,41 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(239, 68, 68, 0.08);
   box-sizing: border-box;
   animation: modalFadeIn 180ms ease;
+}
+
+.remove-drama-confirmation-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 18px;
+  background: var(--color-panel);
+  color: var(--color-text);
+  box-shadow: 0 20px 60px var(--color-control-shadow);
+  box-sizing: border-box;
+  animation: modalFadeIn 180ms ease;
+}
+
+.remove-drama-confirmation-card .delete-modal-header h3 {
+  color: var(--color-text);
+}
+
+.remove-drama-confirmation-card .delete-modal-description {
+  color: var(--color-text-secondary);
+}
+
+.remove-drama-confirmation-card .delete-modal-description strong {
+  color: var(--color-text);
+}
+
+.remove-drama-confirmation-card .delete-modal-btn-cancel {
+  border-color: var(--color-control-border);
+  color: var(--color-text-secondary);
+}
+
+.remove-drama-confirmation-card .delete-modal-btn-cancel:hover {
+  background: var(--color-control-hover);
+  color: var(--color-text);
 }
 
 .delete-modal-header {
