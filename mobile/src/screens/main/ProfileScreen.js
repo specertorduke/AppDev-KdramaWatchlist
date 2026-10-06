@@ -427,23 +427,23 @@ export default function ProfileScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Edit profile and avatar"
         >
-          <View style={[styles.avatarBorderRing, { backgroundColor: colors.bg, borderColor: isDark ? '#61374c' : colors.border }]}>
-            <View style={[styles.avatarCircle, { backgroundColor: activeColor }]}>
-              {user?.avatar_url?.endsWith('.svg') ? (
-                <DefaultProfileAvatar size={60} />
-              ) : user?.avatar_url ? (
-                <Image
-                  source={{ uri: user.avatar_url }}
-                  style={styles.avatarPhoto}
-                  resizeMode="cover"
-                />
-              ) : activeIcon ? (
-                <Ionicons name={activeIcon} size={24} color="#FFFFFF" />
-              ) : (
-                <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
-              )}
+          {user?.avatar_url?.endsWith('.svg') ? (
+            <DefaultProfileAvatar size={80} />
+          ) : user?.avatar_url ? (
+            <Image
+              source={{ uri: user.avatar_url }}
+              style={styles.avatarPhoto}
+              resizeMode="cover"
+            />
+          ) : activeIcon ? (
+            <View style={[styles.avatarIconCircle, { backgroundColor: activeColor }]}>
+              <Ionicons name={activeIcon} size={36} color="#FFFFFF" />
             </View>
-          </View>
+          ) : (
+            <View style={[styles.avatarIconCircle, { backgroundColor: activeColor }]}>
+              <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
+            </View>
+          )}
         </Pressable>
 
         <View style={styles.profileInfo}>
@@ -1279,37 +1279,32 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     position: 'relative',
-    width: 66,
-    height: 66,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2.5,
+    borderColor: '#eb5b78',
     marginRight: 14,
-  },
-  avatarBorderRing: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    borderWidth: 2,
-    borderColor: '#61374c',
-    padding: 2.5,
-    backgroundColor: '#07070E',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  avatarCircle: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    backgroundColor: '#f59ac6',
   },
   avatarPhoto: {
     width: '100%',
     height: '100%',
+    borderRadius: 40,
+  },
+  avatarIconCircle: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: '900',
   },
   profileInfo: {

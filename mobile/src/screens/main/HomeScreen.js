@@ -103,8 +103,8 @@ export default function HomeScreen({ navigation }) {
           styles.topBar,
           {
             backgroundColor: colors.bg,
-            borderBottomColor: colors.border,
-            borderBottomWidth: isDark ? 0 : 1,
+            borderBottomColor: colors.line,
+            borderBottomWidth: 1,
             paddingTop: insets.top > 0 ? insets.top : 8,
             height: (insets.top > 0 ? insets.top : 8) + 54,
           },
@@ -144,28 +144,28 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Profile')}
             accessibilityLabel="Profile"
           >
-            <View
-              style={[
-                styles.avatarInner,
-                { backgroundColor: user?.color || '#292546' },
-              ]}
-            >
-              {user?.avatar_url?.endsWith('.svg') ? (
-                <DefaultProfileAvatar size={32} />
-              ) : user?.avatar_url ? (
-                <Image
-                  source={{ uri: user.avatar_url }}
-                  style={styles.avatarImage}
-                  resizeMode="cover"
-                />
-              ) : (
+            {user?.avatar_url?.endsWith('.svg') ? (
+              <DefaultProfileAvatar size={38} />
+            ) : user?.avatar_url ? (
+              <Image
+                source={{ uri: user.avatar_url }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatarIconFallback,
+                  { backgroundColor: user?.color || '#292546' },
+                ]}
+              >
                 <Ionicons
                   name={user?.avatarIcon || 'person'}
-                  size={16}
+                  size={18}
                   color="#FFFFFF"
                 />
-              )}
-            </View>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
@@ -211,8 +211,8 @@ export default function HomeScreen({ navigation }) {
                 label="Total Tracked"
                 sublabel={`${stats.watching ?? 0} watching`}
                 icon="bookmark-outline"
-                iconColor={colors.purple}
-                bottomColor={colors.purple}
+                iconColor="#7C6DAA"
+                bottomColor="#9d8ade"
                 colors={colors}
                 isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'All' })}
@@ -222,8 +222,8 @@ export default function HomeScreen({ navigation }) {
                 label="Episodes Watched"
                 sublabel={`${stats.completed ?? 0} completed`}
                 icon="play-outline"
-                iconColor={colors.blue}
-                bottomColor={colors.blue}
+                iconColor="#6C85B4"
+                bottomColor="#759bc7"
                 colors={colors}
                 isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'Watching' })}
@@ -233,8 +233,8 @@ export default function HomeScreen({ navigation }) {
                 label="Plan to Watch"
                 sublabel={`${stats.on_hold ?? 0} on hold`}
                 icon="checkmark-outline"
-                iconColor={colors.green}
-                bottomColor={colors.green}
+                iconColor="#4FA477"
+                bottomColor="#4fb487"
                 colors={colors}
                 isDark={isDark}
                 onPress={() => navigation.navigate('Tracker', { initialTab: 'Completed' })}
@@ -245,8 +245,8 @@ export default function HomeScreen({ navigation }) {
                 label="Hours Watched"
                 sublabel="Total watch time"
                 icon="time-outline"
-                iconColor={colors.gold}
-                bottomColor={colors.gold}
+                iconColor="#C59B4A"
+                bottomColor="#c6a73d"
                 colors={colors}
                 isDark={isDark}
                 onPress={() => navigation.navigate('Profile')}
@@ -794,10 +794,11 @@ const styles = StyleSheet.create({
     height: 32,
   },
   logo: {
-    color: '#ed8ea4',
-    fontSize: 19,
-    fontWeight: '900',
-    letterSpacing: -0.4,
+    color: '#f09ab0',
+    fontFamily: 'serif',
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.6,
   },
   logoTv: {
     color: '#eb5b78',
@@ -829,33 +830,27 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.94 }],
   },
   avatarButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 2,
-    borderColor: '#61374c',
-    padding: 2,
-    backgroundColor: '#07070E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    overflow: 'hidden',
-  },
-  avatarInner: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 17,
+    borderColor: '#eb5b78',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: '#f59ac6',
   },
   avatarImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 19,
+  },
+  avatarIconFallback: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarButtonHovered: {
     opacity: 0.9,
