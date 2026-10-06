@@ -40,7 +40,12 @@ export const AuthProvider = ({ children }) => {
       if (storedToken && storedUser) {
         setToken(storedToken);
         const parsedUser = JSON.parse(storedUser);
-        setUser(withDefaultProfileAvatar(parsedUser));
+        const userWithAvatar = withDefaultProfileAvatar(parsedUser);
+        setUser(userWithAvatar);
+        const hasGenres = Array.isArray(userWithAvatar?.favorite_genres) && userWithAvatar.favorite_genres.length > 0;
+        if (!hasGenres) {
+          setNeedsOnboarding(true);
+        }
       }
     } catch (e) {
       console.error('Failed to load stored auth:', e);
@@ -57,6 +62,8 @@ export const AuthProvider = ({ children }) => {
     setToken(authToken);
     await AsyncStorage.setItem('auth_token', authToken);
     await AsyncStorage.setItem('auth_user', JSON.stringify(userWithAvatar));
+    const hasGenres = Array.isArray(userWithAvatar?.favorite_genres) && userWithAvatar.favorite_genres.length > 0;
+    setNeedsOnboarding(!hasGenres);
     return response.data;
   };
 
@@ -255,7 +262,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const setSession = async (newToken, newUser, shouldOnboard = false) => {
+  const setSession = async (newToken, newUser, shouldOnboard = null) => {
     const normalizedUser = withDefaultProfileAvatar(newUser);
     setUser(normalizedUser);
     setToken(newToken);
@@ -265,7 +272,8 @@ export const AuthProvider = ({ children }) => {
     if (normalizedUser) {
       await AsyncStorage.setItem('auth_user', JSON.stringify(normalizedUser));
     }
-    setNeedsOnboarding(shouldOnboard);
+    const hasGenres = Array.isArray(normalizedUser?.favorite_genres) && normalizedUser.favorite_genres.length > 0;
+    setNeedsOnboarding(shouldOnboard !== null ? shouldOnboard : !hasGenres);
   };
 
   return (
