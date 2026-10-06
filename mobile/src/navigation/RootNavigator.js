@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AuthNavigator from './AuthNavigator';
@@ -18,9 +18,12 @@ export default function RootNavigator() {
     );
   }
 
+  const baseTheme = isDark ? DarkTheme : DefaultTheme;
   const navTheme = {
+    ...baseTheme,
     dark: isDark,
     colors: {
+      ...baseTheme.colors,
       primary: colors.primary,
       background: colors.bg,
       card: colors.card,
