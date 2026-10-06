@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft, CheckCircle2, Eye, EyeOff, FileText, Loader2, ShieldCheck, X, XCircle } from 'lucide-react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 import { WatchlistProvider } from './context/WatchlistContext.jsx'
 import Dashboard, { DiscoverPage, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage } from './components/Dashboard.jsx'
 import StatsHistoryPage from './components/StatsHistoryPage.jsx'
@@ -887,91 +888,93 @@ function ProtectedRoute({ children }) {
 
 function App() {
   return (
-    <AuthProvider>
-      <WatchlistProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<AuthPage mode="login" />} />
-            <Route path="/signup" element={<AuthPage mode="signup" />} />
-            <Route path="/switch-account" element={<AuthPage mode="login" />} />
-            <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <GenreOnboarding />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/discover"
-              element={
-                <ProtectedRoute>
-                  <DiscoverPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tracker"
-              element={
-                <ProtectedRoute>
-                  <TrackerPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/stats"
-              element={
-                <ProtectedRoute>
-                  <StatsHistoryPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/favorite-genres"
-              element={
-                <ProtectedRoute>
-                  <FavoriteGenresPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <SettingsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile/stats"
-              element={
-                <ProtectedRoute>
-                  <StatsHistoryPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<LandingPage />} />
-          </Routes>
-        </BrowserRouter>
-      </WatchlistProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <WatchlistProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<AuthPage mode="login" />} />
+              <Route path="/signup" element={<AuthPage mode="signup" />} />
+              <Route path="/switch-account" element={<AuthPage mode="login" />} />
+              <Route
+                path="/onboarding"
+                element={
+                  <ProtectedRoute>
+                    <GenreOnboarding />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/discover"
+                element={
+                  <ProtectedRoute>
+                    <DiscoverPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tracker"
+                element={
+                  <ProtectedRoute>
+                    <TrackerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute>
+                    <StatsHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/favorite-genres"
+                element={
+                  <ProtectedRoute>
+                    <FavoriteGenresPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/stats"
+                element={
+                  <ProtectedRoute>
+                    <StatsHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<LandingPage />} />
+            </Routes>
+          </BrowserRouter>
+        </WatchlistProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

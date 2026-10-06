@@ -39,6 +39,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/theme-context.js'
 import { useWatchlist } from '../context/WatchlistContext.jsx'
 import discoverService, {
   mapDramaCard,
@@ -2094,6 +2095,12 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
 function SettingsPage() {
   const navigate = useNavigate()
   const { deleteAccount } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const themeOptions = [
+    { id: 'dark', title: 'Dark Cinematic', description: 'Deep cinematic blacks and vibrant pinks' },
+    { id: 'light', title: 'Light Clean', description: 'Crisp daylight theme' },
+    { id: 'warm', title: 'Warm Comfort', description: 'Easy on the eyes with warm cream tones' },
+  ]
   const [settings, setSettings] = useState({
     episodeAlerts: true,
     progressReminders: true,
@@ -2146,6 +2153,28 @@ function SettingsPage() {
         </div>
 
         <div className="profile-settings-panel settings-page-panel">
+          <div className="profile-settings-group appearance-settings">
+            <p className="profile-settings-title">APPEARANCE</p>
+            <div className="appearance-theme-options" role="radiogroup" aria-label="Appearance theme">
+              {themeOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`appearance-theme-option${theme === option.id ? ' selected' : ''}`}
+                  role="radio"
+                  aria-checked={theme === option.id}
+                  onClick={() => setTheme(option.id)}
+                >
+                  <span className="appearance-theme-copy">
+                    <strong>{option.title}</strong>
+                    <small>{option.description}</small>
+                  </span>
+                  <span className="appearance-theme-radio" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="profile-settings-group">
             <p className="profile-settings-title">NOTIFICATIONS</p>
             <div className="profile-setting-row">
@@ -2219,10 +2248,6 @@ function SettingsPage() {
             <div className="profile-about-row">
               <span>Version</span>
               <strong>1.0.0 (SarangTV)</strong>
-            </div>
-            <div className="profile-about-row last">
-              <span>Theme</span>
-              <strong>Dark Cinematic</strong>
             </div>
           </div>
 
