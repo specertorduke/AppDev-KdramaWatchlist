@@ -1195,10 +1195,12 @@ const styles = StyleSheet.create({
   },
   statusScroll: {
     marginHorizontal: -4,
+    overflow: 'visible',
   },
   statusScrollContent: {
     gap: 8,
     paddingHorizontal: 4,
+    paddingVertical: 6,
   },
   statusChip: {
     flexDirection: 'row',
@@ -1209,8 +1211,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#161424',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
     elevation: 2,
   },
   statusColorDot: {
@@ -1234,10 +1236,13 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   seasonTabsScroll: {
-    marginBottom: 14,
+    marginBottom: 10,
+    overflow: 'visible',
   },
   seasonTabsContent: {
     gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
   },
   seasonTabPill: {
     paddingHorizontal: 16,
@@ -1246,8 +1251,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#161424',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
     elevation: 2,
   },
   seasonTabPillActive: {

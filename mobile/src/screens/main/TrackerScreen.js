@@ -583,7 +583,7 @@ export default function TrackerScreen({ navigation, route }) {
         onRequestClose={handleCloseStatusEditor}
       >
         <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card }]}>
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderText}>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>Update Status</Text>

@@ -677,15 +677,15 @@ function TrendingRankNumber({ rankNum, colors, isDark = true }) {
     <View style={styles.rankContainer} pointerEvents="none">
       {/* 2px Drop Shadow */}
       <Text style={[styles.giantRankShadow, { color: shadowColor }]}>{rankNum}</Text>
-      {/* 8-direction 1px pink stroke outline */}
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1 }, { translateY: -1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 0 }, { translateY: -1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1 }, { translateY: -1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1 }, { translateY: 0 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1 }, { translateY: 0 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1 }, { translateY: 1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 0 }, { translateY: 1 }] }]}>{rankNum}</Text>
-      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1 }, { translateY: 1 }] }]}>{rankNum}</Text>
+      {/* 8-direction 1.5px pink stroke outline */}
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1.5 }, { translateY: -1.5 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 0 }, { translateY: -1.5 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1.5 }, { translateY: -1.5 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1.5 }, { translateY: 0 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1.5 }, { translateY: 0 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: -1.5 }, { translateY: 1.5 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 0 }, { translateY: 1.5 }] }]}>{rankNum}</Text>
+      <Text style={[styles.giantRankStroke, { color: strokeColor, transform: [{ translateX: 1.5 }, { translateY: 1.5 }] }]}>{rankNum}</Text>
       {/* Center fill */}
       <Text style={[styles.giantRankFill, { color: fillColor }]}>{rankNum}</Text>
     </View>
@@ -707,13 +707,20 @@ function RecommendedCard({ drama, colors, isDark, onPress }) {
     <Pressable
       style={({ pressed, hovered }) => [
         styles.recommendedCard,
-        { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
-        hovered && { transform: [{ scale: 1.02 }] },
-        pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+        hovered && styles.recommendedCardHovered,
+        pressed && styles.recommendedCardPressed,
       ]}
       onPress={onPress}
     >
-      <View style={styles.posterWrapper}>
+      <View
+        style={[
+          styles.posterWrapper,
+          {
+            backgroundColor: isDark ? '#161622' : (colors.panel2 || '#EEF1F6'),
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : (colors.border || 'rgba(0, 0, 0, 0.08)'),
+          },
+        ]}
+      >
         <Image source={{ uri: image }} style={styles.recommendedImage} resizeMode="cover" />
 
         {status ? (() => {
@@ -1260,23 +1267,30 @@ const styles = StyleSheet.create({
   recommendedCard: {
     width: 124,
     minWidth: 0,
-    borderRadius: 9,
+    backgroundColor: 'transparent',
   },
   recommendedCardHovered: {
-    transform: [{ translateY: -4 }, { scale: 1.025 }],
-    opacity: 0.96,
+    transform: [{ translateY: -2 }],
+    opacity: 0.95,
   },
   recommendedCardPressed: {
-    opacity: 0.7,
+    opacity: 0.75,
     transform: [{ scale: 0.97 }],
   },
   posterWrapper: {
     width: '100%',
     aspectRatio: 0.69,
-    borderRadius: 10,
+    borderRadius: 14,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#171720',
+    backgroundColor: '#161622',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   cardStatusBadge: {
     position: 'absolute',
@@ -1336,15 +1350,17 @@ const styles = StyleSheet.create({
   },
   recommendedTitle: {
     color: '#E6E1E3',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12.5,
+    lineHeight: 16,
     fontWeight: '800',
-    marginTop: 6,
+    marginTop: 8,
+    paddingHorizontal: 2,
   },
   recommendedMeta: {
     color: '#8D8B98',
-    fontSize: 10,
-    marginTop: 3,
+    fontSize: 11,
+    marginTop: 2,
+    paddingHorizontal: 2,
   },
   /* TRENDING SECTION (POPULAR STREAMING STYLE) */
   trendingHeaderRow: {
@@ -1395,20 +1411,21 @@ const styles = StyleSheet.create({
   rankContainer: {
     position: 'absolute',
     left: -8,
-    bottom: 35,
+    bottom: 24,
     zIndex: 2,
     pointerEvents: 'none',
     overflow: 'visible',
   },
   giantRankWeb: {
     color: '#151522',
-    fontSize: 82,
+    fontSize: 80,
     fontWeight: '900',
-    lineHeight: 78,
+    lineHeight: 96,
+    paddingTop: 8,
     includeFontPadding: false,
     ...Platform.select({
       web: {
-        WebkitTextStroke: '1px #F5A9C4',
+        WebkitTextStroke: '1.5px #F5A9C4',
         textShadow: '2px 2px 0px #000000',
         userSelect: 'none',
       },
@@ -1418,9 +1435,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 2,
     top: 2,
-    fontSize: 82,
-    lineHeight: 78,
+    fontSize: 80,
+    lineHeight: 96,
     fontWeight: '900',
+    paddingTop: 8,
     color: '#000000',
     includeFontPadding: false,
   },
@@ -1428,17 +1446,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 0,
-    fontSize: 82,
-    lineHeight: 78,
+    fontSize: 80,
+    lineHeight: 96,
     fontWeight: '900',
     color: '#F5A9C4',
+    paddingTop: 8,
     includeFontPadding: false,
   },
   giantRankFill: {
-    fontSize: 82,
-    lineHeight: 78,
+    fontSize: 80,
+    lineHeight: 96,
     fontWeight: '900',
     color: '#151522',
+    paddingTop: 8,
     includeFontPadding: false,
   },
   trendingPosterWrapper: {

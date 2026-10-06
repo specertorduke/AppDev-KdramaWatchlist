@@ -330,7 +330,7 @@ export default function SettingsScreen({ navigation, route }) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card, borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.35)', borderWidth: 1 }]}>
+          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card }]}>
             <View style={styles.modalWarningHeader}>
               <View style={styles.modalWarningIcon}>
                 <Ionicons name="warning-outline" size={26} color="#EF4444" />
@@ -422,7 +422,7 @@ export default function SettingsScreen({ navigation, route }) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+          <View style={[styles.modalCard, { backgroundColor: colors.modalCard || colors.card }]}>
             <View style={styles.modalHeader}>
               <View style={[styles.deleteWarningIconWrap, { backgroundColor: 'rgba(235, 91, 120, 0.15)' }]}>
                 <Ionicons name="key-outline" size={24} color={colors.pink} />
@@ -768,11 +768,9 @@ const styles = StyleSheet.create({
     padding: 22,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowOpacity: 0.3,
+    shadowRadius: 14,
     elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
   },
   modalWarningHeader: {
     flexDirection: 'row',

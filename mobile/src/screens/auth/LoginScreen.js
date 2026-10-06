@@ -194,7 +194,7 @@ export default function LoginScreen({ navigation, route }) {
         {/* Global Error Banner */}
         {errorMessage ? (
           <View style={styles.alertError}>
-            <Ionicons name="alert-circle" size={18} color="#EF4444" />
+            <Ionicons name="alert-circle" size={19} color="#FFFFFF" />
             <View style={styles.alertErrorContent}>
               <Text style={styles.alertErrorText}>{errorMessage}</Text>
               {needsVerification && (
@@ -617,38 +617,43 @@ const styles = StyleSheet.create({
   },
   alertError: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    borderRadius: 12,
-    padding: 12,
+    alignItems: 'center',
+    backgroundColor: '#F87171',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 20,
-    gap: 8,
+    gap: 10,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   alertErrorContent: {
     flex: 1,
   },
   alertErrorText: {
-    color: '#F87171',
+    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '700',
+    lineHeight: 18,
   },
   verifyActionBtn: {
-    marginTop: 8,
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(239, 68, 68, 0.22)',
-    paddingVertical: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   verifyActionText: {
-    color: '#FCA5A5',
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   form: {
     width: '100%',
