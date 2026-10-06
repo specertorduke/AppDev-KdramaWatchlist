@@ -200,6 +200,7 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="DramaFan2026"
                 placeholderTextColor={colors.muted}
                 value={name}
+                maxLength={255}
                 onChangeText={(val) => {
                   setName(val);
                   if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: null }));

@@ -306,6 +306,7 @@ function AuthPage({ mode }) {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="DramaFan2026"
+                  maxLength={255}
                   disabled={isSubmitting}
                 />
                 {fieldErrors.name && (
