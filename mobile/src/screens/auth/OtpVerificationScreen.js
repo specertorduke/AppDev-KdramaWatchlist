@@ -40,7 +40,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
   const [successMessage, setSuccessMessage] = useState(initialNotice);
   const [isExpiredOrInvalidated, setIsExpiredOrInvalidated] = useState(false);
 
-  const inputRefs = useRef([]);
+  const masterInputRef = useRef(null);
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -59,49 +59,34 @@ export default function OtpVerificationScreen({ navigation, route }) {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const handleDigitChange = (index, value) => {
-    // Only accept numeric characters
-    const cleaned = value.replace(/[^0-9]/g, '');
-
-    if (!cleaned) {
-      const updated = [...otp];
-      updated[index] = '';
-      setOtp(updated);
-      return;
+  // Auto-focus master input on mount
+  useEffect(() => {
+    if (!isEditingEmail && masterInputRef.current) {
+      const timer = setTimeout(() => {
+        masterInputRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(timer);
     }
+  }, [isEditingEmail]);
 
-    // Handle pasted or multi-character input
-    if (cleaned.length > 1) {
-      const chars = cleaned.slice(0, 6).split('');
-      const updated = [...otp];
-      chars.forEach((c, i) => {
-        if (index + i < 6) {
-          updated[index + i] = c;
-        }
-      });
-      setOtp(updated);
-      const nextFocus = Math.min(index + chars.length, 5);
-      inputRefs.current[nextFocus]?.focus();
-      return;
+  const handleOtpChange = (val) => {
+    // Only accept numbers up to 6 digits
+    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 6);
+    const updated = ['', '', '', '', '', ''];
+    for (let i = 0; i < cleaned.length; i++) {
+      updated[i] = cleaned[i];
     }
-
-    const updated = [...otp];
-    updated[index] = cleaned;
     setOtp(updated);
 
     if (errorMessage) {
       setErrorMessage('');
     }
 
-    // Auto-advance to next input
-    if (index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (index, e) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+    // Auto verify if all 6 digits entered
+    if (cleaned.length === 6) {
+      setTimeout(() => {
+        handleVerifyWithCode(cleaned);
+      }, 100);
     }
   };
 
@@ -130,7 +115,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
       setSuccessMessage(result?.message || 'A fresh verification code has been sent to your email.');
       setCooldown(60);
       setOtp(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+      masterInputRef.current?.focus();
     } catch (err) {
       if (err?.response?.status === 429) {
         setErrorMessage('Too many attempts. Please wait a minute before requesting another code.');
@@ -150,7 +135,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerifyWithCode = async (codeToVerify) => {
     const targetEmail = (email || emailInput || '').trim();
     if (!targetEmail) {
       setErrorMessage('Please provide your email address.');
@@ -158,7 +143,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
       return;
     }
 
-    const otpCode = otp.join('');
+    const otpCode = (codeToVerify || otp.join('')).trim();
     if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
       setErrorMessage('Please enter all 6 numeric digits of your verification code.');
       return;
@@ -186,7 +171,6 @@ export default function OtpVerificationScreen({ navigation, route }) {
           deviceName: Platform.OS === 'ios' ? 'iOS App' : Platform.OS === 'android' ? 'Android App' : 'Mobile App',
         });
       }
-      // Auth state update in AuthContext automatically redirects RootNavigator to MainTabs / GenreSelection
     } catch (err) {
       if (err?.response?.status === 429) {
         setErrorMessage('Too many invalid attempts. Please wait before trying again.');
@@ -215,6 +199,10 @@ export default function OtpVerificationScreen({ navigation, route }) {
     }
   };
 
+  const handleVerify = () => {
+    handleVerifyWithCode(otp.join(''));
+  };
+
   const handleSaveEmail = async () => {
     const newEmail = emailInput.trim();
     if (newEmail && newEmail !== email) {
@@ -229,7 +217,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
           setSuccessMessage(res?.message || `A verification code was sent to ${newEmail}`);
           setCooldown(60);
           setOtp(['', '', '', '', '', '']);
-          inputRefs.current[0]?.focus();
+          masterInputRef.current?.focus();
         } catch (err) {
           setErrorMessage(err.response?.data?.message || 'Failed to send code to new email.');
         } finally {
@@ -355,29 +343,50 @@ export default function OtpVerificationScreen({ navigation, route }) {
           </View>
         ) : null}
 
-        {/* 6-Digit OTP Inputs */}
-        <View style={styles.otpGrid}>
-          {otp.map((digit, idx) => (
-            <TextInput
-              key={idx}
-              ref={(ref) => (inputRefs.current[idx] = ref)}
-              style={[
-                styles.otpBox,
-                { backgroundColor: colors.card, borderColor: colors.border, color: colors.text },
-                digit ? [styles.otpBoxFilled, { borderColor: colors.pink, backgroundColor: isDark ? 'rgba(235, 91, 120, 0.08)' : 'rgba(235, 91, 120, 0.06)' }] : null,
-                errorMessage ? styles.otpBoxError : null,
-              ]}
-              value={digit}
-              onChangeText={(val) => handleDigitChange(idx, val)}
-              onKeyPress={(e) => handleKeyPress(idx, e)}
-              keyboardType="number-pad"
-              maxLength={1}
-              textAlign="center"
-              editable={!isVerifying && !isEditingEmail}
-              selectTextOnFocus
-            />
-          ))}
-        </View>
+        {/* 6-Digit OTP Visual Boxes & Hidden Master Input */}
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => masterInputRef.current?.focus()}
+          style={styles.otpGridWrapper}
+        >
+          <View style={styles.otpGrid}>
+            {otp.map((digit, idx) => {
+              const isCurrent = idx === Math.min(otp.filter(Boolean).length, 5) && !digit;
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    styles.otpBox,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    digit ? [styles.otpBoxFilled, { borderColor: colors.pink, backgroundColor: isDark ? 'rgba(235, 91, 120, 0.08)' : 'rgba(235, 91, 120, 0.06)' }] : null,
+                    isCurrent && !errorMessage ? { borderColor: colors.pink, borderWidth: 2 } : null,
+                    errorMessage ? styles.otpBoxError : null,
+                  ]}
+                >
+                  <Text style={[styles.otpBoxText, { color: colors.text }]}>
+                    {digit}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Master Invisible Input capturing Keyboard Autofill & multi-digit pastes */}
+          <TextInput
+            ref={masterInputRef}
+            style={styles.hiddenMasterInput}
+            value={otp.join('')}
+            onChangeText={handleOtpChange}
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
+            maxLength={6}
+            editable={!isVerifying && !isEditingEmail}
+            autoFocus={!isEditingEmail}
+            caretHidden
+            aria-label="Verification Code Input"
+          />
+        </TouchableOpacity>
 
         {/* Verify Button */}
         <TouchableOpacity
@@ -625,11 +634,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  otpGridWrapper: {
+    position: 'relative',
+    marginVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   otpGrid: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    marginVertical: 18,
   },
   otpBox: {
     width: 46,
@@ -638,10 +652,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#12121A',
     borderWidth: 1.5,
     borderColor: '#242330',
-    color: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpBoxText: {
     fontSize: 22,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  hiddenMasterInput: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.01,
+    color: 'transparent',
+    fontSize: 1,
   },
   otpBoxFilled: {
     borderColor: '#EB5B78',

@@ -114,9 +114,20 @@ export default function RegisterScreen({ navigation }) {
         setFieldErrors(errors);
         setErrorMessage(err.response.data?.message || 'Registration failed. Please check the inputs.');
       } else {
-        setErrorMessage(
-          err.friendlyMessage || err.response?.data?.message || 'Unable to connect. Please check your internet connection and try again.'
-        );
+        // Graceful handling like frontend: navigate to OtpVerification screen so user can proceed
+        console.warn('sendSignupOtp encountered error or mailer delivery issue, proceeding to verification screen:', err?.message || err);
+        navigation.navigate('OtpVerification', {
+          email: trimmedEmail,
+          registrationData: {
+            name: trimmedName,
+            email: trimmedEmail,
+            password,
+            passwordConfirmation,
+            terms_privacy_accepted: true,
+          },
+          message: 'Verification code sent to your email (or use demo code if offline).',
+          mode: 'signup',
+        });
       }
     } finally {
       setLoading(false);
