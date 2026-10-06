@@ -47,22 +47,36 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (
-    name,
+    nameOrData,
     email,
     password,
     passwordConfirmation,
     termsPrivacyAccepted = true,
     otp = null
   ) => {
-    const payload = {
-      name,
-      email,
-      password,
-      password_confirmation: passwordConfirmation,
-      terms_privacy_accepted: termsPrivacyAccepted,
-    };
-    if (otp) {
-      payload.otp = otp;
+    let payload;
+    if (typeof nameOrData === 'object' && nameOrData !== null) {
+      payload = {
+        name: nameOrData.name,
+        email: nameOrData.email,
+        password: nameOrData.password,
+        password_confirmation: nameOrData.passwordConfirmation || nameOrData.password_confirmation,
+        terms_privacy_accepted: nameOrData.termsPrivacyAccepted ?? nameOrData.terms_privacy_accepted ?? true,
+      };
+      if (nameOrData.otp) {
+        payload.otp = nameOrData.otp;
+      }
+    } else {
+      payload = {
+        name: nameOrData,
+        email,
+        password,
+        password_confirmation: passwordConfirmation,
+        terms_privacy_accepted: termsPrivacyAccepted,
+      };
+      if (otp) {
+        payload.otp = otp;
+      }
     }
     const response = await authService.register(payload);
     const { user: userData, token: authToken } = response.data;

@@ -20,12 +20,13 @@ import { useAuth } from '../../context/AuthContext';
 export default function OtpVerificationScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
-  const { verifyOtp, resendOtp } = useAuth();
+  const { verifyOtp, resendOtp, sendSignupOtp, register } = useAuth();
 
   const initialEmail = route?.params?.email || '';
   const initialNotice = route?.params?.message || 'A 6-digit verification code has been sent to your email.';
   const rememberMe = route?.params?.rememberMe ?? true;
   const mode = route?.params?.mode || 'signup';
+  const registrationData = route?.params?.registrationData || null;
 
   const [email, setEmail] = useState(initialEmail);
   const [isEditingEmail, setIsEditingEmail] = useState(!initialEmail);
@@ -120,7 +121,12 @@ export default function OtpVerificationScreen({ navigation, route }) {
     setIsExpiredOrInvalidated(false);
 
     try {
-      const result = await resendOtp({ email: targetEmail });
+      let result;
+      if (mode === 'signup') {
+        result = await sendSignupOtp({ email: targetEmail, name: registrationData?.name });
+      } else {
+        result = await resendOtp({ email: targetEmail });
+      }
       setSuccessMessage(result?.message || 'A fresh verification code has been sent to your email.');
       setCooldown(60);
       setOtp(['', '', '', '', '', '']);
@@ -136,7 +142,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
         setErrorMessage(errorMsg);
       } else {
         setErrorMessage(
-          err.friendlyMessage || 'Network error. Please verify your connection and try again.'
+          err.friendlyMessage || err.response?.data?.message || 'Network error. Please verify your connection and try again.'
         );
       }
     } finally {
@@ -163,12 +169,23 @@ export default function OtpVerificationScreen({ navigation, route }) {
     setIsExpiredOrInvalidated(false);
 
     try {
-      await verifyOtp({
-        email: targetEmail,
-        otp: otpCode,
-        rememberMe,
-        deviceName: Platform.OS === 'ios' ? 'iOS App' : Platform.OS === 'android' ? 'Android App' : 'Mobile App',
-      });
+      if (mode === 'signup' && registrationData) {
+        await register(
+          registrationData.name,
+          targetEmail,
+          registrationData.password,
+          registrationData.passwordConfirmation || registrationData.password_confirmation,
+          registrationData.terms_privacy_accepted ?? true,
+          otpCode
+        );
+      } else {
+        await verifyOtp({
+          email: targetEmail,
+          otp: otpCode,
+          rememberMe,
+          deviceName: Platform.OS === 'ios' ? 'iOS App' : Platform.OS === 'android' ? 'Android App' : 'Mobile App',
+        });
+      }
       // Auth state update in AuthContext automatically redirects RootNavigator to MainTabs / GenreSelection
     } catch (err) {
       if (err?.response?.status === 429) {
@@ -190,7 +207,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
         setErrorMessage('No account was found with this email.');
       } else {
         setErrorMessage(
-          err.friendlyMessage || 'Unable to connect. Please check your internet connection and try again.'
+          err.response?.data?.message || err.friendlyMessage || 'Unable to connect. Please check your internet connection and try again.'
         );
       }
     } finally {
@@ -198,12 +215,29 @@ export default function OtpVerificationScreen({ navigation, route }) {
     }
   };
 
-  const handleSaveEmail = () => {
-    if (emailInput.trim()) {
-      setEmail(emailInput.trim());
+  const handleSaveEmail = async () => {
+    const newEmail = emailInput.trim();
+    if (newEmail && newEmail !== email) {
+      setEmail(newEmail);
       setIsEditingEmail(false);
       setErrorMessage('');
       setSuccessMessage('');
+      if (mode === 'signup') {
+        setIsResending(true);
+        try {
+          const res = await sendSignupOtp({ email: newEmail, name: registrationData?.name });
+          setSuccessMessage(res?.message || `A verification code was sent to ${newEmail}`);
+          setCooldown(60);
+          setOtp(['', '', '', '', '', '']);
+          inputRefs.current[0]?.focus();
+        } catch (err) {
+          setErrorMessage(err.response?.data?.message || 'Failed to send code to new email.');
+        } finally {
+          setIsResending(false);
+        }
+      }
+    } else {
+      setIsEditingEmail(false);
     }
   };
 
@@ -362,7 +396,9 @@ export default function OtpVerificationScreen({ navigation, route }) {
               <Text style={styles.submitButtonText}>Verifying Code...</Text>
             </View>
           ) : (
-            <Text style={styles.submitButtonText}>Verify & Continue</Text>
+            <Text style={styles.submitButtonText}>
+              {mode === 'signup' ? 'Verify & Complete Registration' : 'Verify & Continue'}
+            </Text>
           )}
         </TouchableOpacity>
 
