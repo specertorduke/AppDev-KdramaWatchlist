@@ -165,7 +165,7 @@ export default function RegisterScreen({ navigation }) {
         {/* Global Success Banner */}
         {successNotice ? (
           <View style={styles.alertSuccess}>
-            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={19} color="#FFFFFF" />
             <Text style={styles.alertSuccessText}>{successNotice}</Text>
           </View>
         ) : null}
@@ -173,7 +173,7 @@ export default function RegisterScreen({ navigation }) {
         {/* Global Error Banner */}
         {errorMessage ? (
           <View style={styles.alertError}>
-            <Ionicons name="alert-circle" size={18} color="#EF4444" />
+            <Ionicons name="alert-circle" size={19} color="#FFFFFF" />
             <Text style={styles.alertErrorText}>{errorMessage}</Text>
           </View>
         ) : null}
@@ -568,35 +568,45 @@ const styles = StyleSheet.create({
   alertSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 16,
-    gap: 8,
+    gap: 10,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   alertSuccessText: {
-    color: '#34D399',
+    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '700',
+    lineHeight: 18,
     flex: 1,
   },
   alertError: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#F87171',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 20,
-    gap: 8,
+    gap: 10,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   alertErrorText: {
-    color: '#F87171',
+    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '700',
+    lineHeight: 18,
     flex: 1,
   },
   form: {

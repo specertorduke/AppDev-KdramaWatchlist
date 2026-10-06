@@ -329,7 +329,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
         {/* Success Alert */}
         {successMessage ? (
           <View style={styles.alertSuccess}>
-            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={19} color="#FFFFFF" />
             <Text style={styles.alertSuccessText}>{successMessage}</Text>
           </View>
         ) : null}
@@ -337,7 +337,7 @@ export default function OtpVerificationScreen({ navigation, route }) {
         {/* Error Alert */}
         {errorMessage ? (
           <View style={styles.alertError}>
-            <Ionicons name="alert-circle" size={18} color="#EF4444" />
+            <Ionicons name="alert-circle" size={19} color="#FFFFFF" />
             <View style={styles.alertErrorContent}>
               <Text style={styles.alertErrorText}>{errorMessage}</Text>
               {isExpiredOrInvalidated && (
@@ -569,51 +569,61 @@ const styles = StyleSheet.create({
   alertSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 18,
-    gap: 8,
+    gap: 10,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   alertSuccessText: {
-    color: '#34D399',
+    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '700',
+    lineHeight: 18,
     flex: 1,
   },
   alertError: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    borderRadius: 12,
-    padding: 12,
+    alignItems: 'center',
+    backgroundColor: '#F87171',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 18,
-    gap: 8,
+    gap: 10,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   alertErrorContent: {
     flex: 1,
   },
   alertErrorText: {
-    color: '#F87171',
+    color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '700',
+    lineHeight: 18,
   },
   alertActionBtn: {
     marginTop: 6,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
   },
   alertActionText: {
-    color: '#FCA5A5',
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   otpGrid: {
     flexDirection: 'row',
