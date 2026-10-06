@@ -142,15 +142,20 @@ export const AuthProvider = ({ children }) => {
         favorite_genres: favoriteGenres,
         avatar_url: avatarUrl,
       });
-      const updated = response.data.data;
+      // Backend returns { message: '...', user: { ... } }
+      const updated = response?.data?.user || response?.data?.data;
       if (updated) {
         const newUser = {
           ...user,
           ...updated,
-          favorite_genres: updated.favorite_genres ?? user?.favorite_genres,
+          favorite_genres: updated.favorite_genres ?? favoriteGenres ?? user?.favorite_genres,
         };
         setUser(newUser);
         await AsyncStorage.setItem('auth_user', JSON.stringify(newUser));
+      } else if (favoriteGenres && user) {
+        const fallbackUser = { ...user, favorite_genres: favoriteGenres };
+        setUser(fallbackUser);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(fallbackUser));
       }
       return response.data;
     } catch (e) {
