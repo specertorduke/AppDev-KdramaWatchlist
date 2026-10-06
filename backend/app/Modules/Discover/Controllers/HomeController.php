@@ -134,42 +134,59 @@ class HomeController extends Controller
             'family'            => 10751,
         ];
 
-        $genreIdList = [];
+        $hasRomance = false;
+        $genreQueries = [];
         if (!empty($userFavoriteGenres)) {
             foreach ($userFavoriteGenres as $fav) {
                 $favLower = strtolower(trim($fav));
+                if (str_contains($favLower, 'romance')) {
+                    $hasRomance = true;
+                    continue; // Romance will use specific TMDB Romance keyword 9840
+                }
                 if (isset($knownTmdbTvGenres[$favLower])) {
-                    $genreIdList[] = $knownTmdbTvGenres[$favLower];
+                    $genreQueries[] = ['genre_id' => $knownTmdbTvGenres[$favLower]];
                 } elseif (isset($genreMapFlipped[$favLower])) {
-                    $genreIdList[] = $genreMapFlipped[$favLower];
+                    $genreQueries[] = ['genre_id' => $genreMapFlipped[$favLower]];
                 }
             }
         }
 
-        $genreIdList = array_values(array_unique($genreIdList));
-        $primaryGenreId = !empty($genreIdList) ? $genreIdList[0] : null;
-
-        $discoverParams = ['page' => 1];
-        if ($primaryGenreId) {
-            $discoverParams['genre_id'] = $primaryGenreId;
+        if ($hasRomance) {
+            // TMDB Keyword 9840 is the authentic Korean romance tag
+            array_unshift($genreQueries, ['keyword_id' => 9840]);
         }
 
-        $discoverData = $this->discoverService->discover($discoverParams, $user);
-        $recommendedRaw = $discoverData['data'] ?? [];
+        $recommendedRaw = [];
+        $existingIds = [];
 
-        // If less than 10 or empty, fallback with page 1 general discover
-        if (count($recommendedRaw) < 10) {
-            $generalData = $this->discoverService->discover(['page' => 1], $user);
-            $existingIds = array_column($recommendedRaw, 'id');
-            foreach ($generalData['data'] ?? [] as $extra) {
-                if (!in_array($extra['id'], $existingIds, true)) {
-                    $recommendedRaw[] = $extra;
-                    $existingIds[] = $extra['id'];
-                }
-                if (count($recommendedRaw) >= 15) {
-                    break;
+        if (!empty($genreQueries)) {
+            $poolByQuery = [];
+            foreach ($genreQueries as $qParams) {
+                $qData = $this->discoverService->discover(array_merge(['page' => 1], $qParams), $user);
+                $poolByQuery[] = $qData['data'] ?? [];
+            }
+
+            // Interleave recommendations round-robin strictly across the selected genre pools
+            $maxCount = max(array_map('count', $poolByQuery));
+            for ($i = 0; $i < $maxCount && count($recommendedRaw) < 20; $i++) {
+                foreach ($poolByQuery as $pool) {
+                    if (isset($pool[$i])) {
+                        $item = $pool[$i];
+                        $id = $item['id'] ?? null;
+                        if ($id && !in_array($id, $existingIds, true)) {
+                            $recommendedRaw[] = $item;
+                            $existingIds[] = $id;
+                            if (count($recommendedRaw) >= 20) {
+                                break 2;
+                            }
+                        }
+                    }
                 }
             }
+        } else {
+            // Only if user has NO favorite genres at all do we show general discover
+            $discoverData = $this->discoverService->discover(['page' => 1], $user);
+            $recommendedRaw = $discoverData['data'] ?? [];
         }
 
         $imageBaseUrl = rtrim(config('services.tmdb.image_url', 'https://image.tmdb.org/t/p/original'), '/');

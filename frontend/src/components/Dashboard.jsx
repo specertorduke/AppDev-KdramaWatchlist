@@ -2439,11 +2439,10 @@ function Dashboard() {
     async function loadDashboardData() {
       setIsLoadingRecommended(true)
       try {
-        const responses = await Promise.allSettled([
+        const [homeRes, discoverRes] = await Promise.allSettled([
+          discoverService.getHome(),
           discoverService.getDiscover({ page: 1 }),
-          ...favoriteGenreIds.map((genre_id) => discoverService.getDiscover({ page: 1, genre_id })),
         ])
-        const [discoverRes, ...genreResponses] = responses
 
         if (!isCurrent) return
 
@@ -2454,10 +2453,20 @@ function Dashboard() {
           setRecommendedList([])
         }
 
-        const recommendationGroups = genreResponses
-          .filter((response) => response.status === 'fulfilled')
-          .map((response) => response.value?.data || [])
-        setCuratedRecommended(interleaveRecommendations(recommendationGroups))
+        if (homeRes.status === 'fulfilled' && homeRes.value?.data?.recommended?.length > 0) {
+          const curatedMapped = homeRes.value.data.recommended.map((d, index) => mapDramaCard(d, index))
+          setCuratedRecommended(curatedMapped)
+        } else if (favoriteGenreIds.length > 0) {
+          const genreResponses = await Promise.allSettled(
+            favoriteGenreIds.map((genre_id) => discoverService.getDiscover({ page: 1, genre_id }))
+          )
+          const recommendationGroups = genreResponses
+            .filter((response) => response.status === 'fulfilled')
+            .map((response) => response.value?.data || [])
+          setCuratedRecommended(interleaveRecommendations(recommendationGroups))
+        } else {
+          setCuratedRecommended([])
+        }
       } catch {
         if (isCurrent) {
           setRecommendedList([])

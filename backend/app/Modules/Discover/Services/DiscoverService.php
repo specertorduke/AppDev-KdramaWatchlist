@@ -197,6 +197,7 @@ class DiscoverService
     {
         $page = max(1, (int) ($filters['page'] ?? 1));
         $genreId = !empty($filters['genre_id']) ? (int) $filters['genre_id'] : null;
+        $keywordId = !empty($filters['keyword_id']) ? (int) $filters['keyword_id'] : null;
 
         $queryParams = [
             'include_adult'                => false,
@@ -206,7 +207,12 @@ class DiscoverService
             'sort_by'                      => 'popularity.desc',
             'with_origin_country'          => 'KR',
             'with_original_language'       => 'ko',
+            'without_genres'               => '10764,10767',
         ];
+
+        if ($keywordId) {
+            $queryParams['with_keywords'] = (string) $keywordId;
+        }
 
         $baseGenreId = 18;
         if ($genreId && (int) $genreId !== $baseGenreId) {
