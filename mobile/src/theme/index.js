@@ -34,6 +34,8 @@ export const darkColors = {
   tabBarActive: '#eb5b78',
   headerBg: '#07070E',
   modalCard: '#161424',
+  shadowColor: '#000000',
+  shadowOpacity: 0.35,
 };
 export const warmColors = {
   bg: '#FBF5EC',        // Soothing warm cream background
@@ -71,6 +73,8 @@ export const warmColors = {
   tabBarActive: '#E05B73',
   headerBg: '#FBF5EC',
   modalCard: '#FFFFFF',
+  shadowColor: '#8C6F56',
+  shadowOpacity: 0.05,
 };
 
 export const lightColors = {
@@ -109,6 +113,8 @@ export const lightColors = {
   tabBarActive: '#eb5b78',
   headerBg: '#F5F6FA',
   modalCard: '#FFFFFF',
+  shadowColor: '#1E293B',
+  shadowOpacity: 0.04,
 };
 
 export const colors = darkColors;

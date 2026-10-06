@@ -50,6 +50,7 @@ export default function DramaDetailScreen({ route, navigation }) {
   const [tracker, setTracker] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [savingReview, setSavingReview] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
   // Form states
@@ -104,8 +105,11 @@ export default function DramaDetailScreen({ route, navigation }) {
     overrideFavorite,
     isManualReviewSave = false
   ) => {
+    if (isManualReviewSave) {
+      setSavingReview(true);
+      setSaveMessage('');
+    }
     setSavingStatus(true);
-    setSaveMessage('');
     const statusToSave = toApiStatus(overrideStatus || selectedStatus);
     const epToSave = overrideEpisodes !== undefined ? overrideEpisodes : watchedEpisodes;
     const rawRating = overrideRating !== undefined ? overrideRating : selectedRating;
@@ -186,10 +190,13 @@ export default function DramaDetailScreen({ route, navigation }) {
         (err.response?.data?.errors
           ? Object.values(err.response.data.errors).flat().join(', ')
           : 'Could not save changes.');
-      setSaveMessage('Save failed');
+      if (isManualReviewSave) {
+        setSaveMessage('Save failed');
+      }
       Alert.alert('Notice', msg);
     } finally {
       setSavingStatus(false);
+      setSavingReview(false);
     }
   };
 
@@ -392,29 +399,31 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Text style={[styles.metaText, { color: colors.muted }]}>{episodesTotal} Episodes</Text>
           </View>
 
-          {/* Dedicated TMDB Rating & User Rating line */}
+          {/* Dedicated TMDB Rating & User Rating line (Switched Design Styles) */}
           {(tmdbScore || selectedRating > 0) ? (
             <View style={styles.tmdbRatingRow}>
+              {/* TMDB Pill Badge Style (Gold/Yellow, borderless bg) */}
               {tmdbScore ? (
-                <>
-                  <View style={[styles.tmdbBadge, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.14)' : 'rgba(235, 91, 120, 0.12)' }]}>
-                    <Text style={[styles.tmdbBadgeText, { color: colors.pink }]}>TMDB</Text>
-                  </View>
-                  <Text style={[styles.metaStarRating, { color: colors.pink }]}>
-                    ★ {tmdbScore} <Text style={[styles.metaStarRatingSlash, { color: colors.muted }]}>/ 10</Text>
-                  </Text>
+                <View style={[styles.tmdbPillBadge, { backgroundColor: isDark ? 'rgba(255, 215, 106, 0.16)' : 'rgba(245, 158, 11, 0.14)', borderWidth: 0 }]}>
+                  <Text style={[styles.tmdbPillStar, { color: isDark ? '#ffd76a' : '#d97706' }]}>★</Text>
+                  <Text style={[styles.tmdbPillScore, { color: isDark ? '#ffd76a' : '#d97706' }]}>{tmdbScore}</Text>
+                  <Text style={[styles.tmdbPillLabel, { color: colors.muted }]}>TMDB</Text>
                   {tmdbVoteCount ? (
-                    <Text style={[styles.tmdbVoteText, { color: colors.muted }]}>
+                    <Text style={[styles.tmdbPillVotes, { color: colors.muted }]}>
                       ({tmdbVoteCount >= 1000 ? `${(tmdbVoteCount / 1000).toFixed(1)}k` : tmdbVoteCount})
                     </Text>
                   ) : null}
-                </>
+                </View>
               ) : null}
 
+              {/* User Rating Dedicated Score Style (Pink/Rose theme) */}
               {selectedRating > 0 && (
-                <View style={[styles.userRatingBadge, { backgroundColor: isDark ? 'rgba(255, 215, 106, 0.16)' : 'rgba(245, 158, 11, 0.14)', borderColor: isDark ? 'rgba(255, 215, 106, 0.3)' : 'rgba(245, 158, 11, 0.3)' }]}>
-                  <Text style={[styles.userRatingBadgeText, { color: isDark ? '#ffd76a' : '#d97706' }]}>
-                    ★ {selectedRating}/10 You
+                <View style={styles.userDedicatedRow}>
+                  <View style={[styles.userScoreBadge, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.16)' : 'rgba(235, 91, 120, 0.12)' }]}>
+                    <Text style={[styles.userScoreBadgeText, { color: colors.pink }]}>YOU</Text>
+                  </View>
+                  <Text style={[styles.userDedicatedScore, { color: colors.pink }]}>
+                    ★ {selectedRating} <Text style={[styles.metaStarRatingSlash, { color: colors.muted }]}>/ 10</Text>
                   </Text>
                 </View>
               )}
@@ -443,6 +452,9 @@ export default function DramaDetailScreen({ route, navigation }) {
               backgroundColor: tracker ? colors.card : colors.pink,
               borderColor: colors.border,
               borderWidth: isDark ? 0 : 1,
+              shadowColor: tracker ? (colors.shadowColor || '#000000') : colors.pink,
+              shadowOpacity: isDark ? (tracker ? 0.2 : 0.25) : (colors.shadowOpacity || 0.05),
+              elevation: isDark ? 2 : 1,
             },
           ]}
           onPress={handleToggleList}
@@ -463,7 +475,14 @@ export default function DramaDetailScreen({ route, navigation }) {
         <Pressable
           style={[
             styles.favoriteButton,
-            { backgroundColor: isFavorite ? 'rgba(255,70,85,0.18)' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+            {
+              backgroundColor: isFavorite ? 'rgba(255,70,85,0.18)' : colors.card,
+              borderColor: colors.border,
+              borderWidth: isDark ? 0 : 1,
+              shadowColor: colors.shadowColor || '#000000',
+              shadowOpacity: isDark ? 0.2 : (colors.shadowOpacity || 0.05),
+              elevation: isDark ? 2 : 1,
+            },
             isFavorite && styles.favoriteButtonActive,
           ]}
           onPress={handleToggleFavorite}
@@ -545,10 +564,15 @@ export default function DramaDetailScreen({ route, navigation }) {
                 }}
                 style={[
                   styles.statusChip,
+                  {
+                    shadowColor: colors.shadowColor || '#000000',
+                    shadowOpacity: isDark ? 0.2 : (colors.shadowOpacity || 0.05),
+                    elevation: isDark ? 2 : 1,
+                  },
                   active
                     ? {
                         backgroundColor: chipColor,
-                        borderColor: 'rgba(255, 255, 255, 0.28)',
+                        borderColor: st === 'Plan to Watch' ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.28)',
                         borderWidth: 1,
                       }
                     : {
@@ -561,13 +585,13 @@ export default function DramaDetailScreen({ route, navigation }) {
                 <View
                   style={[
                     styles.statusColorDot,
-                    { backgroundColor: active ? '#FFFFFF' : chipColor },
+                    { backgroundColor: active ? (st === 'Plan to Watch' ? '#161424' : '#FFFFFF') : chipColor },
                   ]}
                 />
                 <Text
                   style={[
                     styles.statusChipText,
-                    { color: active ? '#FFFFFF' : colors.muted },
+                    { color: active ? (st === 'Plan to Watch' ? '#161424' : '#FFFFFF') : colors.muted },
                     active && { fontWeight: '800' },
                   ]}
                 >
@@ -810,17 +834,17 @@ export default function DramaDetailScreen({ route, navigation }) {
 
         <View style={styles.notesActionRow}>
           <Pressable
-            style={[styles.saveAllButton, { backgroundColor: colors.pink }, savingStatus && styles.saveButtonDisabled]}
+            style={[styles.saveAllButton, { backgroundColor: colors.pink }, savingReview && styles.saveButtonDisabled]}
             onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes, isFavorite, true)}
-            disabled={savingStatus}
+            disabled={savingReview}
           >
             <Ionicons
-              name={savingStatus ? 'hourglass-outline' : 'checkmark-circle'}
+              name={savingReview ? 'hourglass-outline' : 'checkmark-circle'}
               size={15}
               color="#FFFFFF"
             />
             <Text style={styles.saveAllButtonText}>
-              {savingStatus ? 'Saving...' : 'Save Review'}
+              {savingReview ? 'Saving...' : 'Save Review'}
             </Text>
           </Pressable>
 
@@ -1080,20 +1104,50 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
   },
-  tmdbVoteText: {
-    color: '#8D8A98',
+  tmdbPillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 7,
+    borderWidth: 1,
+  },
+  tmdbPillStar: {
     fontSize: 11,
+    fontWeight: '800',
+  },
+  tmdbPillScore: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  tmdbPillLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  tmdbPillVotes: {
+    fontSize: 10.5,
     fontWeight: '500',
   },
-  userRatingBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    borderRadius: 6,
-    borderWidth: 1,
-    marginLeft: 2,
+  userDedicatedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 3,
   },
-  userRatingBadgeText: {
-    fontSize: 11,
+  userScoreBadge: {
+    paddingHorizontal: 5.5,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  userScoreBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  userDedicatedScore: {
+    fontSize: 12,
     fontWeight: '800',
   },
   genreRow: {

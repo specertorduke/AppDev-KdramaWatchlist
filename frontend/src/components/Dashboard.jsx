@@ -693,11 +693,19 @@ function QuickAccess({ onOpenAddDrama }) {
 
 function TrendingCard({ drama, index, onClick }) {
   const poster = drama.poster || drama.image || drama.backdrop || DEFAULT_POSTER_IMAGE
+  const status = drama.status || drama.watch_status
 
   return (
     <button className="trending-card" type="button" onClick={onClick}>
       <span className="trending-rank" aria-hidden="true">{index + 1}</span>
-      <span className="trending-poster" style={{ backgroundImage: `url(${poster})` }} />
+      <span className="trending-poster" style={{ backgroundImage: `url(${poster})` }}>
+        {status && (
+          <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
+            <span className="recommended-status-dot" />
+            {status}
+          </span>
+        )}
+      </span>
       <span className="trending-title">{drama.title}</span>
       <span className="trending-meta">{drama.meta || drama.genres || 'K-Drama'}</span>
     </button>
@@ -883,22 +891,22 @@ function DramaDetailView({ drama, onBack }) {
           {(Number(drama.rating) > 0 || Number(myRating) > 0) && (
             <div className="detail-tmdb-row">
               {Number(drama.rating) > 0 && (
-                <>
-                  <span className="detail-tmdb-badge">TMDB</span>
-                  <span className="detail-tmdb-score">
-                    ★ {Number(drama.rating).toFixed(1)} <small>/ 10</small>
-                  </span>
+                <span className="detail-tmdb-pill">
+                  <Star size={11} fill="currentColor" />
+                  <strong>{Number(drama.rating).toFixed(1)}</strong>
+                  <span>TMDB</span>
                   {Number(drama.voteCount) > 0 && (
-                    <span className="detail-tmdb-votes">
-                      ({Number(drama.voteCount) >= 1000 ? `${(Number(drama.voteCount) / 1000).toFixed(1)}k` : Number(drama.voteCount)})
-                    </span>
+                    <small>({Number(drama.voteCount) >= 1000 ? `${(Number(drama.voteCount) / 1000).toFixed(1)}k` : Number(drama.voteCount)})</small>
                   )}
-                </>
+                </span>
               )}
               {Number(myRating) > 0 && (
-                <span className="detail-user-rating-pill">
-                  ★ {myRating}/10 You
-                </span>
+                <div className="detail-user-dedicated-row">
+                  <span className="detail-user-badge">YOU</span>
+                  <span className="detail-user-score">
+                    ★ {myRating} <small>/ 10</small>
+                  </span>
+                </div>
               )}
             </div>
           )}
@@ -1036,16 +1044,18 @@ function DramaDetailView({ drama, onBack }) {
                 {statusOptions.map((st) => {
                   const isActive = status === st
                   const chipColor = getStatusColor(st)
+                  const isGoldOrYellow = st === 'Plan to Watch'
+                  const activeTextColor = isGoldOrYellow ? '#161424' : '#FFFFFF'
                   return (
                     <button
                       key={st}
                       type="button"
-                      className={`status-option-pill ${isActive ? 'active' : ''}`}
+                      className={`status-option-pill ${isActive ? 'active' : ''} ${isGoldOrYellow ? 'is-plan' : ''}`}
                       style={{
                         '--status-color': chipColor,
-                        color: isActive ? '#FFFFFF' : chipColor,
+                        color: isActive ? activeTextColor : chipColor,
                         backgroundColor: isActive ? chipColor : `${chipColor}15`,
-                        borderColor: isActive ? 'rgba(255, 255, 255, 0.28)' : 'transparent',
+                        borderColor: isActive ? (isGoldOrYellow ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.28)') : 'transparent',
                       }}
                       onClick={() => handleStatusChange(st)}
                     >
@@ -1202,6 +1212,7 @@ const DISCOVER_GENRES = [
 ]
 
 function DiscoverPage() {
+  const { getWatchlistItem } = useWatchlist()
   const [searchParams, setSearchParams] = useSearchParams()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [selectedDrama, setSelectedDrama] = useState(null)
@@ -1454,18 +1465,26 @@ function DiscoverPage() {
                 <h3>{searchQuery ? `Searching for “${searchQuery}”...` : 'Loading K-Dramas...'}</h3>
               </div>
             ) : gridDramas.length > 0 ? (
-              gridDramas.map((drama) => (
-                <div
-                  key={drama.id || drama.title}
-                  onClick={() => handleOpenDetails(drama)}
-                  style={{ cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && handleOpenDetails(drama)}
-                >
-                  <DiscoverCard drama={drama} />
-                </div>
-              ))
+              gridDramas.map((drama) => {
+                const dramaId = drama.tmdb_id || drama.id
+                const trackedItem = getWatchlistItem(dramaId)
+                const dramaWithStatus = {
+                  ...drama,
+                  status: trackedItem?.status || drama.status || drama.watch_status,
+                }
+                return (
+                  <div
+                    key={drama.id || drama.title}
+                    onClick={() => handleOpenDetails(dramaWithStatus)}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handleOpenDetails(dramaWithStatus)}
+                  >
+                    <DiscoverCard drama={dramaWithStatus} />
+                  </div>
+                )
+              })
             ) : (
               <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
                 <Film size={36} />
@@ -1495,18 +1514,16 @@ function DiscoverPage() {
 }
 
 function DiscoverCard({ drama }) {
-  const statusClass = getStatusKey(drama.status).replace(/\s+/g, '-')
+  const statusKey = String(drama.status || drama.watch_status || '').toLowerCase().replace(/\s+/g, '-')
 
   return (
     <article className="discover-card">
       <div className="discover-poster" style={{ backgroundImage: `url(${drama.image})` }}>
         {drama.status && (
-          <b
-            className={`show-status status-${statusClass}`}
-            style={{ color: getStatusColor(drama.status), backgroundColor: `${getStatusColor(drama.status)}22` }}
-          >
+          <span className={`recommended-status-badge status-${statusKey}`}>
+            <span className="recommended-status-dot" />
             {drama.status}
-          </b>
+          </span>
         )}
       </div>
       <h3>{drama.title}</h3>
@@ -2430,7 +2447,7 @@ function SettingsPage() {
 
 function Dashboard() {
   const { user } = useAuth()
-  const { stats } = useWatchlist()
+  const { stats, getWatchlistItem } = useWatchlist()
   const firstName = user?.name ? user.name.split(' ')[0] : 'Fan'
   const favoriteGenres = Array.isArray(user?.favorite_genres) ? user.favorite_genres : EMPTY_FAVORITE_GENRES
   const favoriteGenreIds = useMemo(() => getFavoriteGenreIds(favoriteGenres), [favoriteGenres])
@@ -2576,14 +2593,21 @@ function Dashboard() {
                     <p>Loading trending dramas...</p>
                   </div>
                 ) : (
-                  recommendedList.slice(0, 10).map((drama, index) => (
-                    <TrendingCard
-                      key={drama.id || drama.title}
-                      drama={drama}
-                      index={index}
-                      onClick={() => handleDramaClick(drama)}
-                    />
-                  ))
+                  recommendedList.slice(0, 10).map((drama, index) => {
+                    const tracked = getWatchlistItem(drama.tmdb_id || drama.id)
+                    const dramaWithStatus = {
+                      ...drama,
+                      status: tracked?.status || drama.status || drama.watch_status,
+                    }
+                    return (
+                      <TrendingCard
+                        key={drama.id || drama.title}
+                        drama={dramaWithStatus}
+                        index={index}
+                        onClick={() => handleDramaClick(dramaWithStatus)}
+                      />
+                    )
+                  })
                 )}
               </div>
             </section>
@@ -2609,13 +2633,20 @@ function Dashboard() {
                     <p>Loading recommendations...</p>
                   </div>
                 ) : displayRecommended.length > 0 ? (
-                  displayRecommended.map((drama, index) => (
-                    <RecommendedCard
-                      key={drama.tmdb_id || drama.id || index}
-                      drama={drama}
-                      onClick={() => handleDramaClick(drama)}
-                    />
-                  ))
+                  displayRecommended.map((drama, index) => {
+                    const tracked = getWatchlistItem(drama.tmdb_id || drama.id)
+                    const dramaWithStatus = {
+                      ...drama,
+                      status: tracked?.status || drama.status || drama.watch_status,
+                    }
+                    return (
+                      <RecommendedCard
+                        key={drama.tmdb_id || drama.id || index}
+                        drama={dramaWithStatus}
+                        onClick={() => handleDramaClick(dramaWithStatus)}
+                      />
+                    )
+                  })
                 ) : (
                   <p className="recommended-empty-text">
                     {favoriteGenres.length

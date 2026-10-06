@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import DramaCard from '../../components/DramaCard';
-import { discoverService } from '../../services/api';
+import { discoverService, trackerService } from '../../services/api';
 
 export default function DiscoverScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -61,10 +61,31 @@ export default function DiscoverScreen({ navigation }) {
         ? discoverService.search({ query: query.trim() })
         : discoverService.discover(params);
 
-      fetchPromise
-        .then((res) => {
+      Promise.all([
+        fetchPromise,
+        trackerService.getWatchlist().catch(() => null),
+      ])
+        .then(([res, trackerRes]) => {
           if (!isCancelled) {
-            setDramas(res.data.data || []);
+            const rawDramas = res.data.data || [];
+            const userWatchlist = trackerRes?.data?.data || [];
+            const statusMap = new Map();
+            userWatchlist.forEach((item) => {
+              const id = item.tmdb_id || item.id;
+              if (id) statusMap.set(String(id), item.status);
+            });
+
+            const merged = rawDramas.map((drama) => {
+              const dramaId = String(drama.tmdb_id || drama.id);
+              const trackedStatus = statusMap.get(dramaId);
+              return {
+                ...drama,
+                watch_status: trackedStatus || drama.watch_status || drama.status,
+                status: trackedStatus || drama.status || drama.watch_status,
+              };
+            });
+
+            setDramas(merged);
           }
         })
         .catch((e) => {

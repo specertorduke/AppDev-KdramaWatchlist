@@ -39,13 +39,32 @@ export default function HomeScreen({ navigation }) {
 
   const fetchDashboard = async () => {
     try {
-      const [res, discoverRes] = await Promise.all([
+      const [res, discoverRes, trackerRes] = await Promise.all([
         homeService.getDashboard(),
         discoverService.discover({ page: 1 }).catch(() => null),
+        trackerService.getWatchlist().catch(() => null),
       ]);
       setDashboardData(res.data.data);
       if (discoverRes?.data?.data) {
-        setTrendingDramas(discoverRes.data.data.slice(0, 10));
+        const rawTrending = discoverRes.data.data.slice(0, 10);
+        const userWatchlist = trackerRes?.data?.data || [];
+        const statusMap = new Map();
+        userWatchlist.forEach((item) => {
+          const id = item.tmdb_id || item.id;
+          if (id) statusMap.set(String(id), item.status);
+        });
+
+        const mergedTrending = rawTrending.map((drama) => {
+          const dramaId = String(drama.tmdb_id || drama.id);
+          const trackedStatus = statusMap.get(dramaId);
+          return {
+            ...drama,
+            watch_status: trackedStatus || drama.watch_status || drama.status,
+            status: trackedStatus || drama.status || drama.watch_status,
+          };
+        });
+
+        setTrendingDramas(mergedTrending);
       }
     } catch (err) {
       console.warn('Failed to load dashboard from backend, fallback displayed:', err);
@@ -116,7 +135,7 @@ export default function HomeScreen({ navigation }) {
             style={styles.topBarLogoImage}
             resizeMode="contain"
           />
-          <Text style={[styles.logo, { color: colors.text }]}>
+          <Text style={styles.logo}>
             Sarang<Text style={styles.logoTv}>TV</Text>
           </Text>
         </View>
@@ -565,7 +584,14 @@ function StatCard({ value, suffix, label, sublabel, icon, iconColor, bottomColor
     <Pressable
       style={({ pressed, hovered }) => [
         styles.statCard,
-        { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderWidth: isDark ? 0 : 1,
+          shadowColor: colors.shadowColor || '#000000',
+          shadowOpacity: isDark ? 0.25 : (colors.shadowOpacity || 0.05),
+          elevation: isDark ? 3 : 1,
+        },
         hovered && { transform: [{ scale: 1.02 }] },
         pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
       ]}
@@ -796,12 +822,13 @@ const styles = StyleSheet.create({
   logo: {
     color: '#f09ab0',
     fontFamily: 'serif',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.6,
   },
   logoTv: {
-    color: '#eb5b78',
+    color: '#E85D75',
+    fontWeight: '800',
   },
   topBarRight: {
     flexDirection: 'row',

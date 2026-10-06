@@ -42,7 +42,7 @@ export const getStatusColor = (status, colors = {}, isDark = true) => {
     case 'Completed':
       return isDark ? '#10B981' : (colors.green || '#047857');
     case 'Plan to Watch':
-      return isDark ? '#FFD76A' : (colors.gold || '#B87A04');
+      return '#FFD76A';
     case 'On Hold':
       return isDark ? '#F59E0B' : '#D97706';
     case 'Dropped':

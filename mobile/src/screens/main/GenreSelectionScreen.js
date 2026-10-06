@@ -150,15 +150,15 @@ export default function GenreSelectionScreen({ navigation, route }) {
                         : (theme === 'warm' ? 'rgba(44, 34, 26, 0.08)' : colors.border),
                       borderWidth: isSelected ? 1.5 : (isDark ? 0 : 1),
                       // Soft, balanced elevation/shadow tailored to light & warm modes
-                      elevation: isSelected ? 3 : (isDark ? 2 : 1),
+                      elevation: isSelected ? (isDark ? 3 : 1) : (isDark ? 1 : 0),
                       shadowColor: isSelected
                         ? colors.pink
                         : (isDark ? '#000000' : (theme === 'warm' ? '#8C6F56' : '#1E293B')),
-                      shadowOffset: { width: 0, height: isDark ? 4 : 2 },
+                      shadowOffset: { width: 0, height: isDark ? 3 : 1 },
                       shadowOpacity: isSelected
-                        ? (isDark ? 0.25 : 0.16)
-                        : (isDark ? 0.3 : 0.06),
-                      shadowRadius: isSelected ? 8 : (isDark ? 6 : 5),
+                        ? (isDark ? 0.25 : 0.08)
+                        : (isDark ? 0.2 : 0.03),
+                      shadowRadius: isSelected ? 6 : 4,
                     },
                     pressed && styles.cardPressed,
                   ]}
@@ -317,11 +317,6 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
     minHeight: 120,
     position: 'relative',
   },

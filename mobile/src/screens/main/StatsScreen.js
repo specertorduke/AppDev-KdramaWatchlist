@@ -152,7 +152,7 @@ export default function StatsScreen({ navigation }) {
           name="Plan to Watch"
           count={planCount}
           percent={20}
-          tone="purple"
+          tone="yellow"
           colors={colors}
           isDark={isDark}
         />
@@ -224,8 +224,21 @@ function StatBox({ icon, iconTone, value, label, sub }) {
         { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
       ]}
     >
-      <View style={[styles.statIcon, styles[`icon_${iconTone}`]]}>
-        <Ionicons name={icon} size={18} color="#FFFFFF" />
+      <View
+        style={[
+          styles.statIcon,
+          {
+            backgroundColor: isDark
+              ? (iconTone === 'purple' ? '#2D204A' : iconTone === 'blue' ? '#1E2D4A' : iconTone === 'gold' ? '#3E341F' : '#1C3A2E')
+              : (iconTone === 'purple' ? 'rgba(139, 92, 246, 0.14)' : iconTone === 'blue' ? 'rgba(96, 165, 250, 0.14)' : iconTone === 'gold' ? 'rgba(255, 215, 106, 0.25)' : 'rgba(16, 185, 129, 0.14)'),
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={isDark ? '#FFFFFF' : (iconTone === 'purple' ? colors.purple : iconTone === 'blue' ? colors.blue : iconTone === 'gold' ? (colors.gold || '#B87A04') : colors.green)}
+        />
       </View>
       <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
       <Text style={[styles.statLabel, { color: colors.muted }]}>{label}</Text>
@@ -270,9 +283,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 9,
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -293,9 +306,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 6,
     elevation: 3,
   },
@@ -343,9 +356,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 6,
     elevation: 3,
   },
@@ -370,9 +383,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 6,
     elevation: 3,
   },
@@ -404,6 +417,9 @@ const styles = StyleSheet.create({
   status_green: {
     color: '#34D399',
   },
+  status_yellow: {
+    color: '#FFD76A',
+  },
   status_purple: {
     color: '#A78BFA',
   },
@@ -433,6 +449,9 @@ const styles = StyleSheet.create({
   },
   statusFill_green: {
     backgroundColor: '#34D399',
+  },
+  statusFill_yellow: {
+    backgroundColor: '#FFD76A',
   },
   statusFill_purple: {
     backgroundColor: '#A78BFA',

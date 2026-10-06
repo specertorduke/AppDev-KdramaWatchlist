@@ -2660,23 +2660,60 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
   margin-top: 10px;
 }
 
-.detail-tmdb-badge {
+.detail-tmdb-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2.5px 6.5px;
-  border-radius: 5px;
-  background: rgba(235, 91, 120, 0.14);
-  color: #eb5b78;
+  gap: 4px;
+  padding: 3.5px 8.5px;
+  border-radius: 7px;
+  background: rgba(255, 215, 106, 0.16);
+  border: 0;
+  color: #ffd76a;
+}
+
+.detail-tmdb-pill strong {
+  font-size: 12px;
+  font-weight: 900;
+  color: #ffd76a;
+}
+
+.detail-tmdb-pill > span {
+  color: #8c8697;
   font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.detail-tmdb-pill small {
+  color: #8c8697;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.detail-user-dedicated-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+}
+
+.detail-user-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 5.5px;
+  border-radius: 5px;
+  background: rgba(235, 91, 120, 0.16);
+  color: #eb5b78;
+  font-size: 9.5px;
   font-weight: 900;
   letter-spacing: 0.5px;
 }
 
-.detail-tmdb-score {
+.detail-user-score {
   color: #eb5b78;
   font-size: 12.5px;
   font-weight: 800;
@@ -2685,29 +2722,10 @@
   gap: 3px;
 }
 
-.detail-tmdb-score small {
-  color: #7b7585;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.detail-tmdb-votes {
+.detail-user-score small {
   color: #8c8697;
   font-size: 11px;
   font-weight: 500;
-}
-
-.detail-user-rating-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2.5px 7px;
-  border-radius: 6px;
-  background: rgba(255, 215, 106, 0.16);
-  border: 1px solid rgba(255, 215, 106, 0.3);
-  color: #ffd76a;
-  font-size: 11px;
-  font-weight: 800;
-  margin-left: 3px;
 }
 
 .detail-header-actions {
@@ -3020,16 +3038,26 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 160ms ease;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  user-select: none;
 }
 
-.status-option-pill:hover {
-  filter: brightness(1.12);
+.status-option-pill:hover:not(.active) {
+  filter: brightness(1.15);
 }
 
 .status-option-pill.active {
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.status-option-pill.active:hover {
+  filter: brightness(0.95);
+}
+
+.status-option-pill.active.is-plan {
+  color: #1a1600 !important;
   font-weight: 800;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Star Rating */
@@ -3313,6 +3341,7 @@
 
 .profile-summary { display: flex; align-items: center; gap: 18px; padding: 15px 0 26px; }
 .profile-summary > img { 
+  box-sizing: border-box;
   width: 72px; 
   height: 72px; 
   padding: 2.5px;
@@ -3321,7 +3350,7 @@
   object-fit: cover; 
   background: var(--color-panel-raised);
   outline: 2px solid rgba(235, 91, 120, 0.45);
-  outline-offset: 3px;
+  outline-offset: 2px;
   box-shadow: 0 0 0 1px var(--color-bg), 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .profile-summary h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 25px; }
@@ -5434,12 +5463,13 @@
 }
 
 .profile-summary > .drama-persona-avatar {
+  box-sizing: border-box;
   width: 72px;
   height: 72px;
   padding: 2.5px;
   border: 2px solid var(--color-primary);
   outline: 2px solid rgba(235, 91, 120, 0.45);
-  outline-offset: 3px;
+  outline-offset: 2px;
   box-shadow: 0 0 0 1px var(--color-bg), 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 

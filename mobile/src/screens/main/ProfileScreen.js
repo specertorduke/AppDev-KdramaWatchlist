@@ -1045,7 +1045,19 @@ export default function ProfileScreen({ navigation }) {
                   <View style={styles.modeContent}>
                     {/* Photo Preview */}
                     <View style={[styles.previewContainer, { backgroundColor: isDark ? '#0F0E1A' : (colors.panel2 || '#F0F2F6') }]}>
-                      <View style={styles.avatarPreview}>
+                      <View
+                        style={[
+                          styles.avatarPreview,
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.pink,
+                            borderWidth: 2,
+                            shadowColor: colors.shadowColor || '#000000',
+                            shadowOpacity: isDark ? 0.3 : (colors.shadowOpacity || 0.05),
+                            elevation: isDark ? 4 : 1,
+                          },
+                        ]}
+                      >
                         <View style={[styles.avatarPreviewInner, { backgroundColor: isDark ? '#1E1B2D' : colors.card }]}>
                           {customImage?.endsWith('.svg') ? (
                             <DefaultProfileAvatar size={60} />
@@ -1121,7 +1133,7 @@ export default function ProfileScreen({ navigation }) {
                       </View>
                     </View>
 
-                    <View style={styles.modeNoticeBox}>
+                    <View style={[styles.modeNoticeBox, { backgroundColor: isDark ? '#0F0E1A' : (colors.panel2 || '#F0F2F6'), borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
                       <Ionicons name="information-circle-outline" size={16} color={colors.muted} />
                       <Text style={[styles.modeNoticeText, { color: colors.muted }]}>
                         Custom photo replaces your Drama Persona icon and is compressed and optimized for fast loading.
@@ -1132,7 +1144,19 @@ export default function ProfileScreen({ navigation }) {
                   <View style={styles.modeContent}>
                     {/* Persona Preview */}
                     <View style={[styles.previewContainer, { backgroundColor: isDark ? '#0F0E1A' : (colors.panel2 || '#F0F2F6') }]}>
-                      <View style={styles.avatarPreview}>
+                      <View
+                        style={[
+                          styles.avatarPreview,
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.pink,
+                            borderWidth: 2,
+                            shadowColor: colors.shadowColor || '#000000',
+                            shadowOpacity: isDark ? 0.3 : (colors.shadowOpacity || 0.05),
+                            elevation: isDark ? 4 : 1,
+                          },
+                        ]}
+                      >
                         <View style={[styles.avatarPreviewInner, { backgroundColor: selectedColor }]}>
                           <Ionicons name={selectedIcon} size={42} color="#FFFFFF" />
                         </View>
@@ -1329,15 +1353,15 @@ const styles = StyleSheet.create({
     borderColor: '#262335',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   pencilEditButtonHovered: {
-    backgroundColor: '#1E1B30',
-    borderColor: '#38324F',
+    backgroundColor: 'rgba(235, 91, 120, 0.08)',
+    borderColor: '#eb5b78',
   },
   buttonPressed: {
     opacity: 0.7,
@@ -1349,9 +1373,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     marginBottom: 20,
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -1383,9 +1407,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 22,
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -1401,7 +1425,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   menuItemHovered: {
-    backgroundColor: '#1C192E',
+    backgroundColor: 'rgba(235, 91, 120, 0.08)',
   },
   menuItemPressed: {
     opacity: 0.7,
@@ -1452,18 +1476,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -1,
     right: -1,
-    backgroundColor: '#1E1B2E',
+    backgroundColor: colors.card,
     width: 22,
     height: 22,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#07070E',
-    elevation: 4,
-    shadowColor: '#000000',
+    borderColor: colors.bg,
+    elevation: 3,
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 3,
   },
   modeTabBar: {
@@ -1528,9 +1552,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 22,
     maxHeight: '90%',
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
+    shadowOpacity: colors.shadowOpacity ? colors.shadowOpacity * 1.5 : 0.08,
     shadowRadius: 12,
     elevation: 8,
   },
@@ -1774,17 +1798,17 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 43,
-    borderWidth: 2.5,
-    borderColor: '#61374c',
+    borderWidth: 2,
+    borderColor: '#eb5b78',
     padding: 3,
-    backgroundColor: '#07070E',
+    backgroundColor: '#eb5b78',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 3,
     overflow: 'hidden',
   },
   avatarPreviewInner: {
