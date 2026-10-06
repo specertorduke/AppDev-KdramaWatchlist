@@ -540,7 +540,20 @@ export default function DramaDetailScreen({ route, navigation }) {
 
         <View style={styles.detailProgressInfoRow}>
           <Text style={[styles.progressRemaining, { color: colors.muted }]}>
-            ~{Math.max(1, episodesTotal - watchedEpisodes)}h remaining
+            {(() => {
+              const remainingEps = Math.max(0, episodesTotal - watchedEpisodes);
+              if (remainingEps <= 0) return 'All episodes watched';
+              const durationStr = String(drama?.duration || drama?.episode_runtime || '');
+              const matches = durationStr.match(/\d+(?:\.\d+)?/g);
+              const avgMinutes = matches && matches.length
+                ? matches.map(Number).reduce((sum, val) => sum + val, 0) / matches.length
+                : 60;
+              const totalMin = Math.round(avgMinutes * remainingEps);
+              const hrs = Math.floor(totalMin / 60);
+              const mins = totalMin % 60;
+              const estimate = [hrs ? `${hrs}h` : '', mins ? `${mins}m` : ''].filter(Boolean).join(' ') || '0m';
+              return `~${estimate} remaining`;
+            })()}
           </Text>
           <Text style={[styles.progressPctText, { color: colors.pink }]}>{progress}%</Text>
         </View>
@@ -1001,9 +1014,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
+    shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
     shadowRadius: 4,
     elevation: 2,
   },

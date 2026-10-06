@@ -276,7 +276,7 @@ export default function HomeScreen({ navigation }) {
             <SectionTitle text="WATCHING PROGRESS" colors={colors} />
 
             {currentlyWatching ? (
-              <View style={[styles.watchingCard, { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+              <View style={[styles.watchingCard, { backgroundColor: isDark ? '#151522' : colors.card, borderWidth: 0 }]}>
                 {(currentlyWatching.backdrop_url || currentlyWatching.poster_url) ? (
                   <Image
                     source={{
@@ -393,7 +393,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               </View>
             ) : (
-              <View style={[styles.watchingCardEmpty, { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+              <View style={[styles.watchingCardEmpty, { backgroundColor: isDark ? '#151522' : colors.card, borderWidth: 0 }]}>
                 <View style={styles.watchingHeader}>
                   <View style={styles.watchingDot} />
                   <Text style={[styles.watchingEyebrow, { color: isDark ? '#A3A1AC' : colors.muted }]}>WATCHING PROGRESS</Text>
@@ -586,11 +586,11 @@ function StatCard({ value, suffix, label, sublabel, icon, iconColor, bottomColor
         styles.statCard,
         {
           backgroundColor: colors.card,
-          borderColor: colors.border,
-          borderWidth: isDark ? 0 : 1,
+          borderWidth: 0,
           shadowColor: colors.shadowColor || '#000000',
-          shadowOpacity: isDark ? 0.25 : (colors.shadowOpacity || 0.05),
-          elevation: isDark ? 3 : 1,
+          shadowOpacity: colors.shadowOpacity ?? 0.05,
+          shadowRadius: 6,
+          elevation: 2,
         },
         hovered && { transform: [{ scale: 1.02 }] },
         pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
@@ -666,7 +666,14 @@ function QuickAccess({ icon, iconBackground, title, colors, isDark, onPress }) {
     <Pressable
       style={({ pressed, hovered }) => [
         styles.quickCard,
-        { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+        {
+          backgroundColor: colors.card,
+          borderWidth: 0,
+          shadowColor: colors.shadowColor || '#000000',
+          shadowOpacity: colors.shadowOpacity ?? 0.05,
+          shadowRadius: 5,
+          elevation: 2,
+        },
         hovered && { transform: [{ scale: 1.02 }] },
         pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
       ]}
@@ -821,7 +828,6 @@ const styles = StyleSheet.create({
   },
   logo: {
     color: '#f09ab0',
-    fontFamily: 'serif',
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.6,
@@ -932,8 +938,7 @@ const styles = StyleSheet.create({
     width: '48.5%',
     minHeight: 110,
     backgroundColor: '#11111b',
-    borderWidth: 1,
-    borderColor: '#20202d',
+    borderWidth: 0,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -942,11 +947,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: colors.shadowColor || '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   statCardHovered: {
     backgroundColor: '#181826',
@@ -1007,17 +1012,16 @@ const styles = StyleSheet.create({
   watchingCard: {
     width: '100%',
     backgroundColor: '#111119',
-    borderWidth: 1,
-    borderColor: '#292632',
+    borderWidth: 0,
     borderRadius: 17,
     position: 'relative',
     overflow: 'hidden',
     marginBottom: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowColor: colors.shadowColor || '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   watchingBackdropImage: {
     ...StyleSheet.absoluteFillObject,
@@ -1035,16 +1039,15 @@ const styles = StyleSheet.create({
   watchingCardEmpty: {
     width: '100%',
     backgroundColor: '#111119',
-    borderWidth: 1,
-    borderColor: '#292632',
+    borderWidth: 0,
     borderRadius: 17,
     padding: 18,
     marginBottom: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: colors.shadowColor || '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   noWatchingText: {
     color: colors.muted,
@@ -1203,16 +1206,17 @@ const styles = StyleSheet.create({
     width: '48.5%',
     minHeight: 56,
     backgroundColor: '#161424',
+    borderWidth: 0,
     borderRadius: 14,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowColor: colors.shadowColor || '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: colors.shadowOpacity ?? 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   quickCardHovered: {
     backgroundColor: '#1E1B30',

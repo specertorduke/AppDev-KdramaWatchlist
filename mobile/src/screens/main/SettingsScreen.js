@@ -169,7 +169,7 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* Appearance & Theme */}
-      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <Text style={[styles.sectionTitle, { color: colors.muted }]}>APPEARANCE</Text>
 
         <ThemeOptionRow
@@ -194,7 +194,7 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* Notifications */}
-      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <Text style={[styles.sectionTitle, { color: colors.muted }]}>NOTIFICATIONS</Text>
 
         <SettingToggleRow
@@ -214,7 +214,7 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* Playback & Tracker Preferences */}
-      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <Text style={[styles.sectionTitle, { color: colors.muted }]}>PREFERENCES</Text>
 
         <SettingToggleRow
@@ -234,7 +234,7 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* About */}
-      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <Text style={[styles.sectionTitle, { color: colors.muted }]}>ABOUT</Text>
 
         <View style={[styles.aboutRow, { borderBottomColor: colors.border }]}>
@@ -251,7 +251,7 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* Security: Password Change */}
-      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <Text style={[styles.sectionTitle, { color: colors.muted }]}>SECURITY</Text>
 
         <Pressable
@@ -286,8 +286,8 @@ export default function SettingsScreen({ navigation, route }) {
       </View>
 
       {/* Danger Zone: Account Deletion */}
-      <View style={[styles.panel, { backgroundColor: isDark ? '#17111D' : 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.25)', borderWidth: 1 }]}>
-        <Text style={[styles.sectionTitle, styles.dangerTitle]}>DANGER ZONE</Text>
+      <View style={[styles.panel, { backgroundColor: '#EF4444', borderWidth: 0 }]}>
+        <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>DANGER ZONE</Text>
 
         <Pressable
           style={({ pressed }) => [
@@ -303,17 +303,17 @@ export default function SettingsScreen({ navigation, route }) {
           accessibilityLabel="Delete Account"
         >
           <View style={styles.deleteAccountLeft}>
-            <View style={styles.deleteIconWrap}>
-              <Ionicons name="trash-outline" size={17} color="#EF4444" />
+            <View style={[styles.deleteIconWrap, { backgroundColor: 'rgba(255, 255, 255, 0.22)' }]}>
+              <Ionicons name="trash-outline" size={17} color="#FFFFFF" />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.deleteTitle}>Delete Account</Text>
-              <Text style={[styles.deleteSubtitle, { color: colors.muted }]}>
+              <Text style={[styles.deleteTitle, { color: '#FFFFFF' }]}>Delete Account</Text>
+              <Text style={[styles.deleteSubtitle, { color: 'rgba(255, 255, 255, 0.85)' }]}>
                 Permanently delete your profile, watchlist tracker, and all personal data
               </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={14} color="#EF4444" />
+          <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
         </Pressable>
       </View>
 
@@ -622,13 +622,14 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     backgroundColor: '#161424',
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   backButtonPressed: {
     opacity: 0.7,
@@ -640,14 +641,15 @@ const styles = StyleSheet.create({
   },
   panel: {
     backgroundColor: '#161424',
+    borderWidth: 0,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   sectionTitle: {
     color: '#8D8B98',

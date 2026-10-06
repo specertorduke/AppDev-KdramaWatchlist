@@ -110,7 +110,7 @@ export default function StatsScreen({ navigation }) {
       </View>
 
       {/* Average Rating */}
-      <View style={[styles.ratingPanel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.ratingPanel, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <View>
           <Text style={[styles.ratingValue, { color: colors.text }]}>{averageRating}</Text>
           <Text style={[styles.ratingLabel, { color: colors.muted }]}>Avg. rating</Text>
@@ -129,7 +129,7 @@ export default function StatsScreen({ navigation }) {
       </View>
 
       {/* Status Breakdown */}
-      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.panel, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <Text style={[styles.sectionTitle, { color: colors.muted }]}>STATUS BREAKDOWN</Text>
 
         <StatusBar
@@ -221,7 +221,7 @@ function StatBox({ icon, iconTone, value, label, sub }) {
     <View
       style={[
         styles.statBox,
-        { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+        { backgroundColor: colors.card, borderWidth: 0 },
       ]}
     >
       <View
@@ -303,14 +303,15 @@ const styles = StyleSheet.create({
   statBox: {
     width: '48.5%',
     backgroundColor: '#161424',
+    borderWidth: 0,
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statIcon: {
     width: 34,
@@ -350,6 +351,7 @@ const styles = StyleSheet.create({
   },
   ratingPanel: {
     backgroundColor: '#161424',
+    borderWidth: 0,
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
@@ -357,10 +359,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 14,
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   ratingValue: {
     color: colors.text,
@@ -380,14 +382,15 @@ const styles = StyleSheet.create({
   },
   panel: {
     backgroundColor: '#161424',
+    borderWidth: 0,
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sectionTitle: {
     color: '#8D8B98',

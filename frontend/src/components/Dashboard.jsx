@@ -571,7 +571,7 @@ function CurrentDrama({ onDetailsClick }) {
         <div className="current-drama-content" style={{ padding: '24px' }}>
           <div className="watching-label"><i /> Watching progress</div>
           <div style={{ marginTop: '14px', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '17px', color: 'var(--color-text)', margin: '0 0 6px', fontFamily: 'Georgia, serif' }}>
+            <h3 style={{ fontSize: '17px', color: 'var(--color-text)', margin: '0 0 6px' }}>
               No drama currently watching
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
@@ -1717,9 +1717,9 @@ function TrackerPage() {
                   className={isSelected ? 'selected' : ''}
                   style={isSelected
                     ? {
-                        borderColor: `${tabColor}66`,
-                        backgroundColor: `${tabColor}22`,
-                        color: tabColor,
+                        backgroundColor: tabColor,
+                        color: '#FFFFFF',
+                        border: 'none',
                       }
                     : undefined}
                   type="button"
@@ -2344,14 +2344,14 @@ function SettingsPage() {
             >
               <div className="delete-account-left">
                 <div className="delete-icon-wrap">
-                  <Trash2 size={16} color="#EF4444" />
+                  <Trash2 size={16} color="#FFFFFF" />
                 </div>
                 <div className="profile-setting-copy">
                   <strong className="delete-title">Delete Account</strong>
                   <small>Permanently delete your profile, watchlist tracker, and all personal data</small>
                 </div>
               </div>
-              <ChevronRight size={16} color="#EF4444" />
+              <ChevronRight size={16} color="#FFFFFF" />
             </div>
           </div>
         </div>

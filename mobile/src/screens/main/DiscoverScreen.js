@@ -309,6 +309,7 @@ export default function DiscoverScreen({ navigation }) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={{ overflow: 'visible', marginVertical: 6, flexGrow: 0 }}
           contentContainerStyle={styles.filters}
           keyboardShouldPersistTaps="handled"
         >
@@ -322,8 +323,7 @@ export default function DiscoverScreen({ navigation }) {
                   styles.filter,
                   {
                     backgroundColor: isActive ? (isDark ? '#2A2438' : colors.pink) : colors.card,
-                    borderColor: colors.border,
-                    borderWidth: isDark ? 0 : 1,
+                    borderWidth: 0,
                   },
                   pressed && styles.filterPressed,
                 ]}
@@ -611,7 +611,8 @@ const styles = StyleSheet.create({
   },
   /* FILTERS */
   filters: {
-    paddingVertical: 8,
+    paddingTop: 10,
+    paddingBottom: 12,
     paddingRight: 10,
     marginBottom: 6,
   },
@@ -623,11 +624,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: colors.shadowColor || '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   filterActive: {
     backgroundColor: '#2A2438',

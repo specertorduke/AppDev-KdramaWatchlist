@@ -218,7 +218,7 @@ export default function TrackerScreen({ navigation, route }) {
             <Pressable
               style={[
                 styles.viewToggleBtn,
-                { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+                { backgroundColor: colors.card, borderWidth: 0 },
               ]}
               onPress={() => setViewMode((v) => (v === 'list' ? 'grid' : 'list'))}
               hitSlop={6}
@@ -265,8 +265,7 @@ export default function TrackerScreen({ navigation, route }) {
                   styles.tab,
                   {
                     backgroundColor: isActive ? (isDark ? '#2A2438' : colors.pink) : colors.card,
-                    borderColor: colors.border,
-                    borderWidth: isDark ? 0 : 1,
+                    borderWidth: 0,
                   },
                 ]}
               >
@@ -334,7 +333,7 @@ export default function TrackerScreen({ navigation, route }) {
                   key={item.id || item.tmdb_id}
                   style={[
                     styles.gridCard,
-                    { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+                    { backgroundColor: colors.card, borderWidth: 0 },
                   ]}
                   onPress={() => navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })}
                 >
@@ -782,11 +781,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: colors.shadowColor || '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   tabActive: {
     backgroundColor: '#2A2438',
@@ -850,13 +849,14 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 12,
     backgroundColor: '#161424',
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   emptyIconCircle: {
     width: 68,
@@ -891,13 +891,14 @@ const styles = StyleSheet.create({
   gridCard: {
     width: '48%',
     backgroundColor: '#161424',
+    borderWidth: 0,
     borderRadius: 16,
     padding: 8,
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 5,
+    elevation: 2,
   },
   gridPosterWrap: {
     width: '100%',

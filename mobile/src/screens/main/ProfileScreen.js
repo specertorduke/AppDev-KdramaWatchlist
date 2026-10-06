@@ -454,7 +454,7 @@ export default function ProfileScreen({ navigation }) {
         <Pressable
           style={({ pressed, hovered }) => [
             styles.pencilEditButton,
-            { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 },
+            { backgroundColor: colors.card, borderWidth: 0 },
             hovered && styles.pencilEditButtonHovered,
             pressed && styles.buttonPressed,
           ]}
@@ -467,7 +467,7 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       {/* Profile Summary */}
-      <View style={[styles.stats, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+      <View style={[styles.stats, { backgroundColor: colors.card, borderWidth: 0 }]}>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats?.total_dramas ?? 4}</Text>
           <Text style={[styles.statLabel, { color: colors.muted }]}>Dramas</Text>
@@ -1349,19 +1349,17 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 10,
     backgroundColor: '#161424',
-    borderWidth: 1,
-    borderColor: '#262335',
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   pencilEditButtonHovered: {
     backgroundColor: 'rgba(235, 91, 120, 0.08)',
-    borderColor: '#eb5b78',
   },
   buttonPressed: {
     opacity: 0.7,
@@ -1370,14 +1368,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#161424',
+    borderWidth: 0,
     borderRadius: 16,
     paddingVertical: 18,
     marginBottom: 20,
     shadowColor: colors.shadowColor || '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: colors.shadowOpacity ?? 0.05,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: colors.shadowOpacity ?? 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   statItem: {
     flex: 1,
@@ -1970,15 +1969,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.28)',
+    backgroundColor: '#EF4444',
+    borderWidth: 0,
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 11,
   },
   deleteAccountEditText: {
-    color: '#EF4444',
-    fontSize: 12.5,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
