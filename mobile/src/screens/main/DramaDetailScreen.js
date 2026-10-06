@@ -101,7 +101,8 @@ export default function DramaDetailScreen({ route, navigation }) {
     overrideEpisodes,
     overrideRating,
     overrideNotes,
-    overrideFavorite
+    overrideFavorite,
+    isManualReviewSave = false
   ) => {
     setSavingStatus(true);
     setSaveMessage('');
@@ -162,7 +163,9 @@ export default function DramaDetailScreen({ route, navigation }) {
           setIsFavorite(Boolean(data.is_favorite));
         }
       }
-      setSaveMessage('Saved successfully');
+      if (isManualReviewSave) {
+        setSaveMessage('Saved successfully');
+      }
 
       if (didAutoComplete) {
         Alert.alert(
@@ -389,20 +392,32 @@ export default function DramaDetailScreen({ route, navigation }) {
             <Text style={[styles.metaText, { color: colors.muted }]}>{episodesTotal} Episodes</Text>
           </View>
 
-          {/* Dedicated TMDB Rating line with badge & votes */}
-          {tmdbScore ? (
+          {/* Dedicated TMDB Rating & User Rating line */}
+          {(tmdbScore || selectedRating > 0) ? (
             <View style={styles.tmdbRatingRow}>
-              <View style={[styles.tmdbBadge, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.14)' : 'rgba(235, 91, 120, 0.12)' }]}>
-                <Text style={[styles.tmdbBadgeText, { color: colors.pink }]}>TMDB</Text>
-              </View>
-              <Text style={[styles.metaStarRating, { color: colors.pink }]}>
-                ★ {tmdbScore} <Text style={[styles.metaStarRatingSlash, { color: colors.muted }]}>/ 10</Text>
-              </Text>
-              {tmdbVoteCount ? (
-                <Text style={[styles.tmdbVoteText, { color: colors.muted }]}>
-                  ({tmdbVoteCount >= 1000 ? `${(tmdbVoteCount / 1000).toFixed(1)}k` : tmdbVoteCount} votes)
-                </Text>
+              {tmdbScore ? (
+                <>
+                  <View style={[styles.tmdbBadge, { backgroundColor: isDark ? 'rgba(235, 91, 120, 0.14)' : 'rgba(235, 91, 120, 0.12)' }]}>
+                    <Text style={[styles.tmdbBadgeText, { color: colors.pink }]}>TMDB</Text>
+                  </View>
+                  <Text style={[styles.metaStarRating, { color: colors.pink }]}>
+                    ★ {tmdbScore} <Text style={[styles.metaStarRatingSlash, { color: colors.muted }]}>/ 10</Text>
+                  </Text>
+                  {tmdbVoteCount ? (
+                    <Text style={[styles.tmdbVoteText, { color: colors.muted }]}>
+                      ({tmdbVoteCount >= 1000 ? `${(tmdbVoteCount / 1000).toFixed(1)}k` : tmdbVoteCount})
+                    </Text>
+                  ) : null}
+                </>
               ) : null}
+
+              {selectedRating > 0 && (
+                <View style={[styles.userRatingBadge, { backgroundColor: isDark ? 'rgba(255, 215, 106, 0.16)' : 'rgba(245, 158, 11, 0.14)', borderColor: isDark ? 'rgba(255, 215, 106, 0.3)' : 'rgba(245, 158, 11, 0.3)' }]}>
+                  <Text style={[styles.userRatingBadgeText, { color: isDark ? '#ffd76a' : '#d97706' }]}>
+                    ★ {selectedRating}/10 You
+                  </Text>
+                </View>
+              )}
             </View>
           ) : null}
 
@@ -532,8 +547,8 @@ export default function DramaDetailScreen({ route, navigation }) {
                   styles.statusChip,
                   active
                     ? {
-                        backgroundColor: `${chipColor}24`,
-                        borderColor: chipColor,
+                        backgroundColor: chipColor,
+                        borderColor: 'rgba(255, 255, 255, 0.28)',
                         borderWidth: 1,
                       }
                     : {
@@ -546,14 +561,14 @@ export default function DramaDetailScreen({ route, navigation }) {
                 <View
                   style={[
                     styles.statusColorDot,
-                    { backgroundColor: chipColor },
+                    { backgroundColor: active ? '#FFFFFF' : chipColor },
                   ]}
                 />
                 <Text
                   style={[
                     styles.statusChipText,
-                    { color: active ? chipColor : colors.muted },
-                    active && { fontWeight: '900' },
+                    { color: active ? '#FFFFFF' : colors.muted },
+                    active && { fontWeight: '800' },
                   ]}
                 >
                   {st}
@@ -796,7 +811,7 @@ export default function DramaDetailScreen({ route, navigation }) {
         <View style={styles.notesActionRow}>
           <Pressable
             style={[styles.saveAllButton, { backgroundColor: colors.pink }, savingStatus && styles.saveButtonDisabled]}
-            onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes)}
+            onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes, isFavorite, true)}
             disabled={savingStatus}
           >
             <Ionicons
@@ -1069,6 +1084,17 @@ const styles = StyleSheet.create({
     color: '#8D8A98',
     fontSize: 11,
     fontWeight: '500',
+  },
+  userRatingBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginLeft: 2,
+  },
+  userRatingBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
   },
   genreRow: {
     flexDirection: 'row',

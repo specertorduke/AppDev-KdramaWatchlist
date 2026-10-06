@@ -863,15 +863,6 @@ function DramaDetailView({ drama, onBack }) {
         </div>
 
         <div className="detail-header-info">
-          <div className="detail-badges-row">
-            <span
-              className={`detail-badge-status ${!isTracked ? 'status-catalog' : ''}`}
-              style={isTracked ? { color: getStatusColor(status), backgroundColor: `${getStatusColor(status)}22` } : undefined}
-            >
-              {isTracked ? (status || 'In Watchlist') : 'Not in Watchlist'}
-            </span>
-          </div>
-
           <h1 className="detail-main-title">{drama.title}</h1>
           {(drama.nativeTitle || savedItem?.nativeTitle) && (
             <p className="detail-native-title">{drama.nativeTitle || savedItem?.nativeTitle}</p>
@@ -889,15 +880,25 @@ function DramaDetailView({ drama, onBack }) {
             <span>{totalEpisodes} Episodes</span>
           </div>
 
-          {Number(drama.rating) > 0 && (
+          {(Number(drama.rating) > 0 || Number(myRating) > 0) && (
             <div className="detail-tmdb-row">
-              <span className="detail-tmdb-pill">
-                <Star size={12} fill="currentColor" />
-                <strong>{Number(drama.rating).toFixed(1)}</strong>
-                <span>TMDB</span>
-              </span>
-              {Number(drama.voteCount) > 0 && (
-                <span className="detail-tmdb-votes">{Number(drama.voteCount).toLocaleString()} ratings</span>
+              {Number(drama.rating) > 0 && (
+                <>
+                  <span className="detail-tmdb-badge">TMDB</span>
+                  <span className="detail-tmdb-score">
+                    ★ {Number(drama.rating).toFixed(1)} <small>/ 10</small>
+                  </span>
+                  {Number(drama.voteCount) > 0 && (
+                    <span className="detail-tmdb-votes">
+                      ({Number(drama.voteCount) >= 1000 ? `${(Number(drama.voteCount) / 1000).toFixed(1)}k` : Number(drama.voteCount)})
+                    </span>
+                  )}
+                </>
+              )}
+              {Number(myRating) > 0 && (
+                <span className="detail-user-rating-pill">
+                  ★ {myRating}/10 You
+                </span>
               )}
             </div>
           )}
@@ -1032,21 +1033,26 @@ function DramaDetailView({ drama, onBack }) {
             <div className="detail-sub-section">
               <h3 className="detail-card-heading">STATUS</h3>
               <div className="detail-status-pills">
-                {statusOptions.map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    className={`status-option-pill ${status === st ? 'active' : ''}`}
-                    style={{
-                      '--status-color': getStatusColor(st),
-                      color: getStatusColor(st),
-                      backgroundColor: `${getStatusColor(st)}${status === st ? '22' : '12'}`,
-                    }}
-                    onClick={() => handleStatusChange(st)}
-                  >
-                    {st}
-                  </button>
-                ))}
+                {statusOptions.map((st) => {
+                  const isActive = status === st
+                  const chipColor = getStatusColor(st)
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      className={`status-option-pill ${isActive ? 'active' : ''}`}
+                      style={{
+                        '--status-color': chipColor,
+                        color: isActive ? '#FFFFFF' : chipColor,
+                        backgroundColor: isActive ? chipColor : `${chipColor}15`,
+                        borderColor: isActive ? 'rgba(255, 255, 255, 0.28)' : 'transparent',
+                      }}
+                      onClick={() => handleStatusChange(st)}
+                    >
+                      {st}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
@@ -1347,7 +1353,8 @@ function DiscoverPage() {
                     <h1>{topDrama.title}</h1>
                     <div>
                       <button className="view-details" type="button" onClick={() => handleOpenDetails(topDrama)}>
-                        ▣ &nbsp;View Details
+                        <Play size={13} fill="currentColor" />
+                        <span>View Details</span>
                       </button>
                       <b>★ {topDrama.rating}</b>
                     </div>
@@ -1503,7 +1510,7 @@ function DiscoverCard({ drama }) {
         )}
       </div>
       <h3>{drama.title}</h3>
-      <p>{drama.meta} <strong>★ {drama.rating}</strong></p>
+      <p>{drama.meta}</p>
     </article>
   )
 }

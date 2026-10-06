@@ -2323,6 +2323,9 @@
 }
 
 .view-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   height: 38px;
   padding: 0 18px;
   border: 0;
@@ -2657,36 +2660,54 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
   margin-top: 10px;
 }
 
-.detail-tmdb-pill {
+.detail-tmdb-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  background: rgba(255, 215, 106, 0.14);
-  color: #ffd76a;
-}
-
-.detail-tmdb-pill strong {
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.detail-tmdb-pill > span {
-  color: #e0dee9;
+  padding: 2.5px 6.5px;
+  border-radius: 5px;
+  background: rgba(235, 91, 120, 0.14);
+  color: #eb5b78;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.5px;
+}
+
+.detail-tmdb-score {
+  color: #eb5b78;
+  font-size: 12.5px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.detail-tmdb-score small {
+  color: #7b7585;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .detail-tmdb-votes {
   color: #8c8697;
   font-size: 11px;
   font-weight: 500;
+}
+
+.detail-user-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(255, 215, 106, 0.16);
+  border: 1px solid rgba(255, 215, 106, 0.3);
+  color: #ffd76a;
+  font-size: 11px;
+  font-weight: 800;
+  margin-left: 3px;
 }
 
 .detail-header-actions {
@@ -2992,7 +3013,7 @@
 
 .status-option-pill {
   padding: 7px 16px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 20px;
   background: #161522;
   color: #8c8697;
@@ -3008,6 +3029,7 @@
 
 .status-option-pill.active {
   font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Star Rating */
