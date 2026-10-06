@@ -30,8 +30,10 @@ import { useTheme } from '../../context/ThemeContext';
 import { userService, authService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { pickAndCompressAvatar, takeAndCompressAvatar } from '../../services/imageService';
-import PasswordRequirementsList from '../../components/PasswordRequirementsList';
 import { checkPasswordRequirements } from '../../utils/passwordRequirements';
+import PasswordRequirementsList from '../../components/PasswordRequirementsList';
+import DefaultProfileAvatar from '../../components/DefaultProfileAvatar';
+
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -427,7 +429,9 @@ export default function ProfileScreen({ navigation }) {
         >
           <View style={[styles.avatarBorderRing, { backgroundColor: colors.bg, borderColor: isDark ? '#61374c' : colors.border }]}>
             <View style={[styles.avatarCircle, { backgroundColor: activeColor }]}>
-              {user?.avatar_url ? (
+              {user?.avatar_url?.endsWith('.svg') ? (
+                <DefaultProfileAvatar size={60} />
+              ) : user?.avatar_url ? (
                 <Image
                   source={{ uri: user.avatar_url }}
                   style={styles.avatarPhoto}
@@ -1043,7 +1047,9 @@ export default function ProfileScreen({ navigation }) {
                     <View style={[styles.previewContainer, { backgroundColor: isDark ? '#0F0E1A' : (colors.panel2 || '#F0F2F6') }]}>
                       <View style={styles.avatarPreview}>
                         <View style={[styles.avatarPreviewInner, { backgroundColor: isDark ? '#1E1B2D' : colors.card }]}>
-                          {customImage ? (
+                          {customImage?.endsWith('.svg') ? (
+                            <DefaultProfileAvatar size={60} />
+                          ) : customImage ? (
                             <Image
                               source={{ uri: customImage }}
                               style={styles.avatarPreviewPhoto}

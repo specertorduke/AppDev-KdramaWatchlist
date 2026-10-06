@@ -20,11 +20,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { homeService, trackerService, discoverService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toDisplayStatus, getStatusColor } from '../../utils/statusHelper';
+import DefaultProfileAvatar from '../../components/DefaultProfileAvatar';
+
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, theme } = useTheme();
   const { width } = useWindowDimensions();
   const isSmallPhone = width <= 380;
   const horizontalPadding = isSmallPhone ? 10 : 12;
@@ -148,7 +150,9 @@ export default function HomeScreen({ navigation }) {
                 { backgroundColor: user?.color || '#292546' },
               ]}
             >
-              {user?.avatar_url ? (
+              {user?.avatar_url?.endsWith('.svg') ? (
+                <DefaultProfileAvatar size={32} />
+              ) : user?.avatar_url ? (
                 <Image
                   source={{ uri: user.avatar_url }}
                   style={styles.avatarImage}
@@ -253,17 +257,17 @@ export default function HomeScreen({ navigation }) {
             <SectionTitle text="WATCHING PROGRESS" colors={colors} />
 
             {currentlyWatching ? (
-              <View style={[styles.watchingCard, { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+              <View style={[styles.watchingCard, { backgroundColor: isDark ? '#151522' : colors.card, borderColor: colors.border, borderWidth: 1 }]}>
                 {(currentlyWatching.backdrop_url || currentlyWatching.poster_url) ? (
                   <Image
                     source={{
                       uri: currentlyWatching.backdrop_url || currentlyWatching.poster_url,
                     }}
-                    style={styles.watchingBackdropImage}
+                    style={[styles.watchingBackdropImage, { opacity: isDark ? 0.18 : 0.08 }]}
                     resizeMode="cover"
                   />
                 ) : null}
-                <View style={[styles.watchingBackdropOverlay, { backgroundColor: isDark ? 'rgba(22, 20, 36, 0.7)' : 'rgba(255, 255, 255, 0.85)' }]} />
+                <View style={[styles.watchingBackdropOverlay, { backgroundColor: isDark ? 'rgba(21, 21, 34, 0.88)' : (theme === 'warm' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.94)') }]} />
 
                 <View style={styles.watchingCardContent}>
                   <View style={styles.watchingHeader}>
@@ -328,7 +332,11 @@ export default function HomeScreen({ navigation }) {
                       <Pressable
                         style={({ pressed, hovered }) => [
                           styles.detailsButton,
-                          { backgroundColor: isDark ? '#2a2930' : (colors.panel2 || '#EEF1F6') },
+                          {
+                            backgroundColor: isDark ? '#2a2930' : (colors.panel2 || '#EEF1F6'),
+                            borderWidth: isDark ? 0 : 1,
+                            borderColor: colors.border,
+                          },
                           hovered && styles.detailsButtonHovered,
                           pressed && styles.detailsButtonPressed,
                         ]}
@@ -603,7 +611,7 @@ function CircularProgressAvatar({ src, progress = 0, size = 68, strokeWidth = 4.
           r={radius}
           stroke="#32d19a"
           strokeWidth={strokeWidth}
-          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDasharray={`${circumference}, ${circumference}`}
           strokeDashoffset={offset}
           strokeLinecap="round"
           fill="transparent"
@@ -991,8 +999,6 @@ const styles = StyleSheet.create({
   },
   watchingBackdropImage: {
     ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
     opacity: 0.14,
   },
   watchingBackdropOverlay: {
@@ -1101,7 +1107,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    borderTopColor: 'transparent',
   },
   loggedLabel: {
     color: '#777582',
