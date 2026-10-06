@@ -159,9 +159,9 @@
   padding: 14px 22px;
   border: 0;
   border-radius: 19px;
-  background: #f5a9c4;
-  box-shadow: 0 8px 22px rgba(245, 169, 196, 0.18);
-  color: #07070e;
+  background: var(--color-button-primary);
+  box-shadow: 0 8px 22px rgba(235, 91, 120, 0.2);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -174,7 +174,7 @@
 
 .genre-onboarding-submit:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: #ffc0d5;
+  background: var(--color-button-primary-hover);
 }
 
 .genre-onboarding-submit:disabled {

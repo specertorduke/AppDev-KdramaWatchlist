@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   Heart,
   Ticket,
-  UsersRound,
   UserRound,
   Zap,
   Loader2,
@@ -39,6 +38,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/theme-context.js'
 import { useWatchlist } from '../context/WatchlistContext.jsx'
 import discoverService, {
   mapDramaCard,
@@ -499,7 +499,6 @@ function ProfileMenu({ onClose }) {
       <Link to="/tracker" onClick={onClose}>My Tracker</Link>
       <Link to="/stats" onClick={onClose}>Stats & History</Link>
       <Link to="/profile" onClick={onClose}>Profile</Link>
-      <Link to="/login" onClick={onClose}>Switch Account</Link>
       <button type="button" onClick={handleLogout}>
         <LogOut size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
         Sign Out
@@ -571,10 +570,10 @@ function CurrentDrama({ onDetailsClick }) {
         <div className="current-drama-content" style={{ padding: '24px' }}>
           <div className="watching-label"><i /> Watching progress</div>
           <div style={{ marginTop: '14px', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '17px', color: '#f0ecf3', margin: '0 0 6px', fontFamily: 'Georgia, serif' }}>
+            <h3 style={{ fontSize: '17px', color: 'var(--color-text)', margin: '0 0 6px', fontFamily: 'Georgia, serif' }}>
               No drama currently watching
             </h3>
-            <p style={{ fontSize: '13px', color: '#8c8697', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
               Add a K-Drama to your tracker and set its status as Watching to track your episodes.
             </p>
           </div>
@@ -742,6 +741,7 @@ function DramaDetailView({ drama, onBack }) {
   const [myNotes, setMyNotes] = useState(savedItem?.notes || drama.myNotes || '')
   const [noteSaved, setNoteSaved] = useState(false)
   const [showAllEpisodes, setShowAllEpisodes] = useState(false)
+  const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false)
   const [episodesList, setEpisodesList] = useState(() => {
     const total = Number(drama.episodes) || 16
     const watched = savedItem?.current_episode ?? savedItem?.watchedCount ?? drama.current_episode ?? drama.watchedCount ?? (savedItem?.status === 'Watching' ? 1 : 0)
@@ -825,6 +825,23 @@ function DramaDetailView({ drama, onBack }) {
     }
   }
 
+  const handleRemoveFromWatchlist = () => {
+    removeFromWatchlist(dramaId)
+    setStatus(null)
+    setShowRemoveConfirmation(false)
+  }
+
+  useEffect(() => {
+    if (!showRemoveConfirmation) return undefined
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setShowRemoveConfirmation(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showRemoveConfirmation])
+
   const statusOptions = ['Watching', 'Completed', 'Plan to Watch', 'On Hold', 'Dropped']
 
   return (
@@ -903,10 +920,7 @@ function DramaDetailView({ drama, onBack }) {
                 <button
                   className="detail-remove-button"
                   type="button"
-                  onClick={() => {
-                    removeFromWatchlist(dramaId)
-                    setStatus(null)
-                  }}
+                  onClick={() => setShowRemoveConfirmation(true)}
                   title="Remove from Watchlist"
                 >
                   <Trash2 size={16} /> Remove
@@ -919,7 +933,7 @@ function DramaDetailView({ drama, onBack }) {
               onClick={handleToggleFavorite}
               aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             >
-              <Heart size={18} fill={isFavorite ? '#eb5b78' : 'none'} color={isFavorite ? '#eb5b78' : '#8e889b'} />
+              <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
             </button>
           </div>
         </div>
@@ -1119,6 +1133,49 @@ function DramaDetailView({ drama, onBack }) {
           </article>
         </div>
       </div>
+      {showRemoveConfirmation && (
+        <div
+          className="modal-overlay danger-modal-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowRemoveConfirmation(false)
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-drama-confirmation-title"
+          aria-describedby="remove-drama-confirmation-description"
+        >
+          <section className="remove-drama-confirmation-card">
+            <div className="delete-modal-header">
+              <span className="delete-warning-icon-wrap">
+                <Trash2 size={21} color="#EF4444" />
+              </span>
+              <div>
+                <h3 id="remove-drama-confirmation-title">Remove from watchlist?</h3>
+                <p>This action cannot be undone.</p>
+              </div>
+            </div>
+            <p className="delete-modal-description" id="remove-drama-confirmation-description">
+              Remove <strong>{drama.title}</strong>? Its watch progress, rating, and notes will also be deleted.
+            </p>
+            <div className="delete-modal-actions">
+              <button
+                className="delete-modal-btn-cancel"
+                type="button"
+                onClick={() => setShowRemoveConfirmation(false)}
+              >
+                Keep Drama
+              </button>
+              <button
+                className="delete-modal-btn-confirm"
+                type="button"
+                onClick={handleRemoveFromWatchlist}
+              >
+                <Trash2 size={14} /> Remove Drama
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }
@@ -1982,7 +2039,6 @@ function ProfilePage() {
           </span>
           <ChevronRight />
         </button>
-        <Link to="/login"><UsersRound /> <span><b>Switch Account</b><small>Change active profile</small></span><ChevronRight /></Link>
       </section>
       <button className="signout-button" type="button" onClick={handleLogout}>
         <LogOut size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Sign Out
@@ -2094,6 +2150,12 @@ function DashboardLayout({ activeTab, onOpenAddDrama, children }) {
 function SettingsPage() {
   const navigate = useNavigate()
   const { deleteAccount } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const themeOptions = [
+    { id: 'dark', title: 'Dark Cinematic', description: 'Deep cinematic blacks and vibrant pinks' },
+    { id: 'light', title: 'Light Clean', description: 'Crisp daylight theme' },
+    { id: 'warm', title: 'Warm Comfort', description: 'Easy on the eyes with warm cream tones' },
+  ]
   const [settings, setSettings] = useState({
     episodeAlerts: true,
     progressReminders: true,
@@ -2146,6 +2208,28 @@ function SettingsPage() {
         </div>
 
         <div className="profile-settings-panel settings-page-panel">
+          <div className="profile-settings-group appearance-settings">
+            <p className="profile-settings-title">APPEARANCE</p>
+            <div className="appearance-theme-options" role="radiogroup" aria-label="Appearance theme">
+              {themeOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`appearance-theme-option${theme === option.id ? ' selected' : ''}`}
+                  role="radio"
+                  aria-checked={theme === option.id}
+                  onClick={() => setTheme(option.id)}
+                >
+                  <span className="appearance-theme-copy">
+                    <strong>{option.title}</strong>
+                    <small>{option.description}</small>
+                  </span>
+                  <span className="appearance-theme-radio" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="profile-settings-group">
             <p className="profile-settings-title">NOTIFICATIONS</p>
             <div className="profile-setting-row">
@@ -2219,10 +2303,6 @@ function SettingsPage() {
             <div className="profile-about-row">
               <span>Version</span>
               <strong>1.0.0 (SarangTV)</strong>
-            </div>
-            <div className="profile-about-row last">
-              <span>Theme</span>
-              <strong>Dark Cinematic</strong>
             </div>
           </div>
 
