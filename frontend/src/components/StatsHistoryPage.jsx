@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useWatchlist } from '../context/WatchlistContext.jsx'
-import { DashboardHeader, DramaDetailView } from './Dashboard.jsx'
+import { AddDramaModal, DashboardHeader, DramaDetailView } from './Dashboard.jsx'
 import Chatbot from './Chatbot.jsx'
 
 export default function StatsHistoryPage() {
@@ -249,6 +249,10 @@ export default function StatsHistoryPage() {
           </div>
         )}
       </div>
+      <AddDramaModal
+        isOpen={isAddDramaOpen}
+        onClose={() => setIsAddDramaOpen(false)}
+      />
       <Chatbot />
     </main>
   )

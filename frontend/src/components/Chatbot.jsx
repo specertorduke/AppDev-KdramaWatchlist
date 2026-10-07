@@ -38,7 +38,6 @@ export default function Chatbot() {
 
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [lastFailedMessage, setLastFailedMessage] = useState(null)
 
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)

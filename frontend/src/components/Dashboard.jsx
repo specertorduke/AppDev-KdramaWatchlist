@@ -2862,5 +2862,5 @@ function Dashboard() {
   )
 }
 
-export { Chatbot, DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage }
+export { AddDramaModal, Chatbot, DashboardHeader, DashboardLayout, DiscoverPage, DramaDetailView, FavoriteGenresPage, ProfilePage, SettingsPage, TrackerPage }
 export default Dashboard
