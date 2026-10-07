@@ -32,26 +32,31 @@ export default function DiscoverScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
-  // Fetch Genres (including Thriller & Horror)
+  // Fetch Genres (excluding empty genres that have no K-dramas)
   useEffect(() => {
     discoverService
       .getGenres()
       .then((res) => {
-        setGenres([{ id: null, name: 'All' }, ...(res.data.data || [])]);
+        const raw = res?.data?.data || [];
+        const emptyNames = new Set(['news', 'reality', 'talk', 'western']);
+        const filtered = raw.filter(
+          (g) => !emptyNames.has(String(g.name).trim().toLowerCase())
+        );
+        setGenres([{ id: null, name: 'All' }, ...filtered]);
       })
       .catch((e) => {
         console.warn('Failed to load genres:', e);
         setGenres([
           { id: null, name: 'All' },
+          { id: 10749, name: 'Romance' },
           { id: 18, name: 'Drama' },
           { id: 35, name: 'Comedy' },
           { id: 10759, name: 'Action' },
           { id: 9648, name: 'Mystery' },
           { id: 10765, name: 'Sci-Fi & Fantasy' },
-          { id: 53, name: 'Thriller' },
-          { id: 27, name: 'Horror' },
           { id: 80, name: 'Crime' },
           { id: 10751, name: 'Family' },
+          { id: 16, name: 'Animation' },
         ]);
       });
   }, []);
@@ -82,6 +87,14 @@ export default function DiscoverScreen({ navigation }) {
         ]);
 
         const rawDramas = res?.data?.data || [];
+
+        // If a selected genre has no dramas (empty), remove it from the list
+        if (!isAppend && selectedGenreId !== null && rawDramas.length === 0 && !query.trim()) {
+          setGenres((prev) => prev.filter((g) => g.id !== selectedGenreId));
+          setSelectedGenreId(null);
+          return;
+        }
+
         const userWatchlist = trackerRes?.data?.data || [];
         const statusMap = new Map();
         userWatchlist.forEach((item) => {

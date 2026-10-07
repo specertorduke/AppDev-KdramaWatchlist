@@ -22,8 +22,6 @@ const GENRE_OPTIONS = [
   { id: 'Sci-Fi & Fantasy', label: 'Fantasy & Sci-Fi', icon: 'planet-outline', color: '#9B5DE5' },
   { id: 'Crime', label: 'Crime & Law', icon: 'shield-checkmark-outline', color: '#06D6A0' },
   { id: 'Family', label: 'Slice of Life & Family', icon: 'cafe-outline', color: '#F39C12' },
-  { id: 'Thriller', label: 'Thriller', icon: 'skull-outline', color: '#E63946' },
-  { id: 'Horror', label: 'Horror', icon: 'flame-outline', color: '#D90429' },
 ];
 
 export default function GenreSelectionScreen({ navigation, route }) {

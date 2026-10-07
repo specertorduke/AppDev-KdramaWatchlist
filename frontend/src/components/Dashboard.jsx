@@ -1397,8 +1397,6 @@ const DISCOVER_GENRES = [
   { id: 9648, name: 'Mystery' },
   { id: 10765, name: 'Fantasy' },
   { id: 36, name: 'Historical' },
-  { id: 27, name: 'Horror' },
-  { id: 53, name: 'Thriller' },
   { id: 80, name: 'Crime' },
   { id: 10751, name: 'Family' },
   { id: 16, name: 'Animation' },
@@ -1447,9 +1445,14 @@ function DiscoverPage() {
       try {
         const genRes = await discoverService.getGenres()
         if (genRes?.data && genRes.data.length > 0) {
+          const emptyNames = new Set(['news', 'reality', 'talk', 'western'])
           const knownNames = new Set(DISCOVER_GENRES.map((g) => g.name.toLowerCase()))
           const extra = genRes.data
-            .filter((g) => !knownNames.has(g.name.toLowerCase()))
+            .filter(
+              (g) =>
+                !emptyNames.has(String(g.name).trim().toLowerCase()) &&
+                !knownNames.has(String(g.name).trim().toLowerCase())
+            )
             .map((g) => ({ id: g.id, name: g.name }))
           if (extra.length > 0) {
             setGenreList([...DISCOVER_GENRES, ...extra])
@@ -1484,6 +1487,13 @@ function DiscoverPage() {
             })
 
         const mapped = (response?.data || []).map((drama, index) => mapDramaCard(drama, index))
+
+        // If a selected genre has no dramas (is empty), dynamically remove it from pills
+        if (!isAppend && mapped.length === 0 && selectedGenre !== 'All Genres' && !searchQuery) {
+          setGenreList((prev) => prev.filter((g) => g.name !== selectedGenre))
+          setSelectedGenre('All Genres')
+          return
+        }
 
         if (isAppend) {
           setGridDramas((prev) => {

@@ -25,8 +25,6 @@ const GENRES = [
   { id: 'Sci-Fi & Fantasy', label: 'Fantasy & Sci-Fi', Icon: Sparkles, color: '#9B5DE5' },
   { id: 'Crime', label: 'Crime & Law', Icon: ShieldCheck, color: '#06D6A0' },
   { id: 'Family', label: 'Slice of Life & Family', Icon: Coffee, color: '#F39C12' },
-  { id: 'Thriller', label: 'Thriller', Icon: Flame, color: '#FF4D6D' },
-  { id: 'Horror', label: 'Horror', Icon: Eye, color: '#C9184A' },
 ]
 
 export default function GenreOnboarding() {

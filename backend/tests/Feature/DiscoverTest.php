@@ -18,6 +18,8 @@ class DiscoverTest extends TestCase
     {
         parent::setUp();
         config(['cache.default' => 'array']);
+        \Illuminate\Support\Facades\Cache::flush();
+        \App\Modules\Discover\Services\DiscoverService::resetCache();
         $this->user = User::factory()->create();
     }
 
@@ -632,7 +634,7 @@ class DiscoverTest extends TestCase
         $response->assertStatus(404);
     }
 
-    public function test_genres_endpoint_includes_thriller_and_horror(): void
+    public function test_genres_endpoint_excludes_empty_genres(): void
     {
         Sanctum::actingAs($this->user);
 
@@ -641,6 +643,10 @@ class DiscoverTest extends TestCase
                 'genres' => [
                     ['id' => 18, 'name' => 'Drama'],
                     ['id' => 35, 'name' => 'Comedy'],
+                    ['id' => 10763, 'name' => 'News'],
+                    ['id' => 10764, 'name' => 'Reality'],
+                    ['id' => 10767, 'name' => 'Talk'],
+                    ['id' => 37, 'name' => 'Western'],
                 ],
             ], 200),
         ]);
@@ -649,8 +655,13 @@ class DiscoverTest extends TestCase
 
         $response->assertStatus(200);
         $genreNames = array_column($response->json('data'), 'name');
-        $this->assertContains('Thriller', $genreNames);
-        $this->assertContains('Horror', $genreNames);
+        $this->assertContains('Drama', $genreNames);
+        $this->assertContains('Comedy', $genreNames);
+        $this->assertContains('Romance', $genreNames);
+        $this->assertNotContains('News', $genreNames);
+        $this->assertNotContains('Reality', $genreNames);
+        $this->assertNotContains('Talk', $genreNames);
+        $this->assertNotContains('Western', $genreNames);
     }
 
     public function test_discover_thriller_uses_keywords_and_includes_thriller_genre(): void

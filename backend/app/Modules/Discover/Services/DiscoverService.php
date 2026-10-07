@@ -23,6 +23,20 @@ class DiscoverService
     public const THRILLER_KEYWORDS = '316362|12565|204205|302132|351957|254459|322128|217282|298530|319190|329866|9714';
     public const HORROR_KEYWORDS = '315058|313454|50009|178647|351957|12339|241|163054|186565|224447';
 
+    public const EMPTY_GENRE_IDS = [
+        10763, // News (0 Korean TV shows on TMDB)
+        10764, // Reality (0 Korean TV shows on TMDB)
+        10767, // Talk (0 Korean TV shows on TMDB)
+        37,    // Western (0 Korean TV shows on TMDB)
+    ];
+
+    public const EMPTY_GENRE_NAMES = [
+        'news',
+        'reality',
+        'talk',
+        'western',
+    ];
+
     public function __construct()
     {
         $this->baseUrl = rtrim(config('services.tmdb.base_url', 'https://api.themoviedb.org/3'), '/');
@@ -111,15 +125,11 @@ class DiscoverService
             $map = Cache::remember('tmdb_tv_genres_map', 86400, function () {
                 return $this->fetchGenreMapFromApi();
             });
-            $map[self::THRILLER_GENRE_ID] = 'Thriller';
-            $map[self::HORROR_GENRE_ID] = 'Horror';
             static::$cachedGenreMap = $map;
             return $map;
         } catch (\Throwable $e) {
             Log::warning('Cache store unavailable or error, fetching directly: ' . $e->getMessage());
             $map = $this->fetchGenreMapFromApi();
-            $map[self::THRILLER_GENRE_ID] = 'Thriller';
-            $map[self::HORROR_GENRE_ID] = 'Horror';
             static::$cachedGenreMap = $map;
             return $map;
         }
@@ -139,20 +149,33 @@ class DiscoverService
             $map = [];
             foreach ($genres as $genre) {
                 if (isset($genre['id'], $genre['name'])) {
-                    $map[$genre['id']] = $genre['name'];
+                    $genreId = (int) $genre['id'];
+                    $genreName = trim((string) $genre['name']);
+                    $nameLower = strtolower($genreName);
+
+                    // Filter out empty genres that have 0 Korean dramas in TMDB
+                    if (in_array($genreId, self::EMPTY_GENRE_IDS, true) || in_array($nameLower, self::EMPTY_GENRE_NAMES, true)) {
+                        continue;
+                    }
+
+                    $map[$genreId] = $genreName;
                 }
             }
 
-            // Ensure Thriller and Horror are registered
-            $map[self::THRILLER_GENRE_ID] = 'Thriller';
-            $map[self::HORROR_GENRE_ID] = 'Horror';
+            $map[10749] = 'Romance';
 
             return $map;
         } catch (\Throwable $e) {
             Log::warning('Unable to fetch TMDB genres map: ' . $e->getMessage());
             return [
-                self::THRILLER_GENRE_ID => 'Thriller',
-                self::HORROR_GENRE_ID   => 'Horror',
+                10749 => 'Romance',
+                18    => 'Drama',
+                35    => 'Comedy',
+                10759 => 'Action & Adventure',
+                9648  => 'Mystery',
+                10765 => 'Sci-Fi & Fantasy',
+                80    => 'Crime',
+                10751 => 'Family',
             ];
         }
     }
@@ -182,7 +205,7 @@ class DiscoverService
     }
 
     /**
-     * Fetch genre list directly from TMDB API.
+     * Fetch genre list directly from TMDB API excluding empty genres.
      *
      * @return array<int, array{id: int, name: string}>
      */
@@ -192,36 +215,36 @@ class DiscoverService
         $genres = $response->json('genres', []);
 
         $result = [];
-        $hasThriller = false;
-        $hasHorror = false;
+        $hasRomance = false;
 
         foreach ($genres as $genre) {
             if (isset($genre['id'], $genre['name'])) {
-                if ((int) $genre['id'] === self::THRILLER_GENRE_ID) {
-                    $hasThriller = true;
+                $genreId = (int) $genre['id'];
+                $genreName = trim((string) $genre['name']);
+                $nameLower = strtolower($genreName);
+
+                // Exclude empty genres that have 0 Korean dramas in TMDB
+                if (in_array($genreId, self::EMPTY_GENRE_IDS, true) || in_array($nameLower, self::EMPTY_GENRE_NAMES, true)) {
+                    continue;
                 }
-                if ((int) $genre['id'] === self::HORROR_GENRE_ID) {
-                    $hasHorror = true;
+
+                if ($nameLower === 'romance') {
+                    $hasRomance = true;
                 }
+
                 $result[] = [
-                    'id'   => (int) $genre['id'],
-                    'name' => (string) $genre['name'],
+                    'id'   => $genreId,
+                    'name' => $genreName,
                 ];
             }
         }
 
-        if (!$hasThriller) {
-            $result[] = [
-                'id'   => self::THRILLER_GENRE_ID,
-                'name' => 'Thriller',
-            ];
-        }
-
-        if (!$hasHorror) {
-            $result[] = [
-                'id'   => self::HORROR_GENRE_ID,
-                'name' => 'Horror',
-            ];
+        // Ensure Romance is present
+        if (!$hasRomance) {
+            array_unshift($result, [
+                'id'   => 10749,
+                'name' => 'Romance',
+            ]);
         }
 
         return $result;
