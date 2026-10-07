@@ -204,12 +204,6 @@ export default function DramaDetailScreen({ route, navigation }) {
     const nextFav = !isFavorite;
     setIsFavorite(nextFav);
     await saveTrackerChanges(undefined, undefined, undefined, undefined, nextFav);
-    Alert.alert(
-      nextFav ? 'Added to Favorites' : 'Removed from Favorites',
-      nextFav
-        ? 'This drama was saved to your Favorites collection.'
-        : 'This drama was removed from your Favorites collection.'
-    );
   };
 
   const confirmRemoveFromWatchlist = () => {
@@ -247,8 +241,10 @@ export default function DramaDetailScreen({ route, navigation }) {
     if (tracker) {
       confirmRemoveFromWatchlist();
     } else {
+      // Set tracker optimistically so button immediately switches to 'In Watchlist'
+      setTracker({ tmdb_id: tmdbId, status: 'plan_to_watch', current_episode: 0 });
+      setSelectedStatus('Plan to Watch');
       await saveTrackerChanges('Plan to Watch', 0, null, '', isFavorite);
-      Alert.alert('Added', 'Drama added to your watchlist.');
     }
   };
 

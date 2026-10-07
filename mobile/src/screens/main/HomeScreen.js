@@ -38,6 +38,7 @@ export default function HomeScreen({ navigation }) {
   const [userWatchlistItems, setUserWatchlistItems] = useState([]);
   const [activeWatchingIndex, setActiveWatchingIndex] = useState(0);
   const [loggingEp, setLoggingEp] = useState(false);
+  const carouselRef = React.useRef(null);
 
   const fetchDashboard = async () => {
     try {
@@ -141,6 +142,13 @@ export default function HomeScreen({ navigation }) {
         });
     }
 
+    // Sort watching list deterministically by ID so logging an episode never unexpectedly shifts card positions
+    list.sort((a, b) => {
+      const idA = Number(a.id || a.tmdb_id || 0);
+      const idB = Number(b.id || b.tmdb_id || 0);
+      return idA - idB;
+    });
+
     return list;
   }, [dashboardData, userWatchlistItems]);
 
@@ -149,11 +157,70 @@ export default function HomeScreen({ navigation }) {
   const handleIncrement = async (tmdbId) => {
     if (!tmdbId || loggingEp) return;
     setLoggingEp(true);
+
+    // Instant optimistic update for immediate real-time feedback
+    setDashboardData((prev) => {
+      if (!prev) return prev;
+      const updateDrama = (drama) => {
+        if (!drama || (drama.tmdb_id !== tmdbId && drama.id !== tmdbId)) return drama;
+        const cur = Number(drama.current_episode || 0);
+        const total = Number(drama.total_episodes || 0);
+        const next = total > 0 ? Math.min(total, cur + 1) : cur + 1;
+        const isComplete = total > 0 && next >= total;
+        return {
+          ...drama,
+          current_episode: next,
+          next_episode: total > 0 && next < total ? next + 1 : next,
+          progress_percentage: total > 0 ? Math.min(100, Math.round((next / total) * 100)) : 0,
+          status: isComplete ? 'completed' : drama.status,
+        };
+      };
+
+      const updatedCur = updateDrama(prev.currently_watching);
+      const updatedList = Array.isArray(prev.watching_list)
+        ? prev.watching_list.map(updateDrama)
+        : prev.watching_list;
+
+      const epsWatched = Number(prev.stats?.episodes_watched || 0) + 1;
+      return {
+        ...prev,
+        currently_watching: updatedCur,
+        watching_list: updatedList,
+        stats: {
+          ...prev.stats,
+          episodes_watched: epsWatched,
+          hours_watched: parseFloat((Number(prev.stats?.hours_watched || 0) + 1).toFixed(1)),
+        },
+      };
+    });
+
+    setUserWatchlistItems((prev) =>
+      Array.isArray(prev)
+        ? prev.map((item) => {
+            if (item.tmdb_id === tmdbId || item.id === tmdbId) {
+              const cur = Number(item.current_episode || 0);
+              const total = Number(item.total_episodes || 0);
+              const next = total > 0 ? Math.min(total, cur + 1) : cur + 1;
+              return {
+                ...item,
+                current_episode: next,
+                progress_percentage: total > 0 ? Math.min(100, Math.round((next / total) * 100)) : 0,
+                status: total > 0 && next >= total ? 'completed' : item.status,
+              };
+            }
+            return item;
+          })
+        : prev
+    );
+
     try {
       await trackerService.incrementEpisode(tmdbId);
+      // Background re-fetch ensures consistency with server
       fetchDashboard();
     } catch (err) {
       console.warn('Could not increment episode:', err);
+      // Revert if error
+      fetchDashboard();
     } finally {
       setLoggingEp(false);
     }
@@ -340,6 +407,7 @@ export default function HomeScreen({ navigation }) {
             {watchingList.length > 0 ? (
               <View style={[styles.watchingCarouselWrapper, { marginHorizontal: -horizontalPadding }]}>
                 <ScrollView
+                  ref={carouselRef}
                   horizontal
                   pagingEnabled
                   decelerationRate="fast"

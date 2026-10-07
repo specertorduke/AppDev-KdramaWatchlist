@@ -97,23 +97,26 @@ export default function TrackerScreen({ navigation, route }) {
 
   const handleSaveStatus = async () => {
     if (!editingItem) return;
-    setSavingStatus(true);
+    const itemToUpdate = editingItem;
+    const apiStatus = toApiStatus(selectedStatus);
+
+    // Optimistic immediate update
+    setItems((prev) =>
+      prev.map((i) =>
+        i.tmdb_id === itemToUpdate.tmdb_id ? { ...i, status: apiStatus } : i
+      )
+    );
+    handleCloseStatusEditor();
+
     try {
-      const apiStatus = toApiStatus(selectedStatus);
-      await trackerService.updateProgress(editingItem.tmdb_id, {
+      await trackerService.updateProgress(itemToUpdate.tmdb_id, {
         status: apiStatus,
       });
-      setItems((prev) =>
-        prev.map((i) =>
-          i.tmdb_id === editingItem.tmdb_id ? { ...i, status: apiStatus } : i
-        )
-      );
-      handleCloseStatusEditor();
       fetchWatchlist();
     } catch (err) {
+      console.warn('Failed to update status:', err);
       Alert.alert('Error', 'Failed to update status.');
-    } finally {
-      setSavingStatus(false);
+      fetchWatchlist();
     }
   };
 
