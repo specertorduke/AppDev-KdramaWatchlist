@@ -57,7 +57,7 @@ export default function DramaDetailScreen({ route, navigation }) {
   const [selectedSeasonIndex, setSelectedSeasonIndex] = useState(0);
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
   const [showAllCast, setShowAllCast] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('Plan to Watch');
+  const [selectedStatus, setSelectedStatus] = useState(null);
   const [watchedEpisodes, setWatchedEpisodes] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
   const [notes, setNotes] = useState('');
@@ -79,9 +79,13 @@ export default function DramaDetailScreen({ route, navigation }) {
           setSelectedRating(Number(t.rating || 0));
           setNotes(t.review_notes || '');
           setIsFavorite(Boolean(t.is_favorite));
+        } else {
+          setTracker(null);
+          setSelectedStatus(null);
         }
       } catch (e) {
         setTracker(null);
+        setSelectedStatus(null);
       }
     } catch (err) {
       console.warn('Failed to load drama details:', err);
@@ -224,7 +228,7 @@ export default function DramaDetailScreen({ route, navigation }) {
               setWatchedEpisodes(0);
               setSelectedRating(0);
               setNotes('');
-              setSelectedStatus('Plan to Watch');
+              setSelectedStatus(null);
               Alert.alert('Removed', 'Drama removed from your watchlist.');
             } catch (e) {
               Alert.alert('Error', 'Could not remove from watchlist.');
@@ -592,7 +596,7 @@ export default function DramaDetailScreen({ route, navigation }) {
           style={styles.statusScroll}
         >
           {STATUSES.map((st) => {
-            const active = toDisplayStatus(selectedStatus) === st;
+            const active = Boolean(tracker) && Boolean(selectedStatus) && toDisplayStatus(selectedStatus) === st;
             const chipColor = getStatusColor(st);
             return (
               <Pressable
