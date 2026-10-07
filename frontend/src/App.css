@@ -3059,6 +3059,37 @@
 }
 
 /* Star Rating */
+.detail-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.detail-section-header-row .detail-card-heading {
+  margin: 0;
+}
+
+.detail-clear-rating-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: all 140ms ease;
+}
+
+.detail-clear-rating-btn:hover {
+  color: #eb5b78;
+  background: rgba(235, 91, 120, 0.08);
+}
+
 .detail-star-picker {
   display: flex;
   align-items: center;
@@ -3083,7 +3114,8 @@
 .detail-rating-score {
   display: block;
   margin-top: 6px;
-  color: #f19aad;
+  margin-bottom: 12px;
+  color: #eb5b78;
   font-size: 14px;
   font-weight: 800;
 }
@@ -3096,7 +3128,7 @@
 
 .notes-textarea {
   width: 100%;
-  min-height: 80px;
+  min-height: 84px;
   padding: 12px 14px;
   border: 1px solid #262334;
   border-radius: 12px;
@@ -3107,7 +3139,7 @@
   line-height: 1.5;
   resize: vertical;
   outline: none;
-  transition: border-color 180ms ease;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .notes-textarea:focus {
@@ -3115,14 +3147,23 @@
   box-shadow: 0 0 0 3px rgba(235, 91, 120, 0.12);
 }
 
+.notes-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
 .notes-save-button {
-  margin-top: 10px;
-  padding: 7px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   background: #eb5b78;
   color: #fff;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
   transition: all 180ms ease;
@@ -3131,6 +3172,40 @@
 .notes-save-button:hover {
   background: #f16d88;
   transform: translateY(-1px);
+}
+
+/* Season Tabs */
+.detail-season-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.season-tab-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #262334;
+  background: #161424;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 140ms ease;
+}
+
+.season-tab-pill:hover {
+  color: #fff;
+  background: #201e30;
+}
+
+.season-tab-pill.active {
+  background: #eb5b78;
+  color: #fff;
+  border-color: #eb5b78;
 }
 
 /* Episodes Checklist */

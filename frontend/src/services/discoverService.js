@@ -146,6 +146,8 @@ export function mapDramaDetail(item) {
       'An acclaimed Korean drama series featuring compelling storytelling, memorable characters, and emotional twists.',
     myNotes: item.notes || '',
     cast,
+    seasons: Array.isArray(item.seasons) ? item.seasons : [],
+    number_of_seasons: item.number_of_seasons || (Array.isArray(item.seasons) ? item.seasons.length : 1),
     trailer: item.trailer || null,
     episodeList,
   }

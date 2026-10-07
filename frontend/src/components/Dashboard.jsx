@@ -749,20 +749,71 @@ function DramaDetailView({ drama, onBack }) {
   const [noteSaved, setNoteSaved] = useState(false)
   const [showAllEpisodes, setShowAllEpisodes] = useState(false)
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false)
+
+  // TMDB seasons handling (ignoring season 0 / specials if regular seasons exist)
+  const allSeasons = useMemo(() => {
+    if (Array.isArray(drama.seasons) && drama.seasons.length > 0) {
+      const filtered = drama.seasons.filter((s) => s.season_number > 0 || drama.seasons.length === 1)
+      return filtered.length > 0 ? filtered : drama.seasons
+    }
+    return []
+  }, [drama.seasons])
+
+  const [selectedSeasonIndex, setSelectedSeasonIndex] = useState(0)
+  const currentSeason = allSeasons[selectedSeasonIndex] || allSeasons[0] || null
+
+  // Total episodes in the currently selected season (or drama total)
+  const seasonEpisodeCount = Math.max(
+    1,
+    currentSeason?.episode_count || Number(drama.episodes) || 16
+  )
+
+  const priorSeasonEps = useMemo(() => {
+    if (allSeasons.length <= 1) return 0
+    return allSeasons.slice(0, selectedSeasonIndex).reduce((sum, s) => sum + (s.episode_count || 0), 0)
+  }, [allSeasons, selectedSeasonIndex])
+
+  const totalEpisodes = useMemo(() => {
+    return Number(drama.episodes) || (allSeasons.length > 0 ? allSeasons.reduce((acc, s) => acc + (s.episode_count || 0), 0) : seasonEpisodeCount) || 16
+  }, [drama.episodes, allSeasons, seasonEpisodeCount])
+
+  const globalWatchedEpisodes = savedItem?.current_episode ?? savedItem?.watchedCount ?? drama.current_episode ?? drama.watchedCount ?? (savedItem?.status === 'Watching' ? 1 : (savedItem?.status === 'Completed' ? totalEpisodes : 0))
+
+  const seasonWatchedCount = Math.max(0, Math.min(seasonEpisodeCount, globalWatchedEpisodes - priorSeasonEps))
+  const seasonRemainingCount = Math.max(0, seasonEpisodeCount - seasonWatchedCount)
+  const progressPct = seasonEpisodeCount > 0 ? Math.round((seasonWatchedCount / seasonEpisodeCount) * 100) : 0
+  const remainingWatchTime = getRemainingWatchTime(drama.duration, allSeasons.length > 1 ? seasonRemainingCount : Math.max(0, totalEpisodes - globalWatchedEpisodes))
+
   const [episodesList, setEpisodesList] = useState(() => {
-    const total = Number(drama.episodes) || 16
-    const watched = savedItem?.current_episode ?? savedItem?.watchedCount ?? drama.current_episode ?? drama.watchedCount ?? (savedItem?.status === 'Watching' ? 1 : 0)
-    return Array.from({ length: total }, (_, i) => ({
-      number: i + 1,
-      title: `Episode ${i + 1}`,
-      watched: i < watched,
-    }))
+    return Array.from({ length: seasonEpisodeCount }, (_, i) => {
+      const epNum = i + 1
+      const globalEpNum = priorSeasonEps + epNum
+      return {
+        number: epNum,
+        globalNumber: globalEpNum,
+        title: `Episode ${epNum}`,
+        watched: globalEpNum <= globalWatchedEpisodes,
+      }
+    })
   })
 
-  const watchedCount = episodesList.filter((ep) => ep.watched).length
-  const totalEpisodes = Number(drama.episodes) || episodesList.length || 16
-  const progressPct = totalEpisodes > 0 ? Math.round((watchedCount / totalEpisodes) * 100) : 0
-  const remainingWatchTime = getRemainingWatchTime(drama.duration, totalEpisodes - watchedCount)
+  // Update episode list whenever selected season or globalWatchedEpisodes changes
+  useEffect(() => {
+    setEpisodesList(
+      Array.from({ length: seasonEpisodeCount }, (_, i) => {
+        const epNum = i + 1
+        const globalEpNum = priorSeasonEps + epNum
+        return {
+          number: epNum,
+          globalNumber: globalEpNum,
+          title: `Episode ${epNum}`,
+          watched: globalEpNum <= globalWatchedEpisodes,
+        }
+      })
+    )
+    setShowAllEpisodes(false)
+  }, [selectedSeasonIndex, seasonEpisodeCount, priorSeasonEps, globalWatchedEpisodes])
+
   const displayedEpisodes = showAllEpisodes ? episodesList : episodesList.slice(0, 30)
 
   const handleAddToWatchlist = (initialStatus = 'Plan to Watch') => {
@@ -790,24 +841,21 @@ function DramaDetailView({ drama, onBack }) {
   }
 
   const toggleEpisode = (epNum) => {
-    setEpisodesList((prev) => {
-      const episodeIsWatched = prev.find((ep) => ep.number === epNum)?.watched
-      const newWatchedCount = episodeIsWatched ? epNum - 1 : epNum
-      const updated = prev.map((ep) => ({ ...ep, watched: ep.number <= newWatchedCount }))
-      const newStatus = newWatchedCount === totalEpisodes ? 'Completed' : (newWatchedCount > 0 ? 'Watching' : (status || 'Plan to Watch'))
-      setStatus(newStatus)
+    const globalEpNum = priorSeasonEps + epNum
+    const episodeIsWatched = globalEpNum <= globalWatchedEpisodes
+    const newGlobalWatched = episodeIsWatched ? globalEpNum - 1 : globalEpNum
+    const newStatus = newGlobalWatched >= totalEpisodes ? 'Completed' : (newGlobalWatched > 0 ? 'Watching' : (status || 'Plan to Watch'))
+    setStatus(newStatus)
 
-      if (savedItem || isTracked) {
-        updateWatchlist(dramaId, {
-          watchedCount: newWatchedCount,
-          current_episode: newWatchedCount,
-          status: newStatus,
-        })
-      } else {
-        addToWatchlist({ ...drama, watchedCount: newWatchedCount, current_episode: newWatchedCount }, newStatus)
-      }
-      return updated
-    })
+    if (savedItem || isTracked) {
+      updateWatchlist(dramaId, {
+        watchedCount: newGlobalWatched,
+        current_episode: newGlobalWatched,
+        status: newStatus,
+      })
+    } else {
+      addToWatchlist({ ...drama, watchedCount: newGlobalWatched, current_episode: newGlobalWatched }, newStatus)
+    }
   }
 
   const handleSaveNotes = () => {
@@ -985,6 +1033,14 @@ function DramaDetailView({ drama, onBack }) {
                 <span className="kv-key">Network</span>
                 <span className="kv-val">{drama.network || '—'}</span>
               </div>
+              {allSeasons.length > 1 && (
+                <div className="detail-kv-row">
+                  <span className="kv-key">Seasons</span>
+                  <span className="kv-val">
+                    {allSeasons.length} Seasons ({totalEpisodes} Total Eps)
+                  </span>
+                </div>
+              )}
             </div>
           </article>
 
@@ -1022,9 +1078,15 @@ function DramaDetailView({ drama, onBack }) {
           {/* Progress & Tracking Card */}
           <article className="detail-card">
             <div className="detail-progress-header">
-              <h3 className="detail-card-heading">PROGRESS</h3>
+              <h3 className="detail-card-heading">
+                {allSeasons.length > 1 && currentSeason
+                  ? `PROGRESS · ${(currentSeason.name || `SEASON ${currentSeason.season_number || selectedSeasonIndex + 1}`).toUpperCase()}`
+                  : 'PROGRESS'}
+              </h3>
               <span className="progress-header-meta">
-                {watchedCount}/{totalEpisodes} eps · added {savedItem?.addedDate || drama.addedDate || 'Recently'}
+                {allSeasons.length > 1
+                  ? `${seasonWatchedCount}/${seasonEpisodeCount} eps (${globalWatchedEpisodes}/${totalEpisodes} total) · added ${savedItem?.addedDate || drama.addedDate || 'Recently'}`
+                  : `${globalWatchedEpisodes}/${totalEpisodes} eps · added ${savedItem?.addedDate || drama.addedDate || 'Recently'}`}
               </span>
             </div>
 
@@ -1068,7 +1130,20 @@ function DramaDetailView({ drama, onBack }) {
 
             {/* My Rating */}
             <div className="detail-sub-section">
-              <h3 className="detail-card-heading">MY RATING</h3>
+              <div className="detail-section-header-row">
+                <h3 className="detail-card-heading">MY RATING</h3>
+                {myRating > 0 && (
+                  <button
+                    type="button"
+                    className="detail-clear-rating-btn"
+                    onClick={() => handleRatingChange(0)}
+                    title="Clear rating"
+                  >
+                    <X size={13} />
+                    <span>Clear</span>
+                  </button>
+                )}
+              </div>
               <div className="detail-star-picker" onMouseLeave={() => setHoverRating(0)}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((starNum) => {
                   const isFilled = (hoverRating || myRating) >= starNum
@@ -1077,42 +1152,75 @@ function DramaDetailView({ drama, onBack }) {
                       key={starNum}
                       type="button"
                       className={`star-pick-button ${isFilled ? 'filled' : ''}`}
-                      onClick={() => handleRatingChange(starNum)}
+                      onClick={() => handleRatingChange(myRating === starNum ? 0 : starNum)}
                       onMouseEnter={() => setHoverRating(starNum)}
                       aria-label={`Rate ${starNum} out of 10`}
                     >
-                      <Star size={18} fill={isFilled ? '#eb5b78' : 'none'} color={isFilled ? '#eb5b78' : '#3c3748'} />
+                      <Star size={20} fill={isFilled ? '#eb5b78' : 'none'} color={isFilled ? '#eb5b78' : '#3c3748'} />
                     </button>
                   )
                 })}
               </div>
-              <strong className="detail-rating-score">{myRating} / 10</strong>
-            </div>
+              <strong className="detail-rating-score">
+                {myRating > 0 ? `${myRating} / 10` : 'Not rated yet'}
+              </strong>
 
-            {/* My Notes */}
-            <div className="detail-sub-section">
-              <h3 className="detail-card-heading">MY NOTES</h3>
+              {/* Review Notes Area (Same as mobile) */}
               <div className="notes-box-wrapper">
                 <textarea
                   className="notes-textarea"
                   value={myNotes}
                   onChange={(e) => setMyNotes(e.target.value)}
-                  placeholder="Add your personal notes, favorite moments, thoughts..."
+                  placeholder="Write your personal thoughts, favorite moments, or critique..."
                   rows={3}
                 />
-                <button className="notes-save-button" type="button" onClick={handleSaveNotes}>
-                  {noteSaved ? 'Saved ✓' : 'Save'}
-                </button>
+                <div className="notes-action-row">
+                  <button className="notes-save-button" type="button" onClick={handleSaveNotes}>
+                    {noteSaved ? (
+                      <>
+                        <Check size={14} /> Saved Review
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={14} /> Save Review
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </article>
 
-          {/* Episodes Checklist Card */}
+          {/* Episodes Checklist Card (with Seasons tabs) */}
           <article className="detail-card">
             <div className="detail-episodes-header">
-              <h3 className="detail-card-heading">EPISODES</h3>
-              <span className="episodes-total-label">{totalEpisodes} Total</span>
+              <h3 className="detail-card-heading">
+                {allSeasons.length > 1 ? 'SEASONS & EPISODES' : 'EPISODES'}
+              </h3>
+              <span className="episodes-total-label">
+                {currentSeason ? `${currentSeason.episode_count || seasonEpisodeCount} Episodes` : `${totalEpisodes} Total`}
+              </span>
             </div>
+
+            {/* Season Selector Tabs */}
+            {allSeasons.length > 1 && (
+              <div className="detail-season-tabs">
+                {allSeasons.map((season, idx) => {
+                  const isActive = selectedSeasonIndex === idx
+                  const seasonName = season.name || `Season ${season.season_number || idx + 1}`
+                  return (
+                    <button
+                      key={season.id || `season-${idx}`}
+                      type="button"
+                      className={`season-tab-pill ${isActive ? 'active' : ''}`}
+                      onClick={() => setSelectedSeasonIndex(idx)}
+                    >
+                      {seasonName}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             <div className="episodes-list-group">
               {displayedEpisodes.map((ep) => (

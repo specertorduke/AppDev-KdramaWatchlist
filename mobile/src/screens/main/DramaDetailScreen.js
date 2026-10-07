@@ -304,15 +304,32 @@ export default function DramaDetailScreen({ route, navigation }) {
     currentSeason?.episode_count || episodesTotal || 16
   );
 
+  // Calculate prior season episode count offset (sum of previous seasons)
+  const priorSeasonEps = allSeasons.length > 1
+    ? allSeasons.slice(0, selectedSeasonIndex).reduce((sum, s) => sum + (s.episode_count || 0), 0)
+    : 0;
+
+  // Season-specific progress and remaining values
+  const seasonWatchedEpisodes = Math.max(
+    0,
+    Math.min(currentSeasonEpisodes, watchedEpisodes - priorSeasonEps)
+  );
+  const seasonRemainingEpisodes = Math.max(0, currentSeasonEpisodes - seasonWatchedEpisodes);
+  const seasonProgress = currentSeasonEpisodes > 0
+    ? Math.min(100, Math.round((seasonWatchedEpisodes / currentSeasonEpisodes) * 100))
+    : 0;
+
   // Generate full episode array for current season without arbitrary hard caps
   const episodeList = Array.from({ length: currentSeasonEpisodes }, (_, index) => {
     const epNum = index + 1;
+    const globalEpNum = priorSeasonEps + epNum;
     // Check if backend returned detailed episode items with real names
     const realEp = Array.isArray(drama.episodes)
-      ? drama.episodes.find((e) => e.episode_number === epNum)
+      ? drama.episodes.find((e) => e.episode_number === epNum || e.episode_number === globalEpNum)
       : null;
     return {
       number: epNum,
+      globalNumber: globalEpNum,
       title: realEp?.name || `Episode ${epNum}`,
     };
   });
@@ -522,9 +539,15 @@ export default function DramaDetailScreen({ route, navigation }) {
       {/* PROGRESS TRACKING SECTION */}
       <View style={[styles.sectionContainer, { borderBottomColor: colors.border }]}>
         <View style={styles.progressHeaderRow}>
-          <Text style={[styles.progressHeaderTitle, { color: colors.muted }]}>PROGRESS</Text>
+          <Text style={[styles.progressHeaderTitle, { color: colors.muted }]}>
+            {allSeasons.length > 1 && currentSeason
+              ? `PROGRESS · ${(currentSeason.name || `SEASON ${currentSeason.season_number || selectedSeasonIndex + 1}`).toUpperCase()}`
+              : 'PROGRESS'}
+          </Text>
           <Text style={[styles.progressHeaderMeta, { color: colors.muted }]}>
-            {watchedEpisodes}/{episodesTotal} eps · added {formatAddedDate(tracker?.created_at || tracker?.updated_at)}
+            {allSeasons.length > 1
+              ? `${seasonWatchedEpisodes}/${currentSeasonEpisodes} eps (${watchedEpisodes}/${episodesTotal} total) · added ${formatAddedDate(tracker?.created_at || tracker?.updated_at)}`
+              : `${watchedEpisodes}/${episodesTotal} eps · added ${formatAddedDate(tracker?.created_at || tracker?.updated_at)}`}
           </Text>
         </View>
 
@@ -533,7 +556,10 @@ export default function DramaDetailScreen({ route, navigation }) {
           <View
             style={[
               styles.detailProgressBar,
-              { width: `${progress}%`, backgroundColor: colors.pink },
+              {
+                width: `${allSeasons.length > 1 ? seasonProgress : progress}%`,
+                backgroundColor: colors.pink,
+              },
             ]}
           />
         </View>
@@ -541,21 +567,25 @@ export default function DramaDetailScreen({ route, navigation }) {
         <View style={styles.detailProgressInfoRow}>
           <Text style={[styles.progressRemaining, { color: colors.muted }]}>
             {(() => {
-              const remainingEps = Math.max(0, episodesTotal - watchedEpisodes);
-              if (remainingEps <= 0) return 'All episodes watched';
+              const activeRemaining = allSeasons.length > 1 ? seasonRemainingEpisodes : remainingEpisodes;
+              if (activeRemaining <= 0) {
+                return allSeasons.length > 1 ? 'All episodes in season watched' : 'All episodes watched';
+              }
               const durationStr = String(drama?.duration || drama?.episode_runtime || '');
               const matches = durationStr.match(/\d+(?:\.\d+)?/g);
               const avgMinutes = matches && matches.length
                 ? matches.map(Number).reduce((sum, val) => sum + val, 0) / matches.length
                 : 60;
-              const totalMin = Math.round(avgMinutes * remainingEps);
+              const totalMin = Math.round(avgMinutes * activeRemaining);
               const hrs = Math.floor(totalMin / 60);
               const mins = totalMin % 60;
               const estimate = [hrs ? `${hrs}h` : '', mins ? `${mins}m` : ''].filter(Boolean).join(' ') || '0m';
-              return `~${estimate} remaining`;
+              return `~${estimate} remaining${allSeasons.length > 1 ? ' in season' : ''}`;
             })()}
           </Text>
-          <Text style={[styles.progressPctText, { color: colors.pink }]}>{progress}%</Text>
+          <Text style={[styles.progressPctText, { color: colors.pink }]}>
+            {allSeasons.length > 1 ? seasonProgress : progress}%
+          </Text>
         </View>
 
         {/* Status Filter Scroll */}
@@ -681,7 +711,7 @@ export default function DramaDetailScreen({ route, navigation }) {
         {/* Clean Episode Rows */}
         <View style={styles.episodeList}>
           {displayedEpisodes.map((ep) => {
-            const watched = ep.number <= watchedEpisodes;
+            const watched = ep.globalNumber <= watchedEpisodes;
             return (
               <Pressable
                 key={ep.number}
@@ -691,7 +721,7 @@ export default function DramaDetailScreen({ route, navigation }) {
                   pressed && styles.episodeRowPressed,
                 ]}
                 onPress={() => {
-                  const next = watched ? ep.number - 1 : ep.number;
+                  const next = watched ? ep.globalNumber - 1 : ep.globalNumber;
                   setWatchedEpisodes(next);
                   saveTrackerChanges(undefined, next);
                 }}
