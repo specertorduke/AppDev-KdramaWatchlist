@@ -293,4 +293,75 @@ class HomeTest extends TestCase
             ]);
     }
 
+    public function test_home_allows_refreshing_recommendations_with_rec_page(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response(['genres' => [['id' => 18, 'name' => 'Drama']]], 200),
+            '*/discover/tv*' => Http::response([
+                'page' => 2,
+                'total_pages' => 10,
+                'total_results' => 200,
+                'results' => [
+                    [
+                        'id' => 77777,
+                        'name' => 'Page 2 Drama',
+                        'poster_path' => '/page2.jpg',
+                        'vote_average' => 8.5,
+                        'genre_ids' => [18],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/home?rec_page=2');
+
+        $response->assertStatus(200);
+        $this->assertEquals(2, $response->json('data.rec_page'));
+        $this->assertEquals('Page 2 Drama', $response->json('data.recommended.0.title'));
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return str_contains($request->url(), 'discover/tv') &&
+                   str_contains($request->url(), 'page=2');
+        });
+    }
+
+    public function test_home_recommends_thriller_and_horror_when_in_user_favorite_genres(): void
+    {
+        $this->user->favorite_genres = ['Thriller', 'Horror'];
+        $this->user->save();
+
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response(['genres' => [['id' => 18, 'name' => 'Drama']]], 200),
+            '*/discover/tv*' => Http::response([
+                'page' => 1,
+                'total_pages' => 5,
+                'total_results' => 100,
+                'results' => [
+                    [
+                        'id' => 88888,
+                        'name' => 'Dark Suspense',
+                        'poster_path' => '/dark.jpg',
+                        'vote_average' => 8.7,
+                        'genre_ids' => [18],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/home');
+
+        $response->assertStatus(200);
+        $recommended = $response->json('data.recommended');
+        $this->assertNotEmpty($recommended);
+
+        // Verify that discover/tv was called with keywords (for Thriller and Horror)
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return str_contains($request->url(), 'discover/tv') &&
+                   str_contains($request->url(), 'with_keywords=');
+        });
+    }
 }

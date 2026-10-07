@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,9 +26,13 @@ export default function DiscoverScreen({ navigation }) {
   const [genres, setGenres] = useState([]);
   const [dramas, setDramas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
-  // Fetch Genres
+  // Fetch Genres (including Thriller & Horror)
   useEffect(() => {
     discoverService
       .getGenres()
@@ -43,64 +48,103 @@ export default function DiscoverScreen({ navigation }) {
           { id: 10759, name: 'Action' },
           { id: 9648, name: 'Mystery' },
           { id: 10765, name: 'Sci-Fi & Fantasy' },
+          { id: 53, name: 'Thriller' },
+          { id: 27, name: 'Horror' },
+          { id: 80, name: 'Crime' },
+          { id: 10751, name: 'Family' },
         ]);
       });
   }, []);
 
-  // Fetch / Search Dramas
-  useEffect(() => {
-    let isCancelled = false;
-    setLoading(true);
+  // Fetch / Search Dramas function
+  const fetchDramas = useCallback(
+    async (targetPage = 1, isRefresh = false, isAppend = false) => {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (isAppend) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
 
-    const timer = setTimeout(() => {
-      const params = {};
-      if (selectedGenreId) params.genre_id = selectedGenreId;
-      if (query.trim()) params.search = query.trim();
+      try {
+        const params = { page: targetPage };
+        if (selectedGenreId) params.genre_id = selectedGenreId;
+        if (query.trim()) params.search = query.trim();
 
-      const fetchPromise = query.trim()
-        ? discoverService.search({ query: query.trim() })
-        : discoverService.discover(params);
+        const fetchPromise = query.trim()
+          ? discoverService.search({ query: query.trim(), page: targetPage })
+          : discoverService.discover(params);
 
-      Promise.all([
-        fetchPromise,
-        trackerService.getWatchlist().catch(() => null),
-      ])
-        .then(([res, trackerRes]) => {
-          if (!isCancelled) {
-            const rawDramas = res.data.data || [];
-            const userWatchlist = trackerRes?.data?.data || [];
-            const statusMap = new Map();
-            userWatchlist.forEach((item) => {
-              const id = item.tmdb_id || item.id;
-              if (id) statusMap.set(String(id), item.status);
-            });
+        const [res, trackerRes] = await Promise.all([
+          fetchPromise,
+          trackerService.getWatchlist().catch(() => null),
+        ]);
 
-            const merged = rawDramas.map((drama) => {
-              const dramaId = String(drama.tmdb_id || drama.id);
-              const trackedStatus = statusMap.get(dramaId);
-              return {
-                ...drama,
-                watch_status: trackedStatus || drama.watch_status || drama.status,
-                status: trackedStatus || drama.status || drama.watch_status,
-              };
-            });
-
-            setDramas(merged);
-          }
-        })
-        .catch((e) => {
-          console.warn('Failed to fetch discover list:', e);
-        })
-        .finally(() => {
-          if (!isCancelled) setLoading(false);
+        const rawDramas = res?.data?.data || [];
+        const userWatchlist = trackerRes?.data?.data || [];
+        const statusMap = new Map();
+        userWatchlist.forEach((item) => {
+          const id = item.tmdb_id || item.id;
+          if (id) statusMap.set(String(id), item.status);
         });
+
+        const merged = rawDramas.map((drama) => {
+          const dramaId = String(drama.tmdb_id || drama.id);
+          const trackedStatus = statusMap.get(dramaId);
+          return {
+            ...drama,
+            watch_status: trackedStatus || drama.watch_status || drama.status,
+            status: trackedStatus || drama.status || drama.watch_status,
+          };
+        });
+
+        if (isAppend) {
+          setDramas((prev) => {
+            const seen = new Set(prev.map((d) => String(d.tmdb_id || d.id)));
+            const newItems = merged.filter((d) => !seen.has(String(d.tmdb_id || d.id)));
+            return [...prev, ...newItems];
+          });
+        } else {
+          setDramas(merged);
+          setFeaturedIndex(0);
+        }
+
+        setPage(targetPage);
+        setHasMore(Boolean(res?.data?.pagination?.has_more));
+      } catch (e) {
+        console.warn('Failed to fetch discover list:', e);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      }
+    },
+    [query, selectedGenreId]
+  );
+
+  // Trigger search/filter reset to page 1
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchDramas(1, false, false);
     }, 300);
 
-    return () => {
-      isCancelled = true;
-      clearTimeout(timer);
-    };
-  }, [query, selectedGenreId]);
+    return () => clearTimeout(timer);
+  }, [fetchDramas]);
+
+  // Refresh handler: advances page or shuffles to see fresh dramas
+  const handleRefresh = useCallback(() => {
+    // Advance to next page so users discover new/different recommended dramas
+    const nextPage = hasMore ? page + 1 : 1;
+    fetchDramas(nextPage, true, false);
+  }, [fetchDramas, hasMore, page]);
+
+  // Load more handler (appends to list)
+  const handleLoadMore = useCallback(() => {
+    if (!loading && !loadingMore && hasMore) {
+      fetchDramas(page + 1, false, true);
+    }
+  }, [fetchDramas, hasMore, loading, loadingMore, page]);
 
   const featuredDramas = dramas.slice(0, Math.min(5, dramas.length));
   const featuredDrama =
@@ -183,6 +227,14 @@ export default function DiscoverScreen({ navigation }) {
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.pink}
+            colors={[colors.pink]}
+          />
+        }
       >
         {/* Search Box */}
         {showSearch && (
@@ -344,12 +396,37 @@ export default function DiscoverScreen({ navigation }) {
 
         {/* Result Header */}
         <View style={styles.resultHeader}>
-          <Text style={[styles.resultTitle, { color: colors.text }]}>
-            {selectedGenreId
-              ? genres.find((g) => g.id === selectedGenreId)?.name || 'Dramas'
-              : 'All Dramas'}
-          </Text>
-          <Text style={[styles.resultCount, { color: colors.muted }]}>{dramas.length} results</Text>
+          <View style={styles.resultTitleCol}>
+            <Text style={[styles.resultTitle, { color: colors.text }]}>
+              {selectedGenreId
+                ? genres.find((g) => g.id === selectedGenreId)?.name || 'Dramas'
+                : 'All Dramas'}
+            </Text>
+            <Text style={[styles.resultCount, { color: colors.muted }]}>
+              {dramas.length} dramas {page > 1 ? `· Page ${page}` : ''}
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={handleRefresh}
+            disabled={loading || refreshing}
+            style={({ pressed }) => [
+              styles.refreshButton,
+              { backgroundColor: isDark ? '#2A2438' : colors.pinkLight },
+              pressed && styles.refreshButtonPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Refresh recommended dramas"
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color={colors.pink} />
+            ) : (
+              <Ionicons name="refresh" size={14} color={colors.pink} />
+            )}
+            <Text style={[styles.refreshButtonText, { color: colors.pink }]}>
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Drama Grid */}
@@ -371,20 +448,48 @@ export default function DiscoverScreen({ navigation }) {
             <Text style={[styles.emptyText, { color: colors.muted }]}>Try another search or genre.</Text>
           </View>
         ) : (
-          <View style={styles.grid}>
-            {dramas.map((drama, index) => (
-              <View key={String(drama.tmdb_id || drama.id || index)} style={styles.gridItem}>
-                <DramaCard
-                  drama={drama}
-                  onPress={() =>
-                    navigation.navigate('DramaDetail', {
-                      tmdbId: drama.tmdb_id || drama.id,
-                    })
-                  }
-                />
-              </View>
-            ))}
-          </View>
+          <>
+            <View style={styles.grid}>
+              {dramas.map((drama, index) => (
+                <View key={String(drama.tmdb_id || drama.id || index)} style={styles.gridItem}>
+                  <DramaCard
+                    drama={drama}
+                    onPress={() =>
+                      navigation.navigate('DramaDetail', {
+                        tmdbId: drama.tmdb_id || drama.id,
+                      })
+                    }
+                  />
+                </View>
+              ))}
+            </View>
+
+            {/* Load More Button */}
+            {hasMore && !loading && (
+              <Pressable
+                onPress={handleLoadMore}
+                disabled={loadingMore}
+                style={({ pressed }) => [
+                  styles.loadMoreButton,
+                  { backgroundColor: isDark ? '#201C2E' : colors.card },
+                  pressed && styles.loadMoreButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Load more dramas"
+              >
+                {loadingMore ? (
+                  <ActivityIndicator size="small" color={colors.pink} />
+                ) : (
+                  <>
+                    <Ionicons name="add-circle-outline" size={16} color={colors.pink} />
+                    <Text style={[styles.loadMoreText, { color: colors.text }]}>
+                      Load More Dramas
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            )}
+          </>
         )}
       </ScrollView>
     </View>
@@ -718,5 +823,46 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     marginTop: 6,
+  },
+  resultTitleCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    gap: 6,
+  },
+  refreshButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  refreshButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  loadMoreButton: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  loadMoreButtonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.98 }],
+  },
+  loadMoreText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
 });

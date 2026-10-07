@@ -10,6 +10,7 @@ import {
   Smile,
   Sparkles,
   Zap,
+  Flame,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -19,11 +20,13 @@ const GENRES = [
   { id: 'Romance', label: 'Romance', Icon: Heart, color: '#F5A9C4' },
   { id: 'Comedy', label: 'Comedy', Icon: Smile, color: '#FFD166' },
   { id: 'Drama', label: 'Drama', Icon: Film, color: '#B8A5FF' },
-  { id: 'Mystery', label: 'Mystery & Thriller', Icon: Eye, color: '#70D6FF' },
+  { id: 'Mystery', label: 'Mystery', Icon: Eye, color: '#70D6FF' },
   { id: 'Action', label: 'Action & Adventure', Icon: Zap, color: '#FF70A6' },
   { id: 'Sci-Fi & Fantasy', label: 'Fantasy & Sci-Fi', Icon: Sparkles, color: '#9B5DE5' },
   { id: 'Crime', label: 'Crime & Law', Icon: ShieldCheck, color: '#06D6A0' },
   { id: 'Family', label: 'Slice of Life & Family', Icon: Coffee, color: '#F39C12' },
+  { id: 'Thriller', label: 'Thriller', Icon: Flame, color: '#FF4D6D' },
+  { id: 'Horror', label: 'Horror', Icon: Eye, color: '#C9184A' },
 ]
 
 export default function GenreOnboarding() {

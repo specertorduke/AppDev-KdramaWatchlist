@@ -34,8 +34,9 @@ import {
   Trash2,
   AlertCircle,
   AlertTriangle,
+  RotateCw,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/theme-context.js'
@@ -1414,9 +1415,15 @@ function DiscoverPage() {
   const [gridDramas, setGridDramas] = useState([])
   const [top5List, setTop5List] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const pillsRef = useRef(null)
+  const genreListRef = useRef(genreList)
+  genreListRef.current = genreList
   const searchQuery = searchParams.get('query')?.trim() || ''
 
   const topDrama = top5List[currentSlide] || top5List[0] || null
@@ -1436,65 +1443,90 @@ function DiscoverPage() {
   }, [genreList])
 
   useEffect(() => {
-    async function loadData() {
-      setIsLoading(true)
+    async function loadGenres() {
       try {
-        const [discRes, genRes] = await Promise.all([
-          discoverService.getDiscover({ page: 1 }),
-          discoverService.getGenres(),
-        ])
-
-        if (discRes?.data && discRes.data.length > 0) {
-          const mapped = discRes.data.map((d, index) => mapDramaCard(d, index))
-          setTop5List(mapped.slice(0, 5))
-        }
-
+        const genRes = await discoverService.getGenres()
         if (genRes?.data && genRes.data.length > 0) {
           const knownNames = new Set(DISCOVER_GENRES.map((g) => g.name.toLowerCase()))
           const extra = genRes.data
             .filter((g) => !knownNames.has(g.name.toLowerCase()))
             .map((g) => ({ id: g.id, name: g.name }))
-          setGenreList([...DISCOVER_GENRES, ...extra])
+          if (extra.length > 0) {
+            setGenreList([...DISCOVER_GENRES, ...extra])
+          }
         }
       } catch {
-        // API offline
-      } finally {
-        setIsLoading(false)
+        // Fallback to DISCOVER_GENRES
       }
     }
 
-    loadData()
+    loadGenres()
   }, [])
 
-  useEffect(() => {
-    let isCancelled = false
+  const loadGrid = useCallback(
+    async (targetPage = 1, isRefresh = false, isAppend = false) => {
+      if (isRefresh) {
+        setIsRefreshing(true)
+      } else if (isAppend) {
+        setIsLoadingMore(true)
+      } else {
+        setIsLoading(true)
+      }
 
-    async function loadGrid() {
-      setIsLoading(true)
       try {
+        const currentList = genreListRef.current || DISCOVER_GENRES
+        const genreId = currentList.find((genre) => genre.name === selectedGenre)?.id || null
         const response = searchQuery
-          ? await discoverService.searchDramas({ query: searchQuery })
+          ? await discoverService.searchDramas({ query: searchQuery, page: targetPage })
           : await discoverService.getDiscover({
-              page: 1,
-              genre_id: genreList.find((genre) => genre.name === selectedGenre)?.id || null,
+              page: targetPage,
+              genre_id: genreId,
             })
 
-        if (!isCancelled) {
-          const mapped = (response?.data || []).map((drama, index) => mapDramaCard(drama, index))
-          setGridDramas(mapped)
-        }
-      } catch {
-        if (!isCancelled) setGridDramas([])
-      } finally {
-        if (!isCancelled) setIsLoading(false)
-      }
-    }
+        const mapped = (response?.data || []).map((drama, index) => mapDramaCard(drama, index))
 
-    loadGrid()
-    return () => {
-      isCancelled = true
+        if (isAppend) {
+          setGridDramas((prev) => {
+            const seen = new Set(prev.map((d) => String(d.tmdb_id || d.id)))
+            const newItems = mapped.filter((d) => !seen.has(String(d.tmdb_id || d.id)))
+            return [...prev, ...newItems]
+          })
+        } else {
+          setGridDramas(mapped)
+          if (!searchQuery && mapped.length >= 5 && (targetPage === 1 || isRefresh)) {
+            setTop5List(mapped.slice(0, 5))
+            setCurrentSlide(0)
+          }
+        }
+
+        setPage(targetPage)
+        setHasMore(Boolean(response?.pagination?.has_more))
+      } catch {
+        if (!isAppend) setGridDramas([])
+      } finally {
+        setIsLoading(false)
+        setIsRefreshing(false)
+        setIsLoadingMore(false)
+      }
+    },
+    [searchQuery, selectedGenre]
+  )
+
+  useEffect(() => {
+    setPage(1)
+    loadGrid(1, false, false)
+  }, [loadGrid])
+
+  const handleRefreshDramas = () => {
+    const nextPage = hasMore ? page + 1 : 1
+    loadGrid(nextPage, true, false)
+  }
+
+  const handleLoadMore = () => {
+    if (!isLoading && !isLoadingMore && hasMore) {
+      loadGrid(page + 1, false, true)
     }
-  }, [searchQuery, selectedGenre, genreList])
+  }
 
   const handlePrevSlide = () => {
     if (top5List.length === 0) return
@@ -1662,34 +1694,81 @@ function DiscoverPage() {
             </div>
           )}
 
+          {/* Discover Grid Header with Refresh Button */}
+          <div className="discover-grid-header">
+            <div className="discover-grid-title-group">
+              <h2>{selectedGenre === 'All Genres' ? 'All Dramas' : `${selectedGenre} Dramas`}</h2>
+              <span className="discover-grid-count">
+                {gridDramas.length} {gridDramas.length === 1 ? 'title' : 'titles'} {page > 1 ? `· Page ${page}` : ''}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="discover-refresh-btn"
+              onClick={handleRefreshDramas}
+              disabled={isLoading || isRefreshing}
+              title="Refresh to discover more recommended dramas"
+              aria-label="Refresh dramas"
+            >
+              <RotateCw size={14} className={isRefreshing ? 'spinning' : ''} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh Dramas'}</span>
+            </button>
+          </div>
+
           {/* Discover Grid */}
           <section className="discover-grid">
-            {isLoading ? (
+            {isLoading && !isRefreshing && !isLoadingMore ? (
               <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }} role="status" aria-live="polite">
                 <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#eb5b78' }} />
                 <h3>{searchQuery ? `Searching for “${searchQuery}”...` : 'Loading K-Dramas...'}</h3>
               </div>
             ) : gridDramas.length > 0 ? (
-              gridDramas.map((drama) => {
-                const dramaId = drama.tmdb_id || drama.id
-                const trackedItem = getWatchlistItem(dramaId)
-                const dramaWithStatus = {
-                  ...drama,
-                  status: trackedItem?.status || drama.status || drama.watch_status,
-                }
-                return (
-                  <div
-                    key={drama.id || drama.title}
-                    onClick={() => handleOpenDetails(dramaWithStatus)}
-                    style={{ cursor: 'pointer' }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && handleOpenDetails(dramaWithStatus)}
-                  >
-                    <DiscoverCard drama={dramaWithStatus} />
+              <>
+                {gridDramas.map((drama) => {
+                  const dramaId = drama.tmdb_id || drama.id
+                  const trackedItem = getWatchlistItem(dramaId)
+                  const dramaWithStatus = {
+                    ...drama,
+                    status: trackedItem?.status || drama.status || drama.watch_status,
+                  }
+                  return (
+                    <div
+                      key={drama.id || drama.title}
+                      onClick={() => handleOpenDetails(dramaWithStatus)}
+                      style={{ cursor: 'pointer' }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && handleOpenDetails(dramaWithStatus)}
+                    >
+                      <DiscoverCard drama={dramaWithStatus} />
+                    </div>
+                  )
+                })}
+
+                {/* Load More Button */}
+                {hasMore && !isLoading && (
+                  <div className="discover-load-more-wrap">
+                    <button
+                      type="button"
+                      className="discover-load-more-btn"
+                      onClick={handleLoadMore}
+                      disabled={isLoadingMore}
+                    >
+                      {isLoadingMore ? (
+                        <>
+                          <Loader2 size={16} className="spinning" />
+                          <span>Loading more dramas...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={16} />
+                          <span>Load More Dramas</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                )
-              })
+                )}
+              </>
             ) : (
               <div className="tracker-empty-state" style={{ gridColumn: '1 / -1' }}>
                 <Film size={36} />
@@ -2665,6 +2744,37 @@ function Dashboard() {
   const [curatedRecommended, setCuratedRecommended] = useState([])
   const [selectedDrama, setSelectedDrama] = useState(null)
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(true)
+  const [recPage, setRecPage] = useState(1)
+  const [isRefreshingRec, setIsRefreshingRec] = useState(false)
+
+  const handleRefreshRecommended = async () => {
+    setIsRefreshingRec(true)
+    const nextRecPage = recPage + 1
+    try {
+      const homeRes = await discoverService.getHome({ rec_page: nextRecPage })
+      if (homeRes?.data?.recommended?.length > 0) {
+        const curatedMapped = homeRes.data.recommended.map((d, index) => mapDramaCard(d, index))
+        setCuratedRecommended(curatedMapped)
+        setRecPage(nextRecPage)
+      } else if (favoriteGenreIds.length > 0) {
+        const genreResponses = await Promise.allSettled(
+          favoriteGenreIds.map((genre_id) => discoverService.getDiscover({ page: nextRecPage, genre_id }))
+        )
+        const recommendationGroups = genreResponses
+          .filter((response) => response.status === 'fulfilled')
+          .map((response) => response.value?.data || [])
+        const interleaved = interleaveRecommendations(recommendationGroups)
+        if (interleaved.length > 0) {
+          setCuratedRecommended(interleaved)
+          setRecPage(nextRecPage)
+        }
+      }
+    } catch {
+      // Keep existing
+    } finally {
+      setIsRefreshingRec(false)
+    }
+  }
 
   useEffect(() => {
     let isCurrent = true
@@ -2837,6 +2947,17 @@ function Dashboard() {
                     </span>
                   )}
                 </div>
+                <button
+                  type="button"
+                  className="recommended-refresh-btn"
+                  onClick={handleRefreshRecommended}
+                  disabled={isLoadingRecommended || isRefreshingRec}
+                  title="Refresh recommendations to see more dramas"
+                  aria-label="Refresh recommendations"
+                >
+                  <RotateCw size={12} className={isRefreshingRec ? 'spinning' : ''} />
+                  <span>{isRefreshingRec ? 'Refreshing...' : 'Refresh'}</span>
+                </button>
               </div>
 
               <div className="recommended-rail">

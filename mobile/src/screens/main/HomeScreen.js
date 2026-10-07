@@ -153,6 +153,27 @@ export default function HomeScreen({ navigation }) {
   }, [dashboardData, userWatchlistItems]);
 
   const recommended = dashboardData?.recommended || [];
+  const [recPage, setRecPage] = useState(1);
+  const [isRefreshingRec, setIsRefreshingRec] = useState(false);
+
+  const handleRefreshRecommended = async () => {
+    setIsRefreshingRec(true);
+    const nextPage = recPage + 1;
+    try {
+      const res = await homeService.getDashboard({ rec_page: nextPage });
+      if (res?.data?.data?.recommended) {
+        setDashboardData((prev) => ({
+          ...prev,
+          recommended: res.data.data.recommended,
+        }));
+        setRecPage(nextPage);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh recommendations:', e);
+    } finally {
+      setIsRefreshingRec(false);
+    }
+  };
 
   const handleIncrement = async (tmdbId) => {
     if (!tmdbId || loggingEp) return;
@@ -741,6 +762,27 @@ export default function HomeScreen({ navigation }) {
                   </View>
                 )}
               </View>
+
+              <Pressable
+                onPress={handleRefreshRecommended}
+                disabled={isRefreshingRec}
+                style={({ pressed }) => [
+                  styles.refreshRecommendedButton,
+                  { backgroundColor: isDark ? '#2A2438' : colors.pinkLight },
+                  pressed && styles.refreshRecommendedButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Refresh recommended dramas"
+              >
+                {isRefreshingRec ? (
+                  <ActivityIndicator size="small" color={colors.pink} />
+                ) : (
+                  <Ionicons name="refresh" size={13} color={colors.pink} />
+                )}
+                <Text style={[styles.refreshRecommendedText, { color: colors.pink }]}>
+                  {isRefreshingRec ? 'Refreshing...' : 'Refresh'}
+                </Text>
+              </Pressable>
             </View>
 
             <ScrollView
@@ -1509,6 +1551,22 @@ const styles = StyleSheet.create({
   genreTagText: {
     color: '#eb5b78',
     fontSize: 10,
+    fontWeight: '800',
+  },
+  refreshRecommendedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 5,
+  },
+  refreshRecommendedButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  refreshRecommendedText: {
+    fontSize: 11,
     fontWeight: '800',
   },
   tuneButton: {

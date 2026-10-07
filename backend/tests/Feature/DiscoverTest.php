@@ -631,4 +631,125 @@ class DiscoverTest extends TestCase
 
         $response->assertStatus(404);
     }
+
+    public function test_genres_endpoint_includes_thriller_and_horror(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response([
+                'genres' => [
+                    ['id' => 18, 'name' => 'Drama'],
+                    ['id' => 35, 'name' => 'Comedy'],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/discover/genres');
+
+        $response->assertStatus(200);
+        $genreNames = array_column($response->json('data'), 'name');
+        $this->assertContains('Thriller', $genreNames);
+        $this->assertContains('Horror', $genreNames);
+    }
+
+    public function test_discover_thriller_uses_keywords_and_includes_thriller_genre(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response(['genres' => [['id' => 18, 'name' => 'Drama']]], 200),
+            '*/discover/tv*' => Http::response([
+                'page' => 1,
+                'total_pages' => 5,
+                'total_results' => 100,
+                'results' => [
+                    [
+                        'id' => 93405,
+                        'name' => 'Squid Game',
+                        'poster_path' => '/squid.jpg',
+                        'vote_average' => 7.8,
+                        'genre_ids' => [18, 10759],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/discover?genre_id=53');
+
+        $response->assertStatus(200);
+        $drama = $response->json('data.0');
+        $this->assertEquals('Squid Game', $drama['title']);
+        $this->assertContains('Thriller', $drama['genres']);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return str_contains($request->url(), 'with_keywords=') &&
+                   !str_contains($request->url(), 'with_genres=18,53');
+        });
+    }
+
+    public function test_discover_horror_uses_keywords_and_includes_horror_genre(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response(['genres' => [['id' => 18, 'name' => 'Drama']]], 200),
+            '*/discover/tv*' => Http::response([
+                'page' => 1,
+                'total_pages' => 3,
+                'total_results' => 50,
+                'results' => [
+                    [
+                        'id' => 96648,
+                        'name' => 'Sweet Home',
+                        'poster_path' => '/sweethome.jpg',
+                        'vote_average' => 8.2,
+                        'genre_ids' => [18, 10765],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/discover?genre_id=27');
+
+        $response->assertStatus(200);
+        $drama = $response->json('data.0');
+        $this->assertEquals('Sweet Home', $drama['title']);
+        $this->assertContains('Horror', $drama['genres']);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return str_contains($request->url(), 'with_keywords=') &&
+                   !str_contains($request->url(), 'with_genres=18,27');
+        });
+    }
+
+    public function test_discover_string_genre_parameter(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Http::fake([
+            '*/genre/tv/list*' => Http::response(['genres' => [['id' => 18, 'name' => 'Drama']]], 200),
+            '*/discover/tv*' => Http::response([
+                'page' => 1,
+                'total_pages' => 3,
+                'total_results' => 50,
+                'results' => [
+                    [
+                        'id' => 99966,
+                        'name' => 'All of Us Are Dead',
+                        'poster_path' => '/zombie.jpg',
+                        'vote_average' => 8.3,
+                        'genre_ids' => [18],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->getJson('/api/v1/discover?genre_id=horror');
+
+        $response->assertStatus(200);
+        $drama = $response->json('data.0');
+        $this->assertEquals('All of Us Are Dead', $drama['title']);
+        $this->assertContains('Horror', $drama['genres']);
+    }
 }

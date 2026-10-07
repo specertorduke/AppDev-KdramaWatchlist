@@ -18,6 +18,11 @@ class DiscoverService
     protected ?string $token;
     protected ?string $apiKey;
 
+    public const THRILLER_GENRE_ID = 53;
+    public const HORROR_GENRE_ID = 27;
+    public const THRILLER_KEYWORDS = '316362|12565|204205|302132|351957|254459|322128|217282|298530|319190|329866|9714';
+    public const HORROR_KEYWORDS = '315058|313454|50009|178647|351957|12339|241|163054|186565|224447';
+
     public function __construct()
     {
         $this->baseUrl = rtrim(config('services.tmdb.base_url', 'https://api.themoviedb.org/3'), '/');
@@ -106,12 +111,17 @@ class DiscoverService
             $map = Cache::remember('tmdb_tv_genres_map', 86400, function () {
                 return $this->fetchGenreMapFromApi();
             });
+            $map[self::THRILLER_GENRE_ID] = 'Thriller';
+            $map[self::HORROR_GENRE_ID] = 'Horror';
             static::$cachedGenreMap = $map;
             return $map;
         } catch (\Throwable $e) {
             Log::warning('Cache store unavailable or error, fetching directly: ' . $e->getMessage());
-            static::$cachedGenreMap = $this->fetchGenreMapFromApi();
-            return static::$cachedGenreMap;
+            $map = $this->fetchGenreMapFromApi();
+            $map[self::THRILLER_GENRE_ID] = 'Thriller';
+            $map[self::HORROR_GENRE_ID] = 'Horror';
+            static::$cachedGenreMap = $map;
+            return $map;
         }
     }
 
@@ -133,10 +143,17 @@ class DiscoverService
                 }
             }
 
+            // Ensure Thriller and Horror are registered
+            $map[self::THRILLER_GENRE_ID] = 'Thriller';
+            $map[self::HORROR_GENRE_ID] = 'Horror';
+
             return $map;
         } catch (\Throwable $e) {
             Log::warning('Unable to fetch TMDB genres map: ' . $e->getMessage());
-            return [];
+            return [
+                self::THRILLER_GENRE_ID => 'Thriller',
+                self::HORROR_GENRE_ID   => 'Horror',
+            ];
         }
     }
 
@@ -175,13 +192,36 @@ class DiscoverService
         $genres = $response->json('genres', []);
 
         $result = [];
+        $hasThriller = false;
+        $hasHorror = false;
+
         foreach ($genres as $genre) {
             if (isset($genre['id'], $genre['name'])) {
+                if ((int) $genre['id'] === self::THRILLER_GENRE_ID) {
+                    $hasThriller = true;
+                }
+                if ((int) $genre['id'] === self::HORROR_GENRE_ID) {
+                    $hasHorror = true;
+                }
                 $result[] = [
                     'id'   => (int) $genre['id'],
                     'name' => (string) $genre['name'],
                 ];
             }
+        }
+
+        if (!$hasThriller) {
+            $result[] = [
+                'id'   => self::THRILLER_GENRE_ID,
+                'name' => 'Thriller',
+            ];
+        }
+
+        if (!$hasHorror) {
+            $result[] = [
+                'id'   => self::HORROR_GENRE_ID,
+                'name' => 'Horror',
+            ];
         }
 
         return $result;
@@ -196,7 +236,25 @@ class DiscoverService
     public function discover(array $filters = [], ?User $user = null): array
     {
         $page = max(1, (int) ($filters['page'] ?? 1));
-        $genreId = !empty($filters['genre_id']) ? (int) $filters['genre_id'] : null;
+        $rawGenreId = $filters['genre_id'] ?? null;
+        $genreId = null;
+
+        if (!empty($rawGenreId)) {
+            if (is_numeric($rawGenreId)) {
+                $genreId = (int) $rawGenreId;
+            } elseif (is_string($rawGenreId)) {
+                $rawLower = strtolower(trim($rawGenreId));
+                if ($rawLower === 'thriller') {
+                    $genreId = self::THRILLER_GENRE_ID;
+                } elseif ($rawLower === 'horror') {
+                    $genreId = self::HORROR_GENRE_ID;
+                } else {
+                    $genreMapFlipped = array_change_key_case(array_flip($this->getGenreMap()), CASE_LOWER);
+                    $genreId = $genreMapFlipped[$rawLower] ?? null;
+                }
+            }
+        }
+
         $keywordId = !empty($filters['keyword_id']) ? (int) $filters['keyword_id'] : null;
 
         $queryParams = [
@@ -210,15 +268,23 @@ class DiscoverService
             'without_genres'               => '10764,10767',
         ];
 
-        if ($keywordId) {
-            $queryParams['with_keywords'] = (string) $keywordId;
+        if ($genreId === self::THRILLER_GENRE_ID) {
+            // TMDB TV does not have a native Thriller TV genre; use comprehensive Korean thriller keywords
+            $queryParams['with_keywords'] = self::THRILLER_KEYWORDS;
+        } elseif ($genreId === self::HORROR_GENRE_ID) {
+            // TMDB TV does not have a native Horror TV genre; use comprehensive Korean horror keywords
+            $queryParams['with_keywords'] = self::HORROR_KEYWORDS;
+        } else {
+            $baseGenreId = 18;
+            if ($genreId && (int) $genreId !== $baseGenreId) {
+                $queryParams['with_genres'] = "{$baseGenreId},{$genreId}";
+            } else {
+                $queryParams['with_genres'] = (string) $baseGenreId;
+            }
         }
 
-        $baseGenreId = 18;
-        if ($genreId && (int) $genreId !== $baseGenreId) {
-            $queryParams['with_genres'] = "{$baseGenreId},{$genreId}";
-        } else {
-            $queryParams['with_genres'] = (string) $baseGenreId;
+        if ($keywordId && empty($queryParams['with_keywords'])) {
+            $queryParams['with_keywords'] = (string) $keywordId;
         }
 
         $response = $this->get('discover/tv', $queryParams);
@@ -235,6 +301,12 @@ class DiscoverService
         foreach ($results as $index => $item) {
             $rank = ($page - 1) * 20 + ($index + 1);
             $itemGenres = $this->resolveGenres($item['genre_ids'] ?? [], $genreMap);
+
+            if ($genreId === self::THRILLER_GENRE_ID && !in_array('Thriller', $itemGenres, true)) {
+                array_unshift($itemGenres, 'Thriller');
+            } elseif ($genreId === self::HORROR_GENRE_ID && !in_array('Horror', $itemGenres, true)) {
+                array_unshift($itemGenres, 'Horror');
+            }
 
             $dramas[] = array_merge($item, [
                 'rank'         => $rank,
@@ -418,12 +490,37 @@ class DiscoverService
     public function show(int $tmdbId, ?User $user = null): array
     {
         $response = $this->get("tv/{$tmdbId}", [
-            'append_to_response' => 'videos,credits',
+            'append_to_response' => 'videos,credits,keywords',
             'language'           => 'en-US',
         ]);
 
         $data = $response->json();
         $data['watch_status'] = $this->getWatchStatus($tmdbId, $user);
+
+        // Detect Horror and Thriller from keywords or overview and enhance genres
+        $keywords = array_column($data['keywords']['results'] ?? [], 'name');
+        $genreNames = array_column($data['genres'] ?? [], 'name');
+
+        $hasHorrorKeyword = false;
+        $hasThrillerKeyword = false;
+
+        foreach ($keywords as $kw) {
+            $kwLower = strtolower($kw);
+            if (str_contains($kwLower, 'horror') || str_contains($kwLower, 'zombie') || str_contains($kwLower, 'monster') || str_contains($kwLower, 'survival horror')) {
+                $hasHorrorKeyword = true;
+            }
+            if (str_contains($kwLower, 'thriller') || str_contains($kwLower, 'psychological thriller') || str_contains($kwLower, 'suspense')) {
+                $hasThrillerKeyword = true;
+            }
+        }
+
+        if ($hasHorrorKeyword && !in_array('Horror', $genreNames, true)) {
+            $data['genres'][] = ['id' => self::HORROR_GENRE_ID, 'name' => 'Horror'];
+        }
+
+        if ($hasThrillerKeyword && !in_array('Thriller', $genreNames, true)) {
+            $data['genres'][] = ['id' => self::THRILLER_GENRE_ID, 'name' => 'Thriller'];
+        }
 
         return $data;
     }

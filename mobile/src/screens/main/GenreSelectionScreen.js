@@ -17,11 +17,13 @@ const GENRE_OPTIONS = [
   { id: 'Romance', label: 'Romance', icon: 'heart', color: '#eb5b78' },
   { id: 'Comedy', label: 'Comedy', icon: 'happy-outline', color: '#FFD166' },
   { id: 'Drama', label: 'Drama', icon: 'film-outline', color: '#B8A5FF' },
-  { id: 'Mystery', label: 'Mystery & Thriller', icon: 'eye-outline', color: '#70D6FF' },
+  { id: 'Mystery', label: 'Mystery', icon: 'eye-outline', color: '#70D6FF' },
   { id: 'Action', label: 'Action & Adventure', icon: 'flash-outline', color: '#FF70A6' },
   { id: 'Sci-Fi & Fantasy', label: 'Fantasy & Sci-Fi', icon: 'planet-outline', color: '#9B5DE5' },
   { id: 'Crime', label: 'Crime & Law', icon: 'shield-checkmark-outline', color: '#06D6A0' },
   { id: 'Family', label: 'Slice of Life & Family', icon: 'cafe-outline', color: '#F39C12' },
+  { id: 'Thriller', label: 'Thriller', icon: 'skull-outline', color: '#E63946' },
+  { id: 'Horror', label: 'Horror', icon: 'flame-outline', color: '#D90429' },
 ];
 
 export default function GenreSelectionScreen({ navigation, route }) {

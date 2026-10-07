@@ -20,7 +20,7 @@ class DiscoverRequest extends FormRequest
     {
         return [
             'page'     => ['nullable', 'integer', 'min:1', 'max:500'],
-            'genre_id' => ['nullable', 'integer'],
+            'genre_id' => ['nullable'],
             'search'   => ['nullable', 'string', 'max:255'],
             'query'    => ['nullable', 'string', 'max:255'],
         ];

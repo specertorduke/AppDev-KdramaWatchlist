@@ -97,7 +97,7 @@ export const userService = {
 
 // Home Dashboard
 export const homeService = {
-  getDashboard: () => api.get('/home'),
+  getDashboard: (params) => api.get('/home', { params }),
 };
 
 // Discover

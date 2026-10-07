@@ -129,6 +129,11 @@ class HomeController extends Controller
         }
 
         // 4. Recommended: Curated based on user favorite genres & tracked favorites (at least 10 items)
+        $recPage = max(1, min((int) ($request->input('rec_page', $request->input('page', 1))), 20));
+        if ($request->boolean('refresh') && !$request->has('rec_page') && !$request->has('page')) {
+            $recPage = rand(1, 5);
+        }
+
         $userFavoriteGenres = $user ? ($user->favorite_genres ?? []) : [];
         $genreMap = $this->discoverService->getGenreMap();
         $genreMapFlipped = array_change_key_case(array_flip($genreMap), CASE_LOWER);
@@ -150,6 +155,8 @@ class HomeController extends Controller
             'sci-fi'            => 10765,
             'crime'             => 80,
             'family'            => 10751,
+            'thriller'          => DiscoverService::THRILLER_GENRE_ID,
+            'horror'            => DiscoverService::HORROR_GENRE_ID,
         ];
 
         $hasRomance = false;
@@ -161,7 +168,11 @@ class HomeController extends Controller
                     $hasRomance = true;
                     continue; // Romance will use specific TMDB Romance keyword 9840
                 }
-                if (isset($knownTmdbTvGenres[$favLower])) {
+                if (str_contains($favLower, 'thriller')) {
+                    $genreQueries[] = ['genre_id' => DiscoverService::THRILLER_GENRE_ID];
+                } elseif (str_contains($favLower, 'horror')) {
+                    $genreQueries[] = ['genre_id' => DiscoverService::HORROR_GENRE_ID];
+                } elseif (isset($knownTmdbTvGenres[$favLower])) {
                     $genreQueries[] = ['genre_id' => $knownTmdbTvGenres[$favLower]];
                 } elseif (isset($genreMapFlipped[$favLower])) {
                     $genreQueries[] = ['genre_id' => $genreMapFlipped[$favLower]];
@@ -180,12 +191,17 @@ class HomeController extends Controller
         if (!empty($genreQueries)) {
             $poolByQuery = [];
             foreach ($genreQueries as $qParams) {
-                $qData = $this->discoverService->discover(array_merge(['page' => 1], $qParams), $user);
-                $poolByQuery[] = $qData['data'] ?? [];
+                $qData = $this->discoverService->discover(array_merge(['page' => $recPage], $qParams), $user);
+                $pool = $qData['data'] ?? [];
+                if (empty($pool) && $recPage > 1) {
+                    $qData = $this->discoverService->discover(array_merge(['page' => 1], $qParams), $user);
+                    $pool = $qData['data'] ?? [];
+                }
+                $poolByQuery[] = $pool;
             }
 
             // Interleave recommendations round-robin strictly across the selected genre pools
-            $maxCount = max(array_map('count', $poolByQuery));
+            $maxCount = !empty($poolByQuery) ? max(array_map('count', $poolByQuery)) : 0;
             for ($i = 0; $i < $maxCount && count($recommendedRaw) < 20; $i++) {
                 foreach ($poolByQuery as $pool) {
                     if (isset($pool[$i])) {
@@ -203,7 +219,10 @@ class HomeController extends Controller
             }
         } else {
             // Only if user has NO favorite genres at all do we show general discover
-            $discoverData = $this->discoverService->discover(['page' => 1], $user);
+            $discoverData = $this->discoverService->discover(['page' => $recPage], $user);
+            if (empty($discoverData['data']) && $recPage > 1) {
+                $discoverData = $this->discoverService->discover(['page' => 1], $user);
+            }
             $recommendedRaw = $discoverData['data'] ?? [];
         }
 
@@ -245,6 +264,7 @@ class HomeController extends Controller
                 'currently_watching' => $currentlyWatching,
                 'watching_list'      => $watchingList,
                 'recommended'        => $recommended,
+                'rec_page'           => $recPage,
             ],
         ]);
     }

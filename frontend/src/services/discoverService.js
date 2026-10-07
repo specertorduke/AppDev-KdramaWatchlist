@@ -187,8 +187,8 @@ export const discoverService = {
   /**
    * Fetch home dashboard data (recommended, currently watching, stats).
    */
-  async getHome() {
-    const response = await api.get('/home')
+  async getHome(params = {}) {
+    const response = await api.get('/home', { params })
     return response.data
   },
 
