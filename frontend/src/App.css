@@ -3982,16 +3982,16 @@
 
 .stat-metric-card {
   background: #0e0d16;
-  border: 1px solid #1f1d2c;
+  border: none;
   border-radius: 18px;
   padding: 24px 28px;
   display: flex;
   flex-direction: column;
-  transition: border-color 180ms ease, transform 180ms ease;
+  transition: transform 180ms ease;
 }
 
 .stat-metric-card:hover {
-  border-color: #2e2b40;
+  transform: translateY(-2px);
 }
 
 .stat-icon-badge {
@@ -4005,27 +4005,27 @@
 }
 
 .stat-badge-purple {
-  background: rgba(168, 85, 247, 0.12);
+  background: rgba(168, 85, 247, 0.16);
   color: #a855f7;
-  border: 1px solid rgba(168, 85, 247, 0.22);
+  border: none;
 }
 
 .stat-badge-blue {
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(59, 130, 246, 0.16);
   color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.22);
+  border: none;
 }
 
 .stat-badge-amber {
-  background: rgba(245, 158, 11, 0.12);
+  background: rgba(245, 158, 11, 0.16);
   color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.22);
+  border: none;
 }
 
 .stat-badge-green {
-  background: rgba(16, 185, 129, 0.12);
+  background: rgba(16, 185, 129, 0.16);
   color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.22);
+  border: none;
 }
 
 .stat-big-number {
@@ -4053,7 +4053,7 @@
 /* Average Rating Card */
 .stat-rating-card {
   background: #0e0d16;
-  border: 1px solid #1f1d2c;
+  border: none;
   border-radius: 18px;
   padding: 24px 28px;
   margin-bottom: 16px;
@@ -4094,15 +4094,89 @@
   margin-top: 8px;
 }
 
-/* Breakdown, Genres & History Cards */
+/* Breakdown, Genres, Top Rated & History Cards */
 .stat-breakdown-card,
 .stat-genres-card,
+.stat-top-rated-card,
 .stat-history-card {
   background: #0e0d16;
-  border: 1px solid #1f1d2c;
+  border: none;
   border-radius: 18px;
   padding: 24px 28px;
   margin-bottom: 16px;
+}
+
+.stat-top-rated-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #141320;
+  transition: all 180ms ease;
+}
+
+.stat-top-rated-row:hover {
+  background: #1a1829;
+  transform: translateX(2px);
+}
+
+.stat-top-rated-poster-wrap {
+  width: 44px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #1d1b2c;
+}
+
+.stat-top-rated-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stat-top-rated-fallback {
+  width: 100%;
+  height: 100%;
+  background: #242236;
+}
+
+.stat-top-rated-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-top-rated-title {
+  font-size: 15px;
+  color: #ede9f3;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-top-rated-meta {
+  font-size: 12.5px;
+  color: #8c8699;
+}
+
+.stat-top-rated-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(235, 91, 120, 0.15);
+  color: #eb5b78;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .stat-section-title {

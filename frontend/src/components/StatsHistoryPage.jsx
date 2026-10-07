@@ -162,6 +162,43 @@ export default function StatsHistoryPage() {
               )}
             </div>
 
+            {/* Top Rated Drama Card (Matching Mobile Screen) */}
+            {stats.topRatedDrama && (
+              <div className="stat-top-rated-card">
+                <h2 className="stat-section-title">MY TOP RATED</h2>
+                <div
+                  className="stat-top-rated-row"
+                  onClick={() => setSelectedDrama(stats.topRatedDrama)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="stat-top-rated-poster-wrap">
+                    {stats.topRatedDrama.poster || stats.topRatedDrama.image ? (
+                      <img
+                        src={stats.topRatedDrama.poster || stats.topRatedDrama.image}
+                        alt={stats.topRatedDrama.title}
+                        className="stat-top-rated-poster"
+                      />
+                    ) : (
+                      <div className="stat-top-rated-fallback" />
+                    )}
+                  </div>
+                  <div className="stat-top-rated-info">
+                    <strong className="stat-top-rated-title">
+                      {stats.topRatedDrama.title}
+                    </strong>
+                    <span className="stat-top-rated-meta">
+                      {(Array.isArray(stats.topRatedDrama.genres) ? stats.topRatedDrama.genres : []).slice(0, 2).join(' · ') || 'Drama'}
+                    </span>
+                  </div>
+                  <div className="stat-top-rated-score">
+                    <Star size={14} className="star-filled" />
+                    <span>{Number(stats.topRatedDrama.rating).toFixed(1)}/10</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* User Activity History Section */}
             <div className="stat-history-card">
               <h2 className="stat-section-title">ACTIVITY HISTORY</h2>

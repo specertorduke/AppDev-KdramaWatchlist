@@ -48,10 +48,23 @@ function applyPoppins(styleObj) {
     fontFamily: matchedFont,
   };
 
-  // On Android, keeping explicit fontWeight alongside a specific custom font weight
-  // can cause font lookup failures and fallback to Roboto
+  // Poppins has tall ascender metrics that get clipped at the top if lineHeight
+  // is too tight (e.g. fontSize 28 with lineHeight 30). Ensure lineHeight is generous.
+  if (typeof updated.fontSize === 'number') {
+    if (typeof updated.lineHeight === 'number') {
+      const minLineHeight = Math.ceil(updated.fontSize * 1.3);
+      if (updated.lineHeight < minLineHeight) {
+        updated.lineHeight = minLineHeight;
+      }
+    }
+  }
+
+  // On Android, includeFontPadding: false avoids artificial top/bottom clipping
   if (Platform.OS === 'android') {
     delete updated.fontWeight;
+    if (updated.includeFontPadding === undefined) {
+      updated.includeFontPadding = false;
+    }
   }
 
   return updated;

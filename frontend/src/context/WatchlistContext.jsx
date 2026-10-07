@@ -290,6 +290,11 @@ export function WatchlistProvider({ children }) {
       percentage: topGenreMax > 0 ? Math.round((g.count / topGenreMax) * 100) : 0,
     }))
 
+    // Top rated drama calculation
+    const topRatedDrama = ratedDramas.length > 0
+      ? [...ratedDramas].sort((a, b) => Number(b.rating) - Number(a.rating) || (b.episodes || 0) - (a.episodes || 0))[0]
+      : null
+
     return {
       totalTracked,
       watchingCount: watchingList.length,
@@ -305,6 +310,7 @@ export function WatchlistProvider({ children }) {
       ratedCount: ratedDramas.length,
       statusBreakdown,
       favouriteGenres,
+      topRatedDrama,
     }
   }, [watchlist])
 

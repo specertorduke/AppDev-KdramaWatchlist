@@ -72,7 +72,7 @@ export const ChatbotProvider = ({ children }) => {
 
     try {
       const response = await chatbotService.sendMessage(trimmed);
-      const reply = response.data?.reply || response.data || 'I enjoyed reading that! Do you have another K-Drama question?';
+      const reply = response.data?.reply ?? response.data ?? 'I enjoyed reading that! Do you have another K-Drama question?';
 
       const aiMessage = {
         id: `ai-${Date.now()}`,
@@ -85,7 +85,7 @@ export const ChatbotProvider = ({ children }) => {
       setMessages(finalMessages);
       await saveChatHistory(finalMessages);
     } catch (err) {
-      let errorText = "Sorry, I couldn't connect to the AI assistant right now. Please check back shortly.";
+      let errorText = err.friendlyMessage || "Sorry, I couldn't connect to the AI assistant right now. Please check back shortly.";
       let isAuthError = false;
 
       if (err.response) {
@@ -100,6 +100,8 @@ export const ChatbotProvider = ({ children }) => {
         } else if (data?.message) {
           errorText = data.message;
         }
+      } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorText = "Sorry, the AI assistant took too long to respond. Please try again.";
       }
 
       const errorMessage = {

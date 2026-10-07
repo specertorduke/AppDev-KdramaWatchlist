@@ -969,12 +969,14 @@ const styles = StyleSheet.create({
   statValue: {
     color: '#FFFFFF',
     fontSize: 28,
-    lineHeight: 30,
+    lineHeight: 36,
+    paddingTop: 2,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   statSuffix: {
     fontSize: 22,
+    lineHeight: 30,
     fontWeight: '700',
     color: '#FFFFFF',
   },

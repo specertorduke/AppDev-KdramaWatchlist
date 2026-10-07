@@ -120,7 +120,8 @@ export const trackerService = {
 
 // Chatbot AI
 export const chatbotService = {
-  sendMessage: (message) => api.post('/discover/chatbot', { message }),
+  sendMessage: (message, config = {}) =>
+    api.post('/discover/chatbot', { message }, { timeout: 35000, ...config }),
 };
 
 export default api;

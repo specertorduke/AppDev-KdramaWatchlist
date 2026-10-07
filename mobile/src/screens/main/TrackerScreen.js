@@ -248,10 +248,11 @@ export default function TrackerScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Tabs */}
+        {/* Status / Category Filter Tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={{ overflow: 'visible', marginVertical: 6, flexGrow: 0 }}
           contentContainerStyle={styles.tabs}
           keyboardShouldPersistTaps="handled"
         >
@@ -769,13 +770,14 @@ const styles = StyleSheet.create({
   },
   tabs: {
     gap: 8,
+    paddingTop: 4,
     paddingBottom: 16,
     paddingRight: 10,
   },
   tab: {
     minHeight: 36,
     paddingHorizontal: 16,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: '#161424',
     flexDirection: 'row',
@@ -793,7 +795,9 @@ const styles = StyleSheet.create({
   tabText: {
     color: '#8F8B97',
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
+    paddingTop: 1,
   },
   tabTextActive: {
     color: '#fff',

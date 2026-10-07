@@ -640,7 +640,9 @@ const styles = StyleSheet.create({
   filterText: {
     color: colors.muted,
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
+    paddingTop: 1,
   },
   filterTextActive: {
     color: colors.text,

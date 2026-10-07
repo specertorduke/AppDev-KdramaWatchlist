@@ -13,8 +13,13 @@ const getApiBaseUrl = () => {
   }
 
   // Auto-detect host IP from Expo Metro bundler connection (works automatically for physical iOS & Android devices)
-  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || '';
-  const hostIp = hostUri.split(':')[0];
+  let hostUri = '';
+  try {
+    hostUri = Constants?.expoConfig?.hostUri || Constants?.manifest2?.extra?.expoGo?.debuggerHost || '';
+  } catch {
+    hostUri = '';
+  }
+  const hostIp = hostUri ? hostUri.split(':')[0] : '';
 
   if (hostIp && hostIp !== 'localhost' && hostIp !== '127.0.0.1') {
     return `http://${hostIp}:8000/api/v1`;

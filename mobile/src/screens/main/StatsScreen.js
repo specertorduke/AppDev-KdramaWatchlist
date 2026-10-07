@@ -1,56 +1,156 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  Image,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
-import { userService } from '../../services/api';
+import { userService, trackerService } from '../../services/api';
 
 export default function StatsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const [stats, setStats] = useState(null);
+  const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    userService
-      .getStats()
-      .then((res) => {
-        setStats(res.data.data || res.data.stats || res.data);
+    Promise.all([
+      userService.getStats().catch(() => null),
+      trackerService.getWatchlist().catch(() => null),
+    ])
+      .then(([statsRes, watchlistRes]) => {
+        if (statsRes) {
+          setStats(statsRes.data?.data || statsRes.data?.stats || statsRes.data);
+        }
+        if (watchlistRes) {
+          const raw = watchlistRes.data?.data || watchlistRes.data || [];
+          setWatchlist(Array.isArray(raw) ? raw : []);
+        }
       })
       .catch((err) => {
-        console.warn('Failed to load user stats:', err);
+        console.warn('Failed to load user stats/watchlist:', err);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const totalDramas = stats?.total_dramas ?? 5;
-  const episodesWatched = stats?.episodes_watched ?? 18;
-  const hoursWatched = Math.round(stats?.hours_watched ?? 17);
-  const completedCount = stats?.completed_count ?? 1;
-  const watchingCount = stats?.watching_count ?? 2;
-  const planCount = stats?.plan_to_watch_count ?? 1;
-  const onHoldCount = stats?.on_hold_count ?? 1;
-  const droppedCount = stats?.dropped_count ?? 0;
+  // Compute genre distribution from actual watchlist items
+  const genreData = useMemo(() => {
+    if (!watchlist.length) {
+      return [
+        { name: 'Romance', count: 2, percent: 100 },
+        { name: 'Thriller', count: 1, percent: 50 },
+        { name: 'Historical', count: 1, percent: 50 },
+      ];
+    }
+    const counts = {};
+    watchlist.forEach((d) => {
+      const drama = d.drama || d;
+      let gList = [];
+      const rawGenres = drama.genres || d.genres || drama.genre || d.genre;
+      if (Array.isArray(rawGenres)) {
+        gList = rawGenres.map((g) => (typeof g === 'string' ? g : g?.name || '')).filter(Boolean);
+      } else if (typeof rawGenres === 'string') {
+        gList = rawGenres.split(/[,·•|/]/).map((g) => g.trim()).filter(Boolean);
+      }
+      gList.forEach((g) => {
+        counts[g] = (counts[g] || 0) + 1;
+      });
+    });
+    const sorted = Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+    const max = sorted[0]?.count || 1;
+    return sorted.slice(0, 5).map((g) => ({
+      ...g,
+      percent: Math.round((g.count / max) * 100),
+    }));
+  }, [watchlist]);
+
+  // Compute top rated drama from actual user rating
+  const topRatedDrama = useMemo(() => {
+    const rated = watchlist.filter((d) => {
+      const r = d.rating ?? d.my_rating ?? d.drama?.rating;
+      return r !== null && r !== undefined && Number(r) > 0;
+    });
+    if (!rated.length) return null;
+    const best = [...rated].sort((a, b) => {
+      const rA = Number(a.rating ?? a.my_rating ?? a.drama?.rating ?? 0);
+      const rB = Number(b.rating ?? b.my_rating ?? b.drama?.rating ?? 0);
+      return rB - rA;
+    })[0];
+
+    const drama = best.drama || {};
+    const title = drama.title || drama.name || best.title || 'Untitled Drama';
+    const poster = drama.poster_url || drama.image || drama.poster || best.poster_url || best.poster || best.image || null;
+    const tmdbId = best.tmdb_id || drama.tmdb_id || best.id;
+    const rawGenres = drama.genres || best.genres || drama.genre || best.genre || [];
+    const genres = Array.isArray(rawGenres)
+      ? rawGenres.map((g) => (typeof g === 'string' ? g : g?.name || '')).filter(Boolean)
+      : typeof rawGenres === 'string'
+      ? rawGenres.split(/[,·•|/]/).map((g) => g.trim()).filter(Boolean)
+      : [];
+
+    return {
+      ...best,
+      title,
+      poster,
+      tmdbId,
+      genres,
+      ratingScore: Number(best.rating ?? best.my_rating ?? drama.rating ?? 0),
+    };
+  }, [watchlist]);
+
+  // Compute activity history from tracked items
+  const activityHistory = useMemo(() => {
+    if (!watchlist.length) return [];
+    return watchlist.slice(0, 8).map((item) => {
+      const drama = item.drama || {};
+      const title = drama.title || drama.name || item.title || 'Untitled Drama';
+      const poster = drama.poster_url || drama.image || drama.poster || item.poster_url || item.poster || item.image || null;
+      const tmdbId = item.tmdb_id || drama.tmdb_id || item.id;
+      const totalEpisodes = Number(item.total_episodes) || Number(drama.total_episodes) || Number(item.episodes) || 16;
+      const currentEp = Number(item.current_episode) || 0;
+
+      let action = `Added to ${item.status || 'Watchlist'}`;
+      if (item.status === 'Completed') {
+        action = `Completed all ${totalEpisodes} episodes`;
+      } else if (currentEp > 0) {
+        action = `Watched Ep. ${currentEp} of ${totalEpisodes}`;
+      }
+      return {
+        id: item.id || tmdbId || Math.random().toString(),
+        tmdbId,
+        title,
+        poster,
+        action,
+        status: item.status,
+        dateStr: item.updated_at ? new Date(item.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
+      };
+    });
+  }, [watchlist]);
+
+  const totalDramas = stats?.total_dramas ?? watchlist.length;
+  const episodesWatched = stats?.episodes_watched ?? watchlist.reduce((acc, d) => acc + (d.current_episode || 0), 0);
+  const hoursWatched = Math.round(stats?.hours_watched ?? episodesWatched);
+  const completedCount = stats?.status_breakdown?.completed ?? stats?.completed_count ?? watchlist.filter(d => d.status === 'Completed').length;
+  const watchingCount = stats?.status_breakdown?.watching ?? stats?.watching_count ?? watchlist.filter(d => d.status === 'Watching').length;
+  const planCount = stats?.status_breakdown?.plan_to_watch ?? stats?.plan_to_watch_count ?? watchlist.filter(d => d.status === 'Plan to Watch' || d.status === 'Plan').length;
+  const onHoldCount = stats?.status_breakdown?.on_hold ?? stats?.on_hold_count ?? watchlist.filter(d => d.status === 'On Hold').length;
+  const droppedCount = stats?.status_breakdown?.dropped ?? stats?.dropped_count ?? watchlist.filter(d => d.status === 'Dropped').length;
   const rawAvg = stats?.average_rating;
   const averageRating = rawAvg !== null && rawAvg !== undefined && !isNaN(Number(rawAvg))
     ? Number(rawAvg).toFixed(1)
-    : '0.0';
-
-  const genreData = [
-    { name: 'Romance', count: 2, percent: 100 },
-    { name: 'Thriller', count: 1, percent: 51 },
-    { name: 'Historical', count: 1, percent: 51 },
-    { name: 'Fantasy', count: 1, percent: 51 },
-    { name: 'Mystery', count: 1, percent: 51 },
-  ];
+    : (watchlist.filter(d => d.rating).length > 0
+        ? (watchlist.filter(d => d.rating).reduce((sum, d) => sum + Number(d.rating), 0) / watchlist.filter(d => d.rating).length).toFixed(1)
+        : '0.0');
 
   return (
     <ScrollView
@@ -105,7 +205,7 @@ export default function StatsScreen({ navigation }) {
           iconTone="green"
           value={completedCount}
           label="Completed"
-          sub="2 watching"
+          sub={`${watchingCount} watching`}
         />
       </View>
 
@@ -122,7 +222,7 @@ export default function StatsScreen({ navigation }) {
               key={index}
               name="star"
               size={16}
-              color={colors.pink}
+              color={index < Math.round(Number(averageRating) || 0) ? colors.pink : (isDark ? '#2B2839' : '#D1D5DB')}
             />
           ))}
         </View>
@@ -135,7 +235,7 @@ export default function StatsScreen({ navigation }) {
         <StatusBar
           name="Watching"
           count={watchingCount}
-          percent={40}
+          percent={totalDramas > 0 ? Math.round((watchingCount / totalDramas) * 100) : 0}
           tone="blue"
           colors={colors}
           isDark={isDark}
@@ -143,7 +243,7 @@ export default function StatsScreen({ navigation }) {
         <StatusBar
           name="Completed"
           count={completedCount}
-          percent={20}
+          percent={totalDramas > 0 ? Math.round((completedCount / totalDramas) * 100) : 0}
           tone="green"
           colors={colors}
           isDark={isDark}
@@ -151,7 +251,7 @@ export default function StatsScreen({ navigation }) {
         <StatusBar
           name="Plan to Watch"
           count={planCount}
-          percent={20}
+          percent={totalDramas > 0 ? Math.round((planCount / totalDramas) * 100) : 0}
           tone="yellow"
           colors={colors}
           isDark={isDark}
@@ -159,7 +259,7 @@ export default function StatsScreen({ navigation }) {
         <StatusBar
           name="On Hold"
           count={onHoldCount}
-          percent={20}
+          percent={totalDramas > 0 ? Math.round((onHoldCount / totalDramas) * 100) : 0}
           tone="gold"
           colors={colors}
           isDark={isDark}
@@ -167,7 +267,7 @@ export default function StatsScreen({ navigation }) {
         <StatusBar
           name="Dropped"
           count={droppedCount}
-          percent={0}
+          percent={totalDramas > 0 ? Math.round((droppedCount / totalDramas) * 100) : 0}
           tone="red"
           last
           colors={colors}
@@ -193,21 +293,81 @@ export default function StatsScreen({ navigation }) {
       </View>
 
       {/* Top Rated Panel */}
-      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
-        <Text style={[styles.sectionTitle, { color: colors.muted }]}>MY TOP RATED</Text>
-        <View style={styles.topRatedRow}>
-          <View style={[styles.topRatedPoster, { backgroundColor: isDark ? colors.bg : (colors.panel2 || '#EEF1F6') }]}>
-            <Ionicons name="film-outline" size={18} color={colors.muted} />
-          </View>
-          <View style={styles.topRatedInfo}>
-            <Text style={[styles.topRatedTitle, { color: colors.text }]}>Pole Lantern</Text>
-            <Text style={[styles.topRatedMeta, { color: colors.muted }]}>Mystery · Drama</Text>
-          </View>
-          <View style={styles.topRatedScore}>
-            <Ionicons name="star" size={10} color={colors.pink} />
-            <Text style={[styles.scoreText, { color: colors.pink }]}>10/10</Text>
-          </View>
+      {topRatedDrama && (
+        <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.muted }]}>MY TOP RATED</Text>
+          <Pressable
+            style={styles.topRatedRow}
+            onPress={() => topRatedDrama.tmdbId && navigation.navigate('DramaDetail', { tmdbId: topRatedDrama.tmdbId })}
+          >
+            {topRatedDrama.poster ? (
+              <Image
+                source={{ uri: topRatedDrama.poster }}
+                style={styles.topRatedPosterImg}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.topRatedPoster, { backgroundColor: isDark ? colors.bg : (colors.panel2 || '#EEF1F6') }]}>
+                <Ionicons name="film-outline" size={18} color={colors.muted} />
+              </View>
+            )}
+            <View style={styles.topRatedInfo}>
+              <Text style={[styles.topRatedTitle, { color: colors.text }]} numberOfLines={1}>
+                {topRatedDrama.title}
+              </Text>
+              <Text style={[styles.topRatedMeta, { color: colors.muted }]}>
+                {(Array.isArray(topRatedDrama.genres) ? topRatedDrama.genres : []).slice(0, 2).join(' · ') || 'Drama'}
+              </Text>
+            </View>
+            <View style={styles.topRatedScore}>
+              <Ionicons name="star" size={12} color={colors.pink} />
+              <Text style={[styles.scoreText, { color: colors.pink }]}>
+                {(topRatedDrama.ratingScore || 0).toFixed(1)}/10
+              </Text>
+            </View>
+          </Pressable>
         </View>
+      )}
+
+      {/* Activity History Section (Combined from Web) */}
+      <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 0 : 1 }]}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>ACTIVITY HISTORY</Text>
+        {activityHistory.length > 0 ? (
+          <View style={styles.historyList}>
+            {activityHistory.map((item) => (
+              <Pressable
+                key={String(item.id)}
+                style={styles.historyItem}
+                onPress={() => item.tmdbId && navigation.navigate('DramaDetail', { tmdbId: item.tmdbId })}
+              >
+                {item.poster ? (
+                  <Image source={{ uri: item.poster }} style={styles.historyThumb} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.historyThumb, { backgroundColor: isDark ? colors.bg : (colors.panel2 || '#EEF1F6') }]}>
+                    <Ionicons name="film-outline" size={14} color={colors.muted} />
+                  </View>
+                )}
+                <View style={styles.historyDetails}>
+                  <Text style={[styles.historyTitle, { color: colors.text }]} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.historyAction, { color: colors.muted }]} numberOfLines={1}>
+                    {item.action}
+                  </Text>
+                </View>
+                <Text style={[styles.historyDate, { color: colors.muted }]}>{item.dateStr}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyHistory}>
+            <Ionicons name="time-outline" size={32} color={colors.muted} />
+            <Text style={[styles.emptyHistoryTitle, { color: colors.text }]}>No history yet</Text>
+            <Text style={[styles.emptyHistorySub, { color: colors.muted }]}>
+              Your watch activity will appear here as you track dramas.
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={{ height: 40 }} />
@@ -368,7 +528,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 26,
     fontWeight: '900',
-    lineHeight: 28,
+    lineHeight: 34,
+    paddingTop: 2,
   },
   ratingLabel: {
     color: colors.muted,
@@ -529,5 +690,62 @@ const styles = StyleSheet.create({
     color: colors.redBright,
     fontSize: 12,
     fontWeight: '900',
+  },
+  topRatedPosterImg: {
+    width: 40,
+    height: 52,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#1E1C2A',
+  },
+  historyList: {
+    marginTop: 2,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  historyThumb: {
+    width: 36,
+    height: 48,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: '#1E1C2A',
+  },
+  historyDetails: {
+    flex: 1,
+    marginRight: 8,
+  },
+  historyTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  historyAction: {
+    fontSize: 11,
+    marginTop: 3,
+  },
+  historyDate: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  emptyHistory: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyHistoryTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  emptyHistorySub: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+    maxWidth: 240,
   },
 });
