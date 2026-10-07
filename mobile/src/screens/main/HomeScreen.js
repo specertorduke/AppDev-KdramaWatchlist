@@ -35,6 +35,8 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [trendingDramas, setTrendingDramas] = useState([]);
+  const [userWatchlistItems, setUserWatchlistItems] = useState([]);
+  const [activeWatchingIndex, setActiveWatchingIndex] = useState(0);
   const [loggingEp, setLoggingEp] = useState(false);
 
   const fetchDashboard = async () => {
@@ -45,9 +47,12 @@ export default function HomeScreen({ navigation }) {
         trackerService.getWatchlist().catch(() => null),
       ]);
       setDashboardData(res.data.data);
+      const rawUserWatchlist = trackerRes?.data?.data || [];
+      setUserWatchlistItems(rawUserWatchlist);
+
       if (discoverRes?.data?.data) {
         const rawTrending = discoverRes.data.data.slice(0, 10);
-        const userWatchlist = trackerRes?.data?.data || [];
+        const userWatchlist = rawUserWatchlist;
         const statusMap = new Map();
         userWatchlist.forEach((item) => {
           const id = item.tmdb_id || item.id;
@@ -87,7 +92,58 @@ export default function HomeScreen({ navigation }) {
 
   const greetingName = dashboardData?.greeting?.user_name || 'Ji-young';
   const stats = dashboardData?.stats || { listed: 4, watching: 1, completed: 1, hours_watched: 17 };
-  const currentlyWatching = dashboardData?.currently_watching;
+  // Compile all watching dramas for easy swiping
+  const watchingList = React.useMemo(() => {
+    const list = [];
+    const seenIds = new Set();
+
+    // 1. From dashboardData.watching_list
+    if (Array.isArray(dashboardData?.watching_list)) {
+      dashboardData.watching_list.forEach((item) => {
+        const id = item.tmdb_id || item.id;
+        if (id && !seenIds.has(String(id))) {
+          seenIds.add(String(id));
+          list.push(item);
+        }
+      });
+    }
+
+    // 2. From dashboardData.currently_watching fallback
+    if (dashboardData?.currently_watching) {
+      const id = dashboardData.currently_watching.tmdb_id || dashboardData.currently_watching.id;
+      if (id && !seenIds.has(String(id))) {
+        seenIds.add(String(id));
+        list.push(dashboardData.currently_watching);
+      }
+    }
+
+    // 3. From userWatchlistItems where status is watching
+    if (Array.isArray(userWatchlistItems)) {
+      userWatchlistItems
+        .filter((w) => (w.status || '').toLowerCase() === 'watching')
+        .forEach((w) => {
+          const id = w.tmdb_id || w.id;
+          if (id && !seenIds.has(String(id))) {
+            seenIds.add(String(id));
+            list.push({
+              id: w.id,
+              tmdb_id: w.tmdb_id || w.id,
+              title: w.title || w.drama?.name || w.drama?.title || 'Unknown Drama',
+              poster_url: w.poster_url || w.poster || w.image || w.drama?.poster_url,
+              backdrop_url: w.backdrop_url || w.backdrop || w.drama?.backdrop_url,
+              current_episode: Number(w.current_episode ?? w.watchedCount ?? 0),
+              total_episodes: Number(w.total_episodes ?? w.episodes ?? 16),
+              progress_percentage: w.progress_percentage ?? (w.total_episodes ? Math.round((Number(w.current_episode || 0) / Number(w.total_episodes)) * 100) : 0),
+              status: w.status,
+              updated_at: w.updated_at,
+            });
+          }
+        });
+    }
+
+    return list;
+  }, [dashboardData, userWatchlistItems]);
+
   const recommended = dashboardData?.recommended || [];
 
   const handleIncrement = async (tmdbId) => {
@@ -102,17 +158,6 @@ export default function HomeScreen({ navigation }) {
       setLoggingEp(false);
     }
   };
-
-  const watchingEp = currentlyWatching ? Number(currentlyWatching.current_episode || 0) : 0;
-  const watchingTotal = currentlyWatching ? Number(currentlyWatching.total_episodes || 0) : 0;
-  const nextEpToLog = currentlyWatching?.next_episode || (watchingTotal > 0 && watchingEp < watchingTotal ? watchingEp + 1 : watchingEp + 1);
-  const watchingProgress = currentlyWatching
-    ? Math.min(
-        100,
-        currentlyWatching.progress_percentage ??
-          (watchingTotal > 0 ? Math.round((watchingEp / watchingTotal) * 100) : 0)
-      )
-    : 0;
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
@@ -272,125 +317,207 @@ export default function HomeScreen({ navigation }) {
               />
             </View>
 
-            {/* Watching Progress Section */}
-            <SectionTitle text="WATCHING PROGRESS" colors={colors} />
-
-            {currentlyWatching ? (
-              <View style={[styles.watchingCard, { backgroundColor: isDark ? '#151522' : colors.card, borderWidth: 0 }]}>
-                {(currentlyWatching.backdrop_url || currentlyWatching.poster_url) ? (
-                  <Image
-                    source={{
-                      uri: currentlyWatching.backdrop_url || currentlyWatching.poster_url,
-                    }}
-                    style={[styles.watchingBackdropImage, { opacity: isDark ? 0.18 : 0.08 }]}
-                    resizeMode="cover"
-                  />
-                ) : null}
-                <View style={[styles.watchingBackdropOverlay, { backgroundColor: isDark ? 'rgba(21, 21, 34, 0.88)' : (theme === 'warm' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.94)') }]} />
-
-                <View style={styles.watchingCardContent}>
-                  <View style={styles.watchingHeader}>
-                    <View style={styles.watchingDot} />
-                    <Text style={[styles.watchingEyebrow, { color: isDark ? '#A3A1AC' : colors.muted }]}>WATCHING PROGRESS</Text>
-                  </View>
-
-                  <Pressable
-                    style={({ pressed, hovered }) => [
-                      styles.watchingMain,
-                      hovered && styles.watchingMainHovered,
-                      pressed && styles.watchingMainPressed,
-                    ]}
-                    onPress={() =>
-                      navigation.navigate('DramaDetail', { tmdbId: currentlyWatching.tmdb_id })
-                    }
-                  >
-                    <CircularProgressAvatar
-                      src={
-                        currentlyWatching.poster_url ||
-                        currentlyWatching.backdrop_url ||
-                        currentlyWatching.image
-                      }
-                      progress={watchingProgress}
-                      size={68}
-                      strokeWidth={4.5}
-                      colors={colors}
-                      isDark={isDark}
+            {/* Watching Progress Section with Swipeable Cards */}
+            <View style={styles.watchingSectionHeader}>
+              <SectionTitle text="WATCHING PROGRESS" colors={colors} />
+              {watchingList.length > 1 && (
+                <View style={styles.watchingCarouselDots}>
+                  {watchingList.map((item, idx) => (
+                    <View
+                      key={item.tmdb_id || item.id || idx}
+                      style={[
+                        styles.watchingCarouselDot,
+                        idx === activeWatchingIndex
+                          ? [styles.watchingCarouselDotActive, { backgroundColor: colors.pink }]
+                          : [styles.watchingCarouselDotInactive, { backgroundColor: isDark ? '#323040' : '#D5D3DE' }],
+                      ]}
                     />
-
-                    <View style={styles.watchingInfo}>
-                      <Text style={[styles.watchingTitle, { color: colors.text }]} numberOfLines={1}>
-                        {currentlyWatching.title}
-                      </Text>
-
-                      <Text style={[styles.watchingEpisode, { color: colors.muted }]} numberOfLines={1}>
-                        Ep {watchingEp} of {watchingTotal}
-                        {currentlyWatching.runtime ? ` · ${currentlyWatching.runtime}` : ' · ~60 min'}
-                      </Text>
-
-                      <View style={styles.progressRow}>
-                        <View style={[styles.progressTrack, { backgroundColor: isDark ? '#2b2b35' : (colors.line || 'rgba(0,0,0,0.08)') }]}>
-                          <View
-                            style={[
-                              styles.progressFill,
-                              { width: `${watchingProgress}%` },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.progressPercentText}>{watchingProgress}%</Text>
-                      </View>
-                    </View>
-                  </Pressable>
-
-                  <View style={[styles.watchingFooter, { borderTopColor: colors.border }]}>
-                    <View>
-                      <Text style={[styles.loggedLabel, { color: colors.muted }]}>LOGGED</Text>
-                      <Text style={[styles.loggedValue, { color: colors.text }]}>Today</Text>
-                    </View>
-
-                    <View style={styles.watchingActions}>
-                      <Pressable
-                        style={({ pressed, hovered }) => [
-                          styles.detailsButton,
-                          {
-                            backgroundColor: isDark ? '#2a2930' : (colors.panel2 || '#EEF1F6'),
-                            borderWidth: isDark ? 0 : 1,
-                            borderColor: colors.border,
-                          },
-                          hovered && styles.detailsButtonHovered,
-                          pressed && styles.detailsButtonPressed,
-                        ]}
-                        onPress={() =>
-                          navigation.navigate('DramaDetail', { tmdbId: currentlyWatching.tmdb_id })
-                        }
-                      >
-                        <Text style={[styles.detailsButtonText, { color: colors.text }]}>Details</Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={({ pressed, hovered }) => [
-                          styles.logButton,
-                          hovered && styles.logButtonHovered,
-                          pressed && styles.logButtonPressed,
-                        ]}
-                        onPress={() => handleIncrement(currentlyWatching.tmdb_id)}
-                        disabled={loggingEp}
-                      >
-                        {loggingEp ? (
-                          <ActivityIndicator size="small" color="#061a15" />
-                        ) : (
-                          <>
-                            <Ionicons name="checkmark" size={15} color="#061a15" />
-                            <Text style={styles.logButtonText}>
-                              {watchingTotal > 0 && watchingEp >= watchingTotal
-                                ? 'Completed'
-                                : `Log Ep ${nextEpToLog}`}
-                            </Text>
-                          </>
-                        )}
-                      </Pressable>
-                    </View>
-                  </View>
+                  ))}
                 </View>
+              )}
+            </View>
+
+            {watchingList.length > 0 ? (
+              <View style={[styles.watchingCarouselWrapper, { marginHorizontal: -horizontalPadding }]}>
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  decelerationRate="fast"
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={(e) => {
+                    const offsetX = e.nativeEvent.contentOffset.x;
+                    const newIdx = Math.round(offsetX / width);
+                    if (newIdx !== activeWatchingIndex && newIdx >= 0 && newIdx < watchingList.length) {
+                      setActiveWatchingIndex(newIdx);
+                    }
+                  }}
+                  scrollEventThrottle={16}
+                  contentContainerStyle={styles.watchingCarouselContainer}
+                >
+                  {watchingList.map((item, idx) => {
+                    const wEp = Number(item.current_episode || 0);
+                    const wTotal = Number(item.total_episodes || 0);
+                    const nEp = item.next_episode || (wTotal > 0 && wEp < wTotal ? wEp + 1 : wEp + 1);
+                    const wProgress = Math.min(
+                      100,
+                      item.progress_percentage ?? (wTotal > 0 ? Math.round((wEp / wTotal) * 100) : 0)
+                    );
+
+                    return (
+                      <View
+                        key={item.tmdb_id || item.id || idx}
+                        style={[styles.watchingCardSlide, { width, paddingHorizontal: horizontalPadding }]}
+                      >
+                        <View
+                          style={[
+                            styles.watchingCard,
+                            {
+                              backgroundColor: isDark ? '#151522' : colors.card,
+                            },
+                          ]}
+                        >
+                        {(item.backdrop_url || item.poster_url) ? (
+                          <Image
+                            source={{
+                              uri: item.backdrop_url || item.poster_url,
+                            }}
+                            style={[styles.watchingBackdropImage, { opacity: isDark ? 0.18 : 0.08 }]}
+                            resizeMode="cover"
+                          />
+                        ) : null}
+                        <View
+                          style={[
+                            styles.watchingBackdropOverlay,
+                            {
+                              backgroundColor: isDark
+                                ? 'rgba(21, 21, 34, 0.88)'
+                                : theme === 'warm'
+                                ? 'rgba(255, 255, 255, 0.92)'
+                                : 'rgba(255, 255, 255, 0.94)',
+                            },
+                          ]}
+                        />
+
+                        <View style={styles.watchingCardContent}>
+                          <View style={styles.watchingHeader}>
+                            <View style={styles.watchingHeaderLeft}>
+                              <View style={styles.watchingDot} />
+                              <Text style={[styles.watchingEyebrow, { color: isDark ? '#A3A1AC' : colors.muted }]}>
+                                WATCHING PROGRESS
+                              </Text>
+                            </View>
+                            {watchingList.length > 1 && (
+                              <View style={[styles.cardIndexBadge, { backgroundColor: isDark ? '#232232' : (colors.panel2 || '#EEF1F6') }]}>
+                                <Text style={[styles.cardIndexBadgeText, { color: colors.muted }]}>
+                                  {idx + 1} of {watchingList.length}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+
+                          <Pressable
+                            style={({ pressed, hovered }) => [
+                              styles.watchingMain,
+                              hovered && styles.watchingMainHovered,
+                              pressed && styles.watchingMainPressed,
+                            ]}
+                            onPress={() =>
+                              navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })
+                            }
+                          >
+                            <CircularProgressAvatar
+                              src={item.poster_url || item.backdrop_url || item.image}
+                              progress={wProgress}
+                              size={68}
+                              strokeWidth={4.5}
+                              colors={colors}
+                              isDark={isDark}
+                            />
+
+                            <View style={styles.watchingInfo}>
+                              <Text style={[styles.watchingTitle, { color: colors.text }]} numberOfLines={1}>
+                                {item.title}
+                              </Text>
+
+                              <Text style={[styles.watchingEpisode, { color: colors.muted }]} numberOfLines={1}>
+                                Ep {wEp} of {wTotal > 0 ? wTotal : '—'}
+                                {item.episode_runtime || item.runtime
+                                  ? ` · ${item.episode_runtime || item.runtime} min`
+                                  : ' · ~60 min'}
+                              </Text>
+
+                              <View style={styles.progressRow}>
+                                <View
+                                  style={[
+                                    styles.progressTrack,
+                                    { backgroundColor: isDark ? '#2b2b35' : (colors.line || 'rgba(0,0,0,0.08)') },
+                                  ]}
+                                >
+                                  <View
+                                    style={[
+                                      styles.progressFill,
+                                      { width: `${wProgress}%` },
+                                    ]}
+                                  />
+                                </View>
+                                <Text style={styles.progressPercentText}>{wProgress}%</Text>
+                              </View>
+                            </View>
+                          </Pressable>
+
+                          <View style={[styles.watchingFooter, { borderTopColor: colors.border }]}>
+                            <View>
+                              <Text style={[styles.loggedLabel, { color: colors.muted }]}>LOGGED</Text>
+                              <Text style={[styles.loggedValue, { color: colors.text }]}>Today</Text>
+                            </View>
+
+                            <View style={styles.watchingActions}>
+                              <Pressable
+                                style={({ pressed, hovered }) => [
+                                  styles.detailsButton,
+                                  {
+                                    backgroundColor: isDark ? '#2a2930' : (colors.panel2 || '#EEF1F6'),
+                                    borderWidth: isDark ? 0 : 1,
+                                    borderColor: colors.border,
+                                  },
+                                  hovered && styles.detailsButtonHovered,
+                                  pressed && styles.detailsButtonPressed,
+                                ]}
+                                onPress={() =>
+                                  navigation.navigate('DramaDetail', { tmdbId: item.tmdb_id })
+                                }
+                              >
+                                <Text style={[styles.detailsButtonText, { color: colors.text }]}>Details</Text>
+                              </Pressable>
+
+                              <Pressable
+                                style={({ pressed, hovered }) => [
+                                  styles.logButton,
+                                  hovered && styles.logButtonHovered,
+                                  pressed && styles.logButtonPressed,
+                                ]}
+                                onPress={() => handleIncrement(item.tmdb_id)}
+                                disabled={loggingEp}
+                              >
+                                {loggingEp ? (
+                                  <ActivityIndicator size="small" color="#061a15" />
+                                ) : (
+                                  <>
+                                    <Ionicons name="checkmark" size={15} color="#061a15" />
+                                    <Text style={styles.logButtonText}>
+                                      {wTotal > 0 && wEp >= wTotal ? 'Completed' : `Log Ep ${nEp}`}
+                                    </Text>
+                                  </>
+                                )}
+                              </Pressable>
+                            </View>
+                          </View>
+                        </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
               </View>
             ) : (
               <View style={[styles.watchingCardEmpty, { backgroundColor: isDark ? '#151522' : colors.card, borderWidth: 0 }]}>
@@ -1011,6 +1138,37 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     marginTop: 6,
   },
+  watchingSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  watchingCarouselDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  watchingCarouselDot: {
+    height: 5,
+    borderRadius: 2.5,
+  },
+  watchingCarouselDotActive: {
+    width: 16,
+  },
+  watchingCarouselDotInactive: {
+    width: 5,
+    opacity: 0.6,
+  },
+  watchingCarouselWrapper: {
+    marginBottom: 16,
+  },
+  watchingCarouselContainer: {
+    alignItems: 'center',
+  },
+  watchingCardSlide: {
+    justifyContent: 'center',
+  },
   watchingCard: {
     width: '100%',
     backgroundColor: '#111119',
@@ -1018,7 +1176,6 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     position: 'relative',
     overflow: 'hidden',
-    marginBottom: 16,
     shadowColor: colors.shadowColor || '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: colors.shadowOpacity ?? 0.05,
@@ -1061,7 +1218,22 @@ const styles = StyleSheet.create({
   watchingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 14,
+  },
+  watchingHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardIndexBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  cardIndexBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   watchingDot: {
     width: 7,

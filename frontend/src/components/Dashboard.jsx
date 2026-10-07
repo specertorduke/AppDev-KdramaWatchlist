@@ -563,7 +563,12 @@ function CircularProgressAvatar({ src, progress = 19, size = 68, strokeWidth = 4
 function CurrentDrama({ onDetailsClick }) {
   const { stats, updateWatchlist } = useWatchlist()
   const navigate = useNavigate()
-  const active = stats.currentlyWatching
+  const watchingList = stats.watchingList || (stats.currentlyWatching ? [stats.currentlyWatching] : [])
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  // Clamp current index if watchlist changes
+  const activeIndex = watchingList.length > 0 ? Math.min(currentIndex, watchingList.length - 1) : 0
+  const active = watchingList[activeIndex]
 
   if (!active) {
     return (
@@ -597,9 +602,21 @@ function CurrentDrama({ onDetailsClick }) {
 
   const avatarImg = active.poster || active.image || DEFAULT_POSTER_IMAGE
   const backdropImg = active.backdrop || active.image || DEFAULT_BACKDROP_IMAGE
-  const progressVal = typeof active.progress === 'number' ? active.progress : 0
-  const curEp = active.current_episode || 1
+  const curEp = active.current_episode ?? active.watchedCount ?? 1
   const totalEps = active.episodes || 16
+  const progressVal = typeof active.progress === 'number'
+    ? active.progress
+    : (totalEps > 0 ? Math.min(100, Math.round((curEp / totalEps) * 100)) : 0)
+
+  const handlePrev = (e) => {
+    e.stopPropagation()
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : watchingList.length - 1))
+  }
+
+  const handleNext = (e) => {
+    e.stopPropagation()
+    setCurrentIndex((prev) => (prev < watchingList.length - 1 ? prev + 1 : 0))
+  }
 
   const handleLogNextEp = () => {
     if (curEp < totalEps) {
@@ -621,7 +638,71 @@ function CurrentDrama({ onDetailsClick }) {
       <div className="current-drama-image" style={{ backgroundImage: `url(${backdropImg})` }} />
       <div className="current-drama-overlay" aria-hidden="true" />
       <div className="current-drama-content">
-        <div className="watching-label"><i /> Watching progress</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div className="watching-label" style={{ margin: 0 }}><i /> Watching progress</div>
+          {watchingList.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '4px', marginRight: '6px' }}>
+                {watchingList.map((item, idx) => (
+                  <button
+                    key={item.tmdb_id || item.id || idx}
+                    type="button"
+                    onClick={() => setCurrentIndex(idx)}
+                    aria-label={`Show drama ${idx + 1}`}
+                    style={{
+                      width: idx === activeIndex ? '16px' : '6px',
+                      height: '6px',
+                      borderRadius: '3px',
+                      backgroundColor: idx === activeIndex ? '#eb5b78' : 'rgba(255,255,255,0.25)',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handlePrev}
+                aria-label="Previous watching drama"
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  color: 'var(--color-text)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                aria-label="Next watching drama"
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  color: 'var(--color-text)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+        </div>
         <div className="current-show-row">
           <CircularProgressAvatar
             src={avatarImg}
@@ -629,7 +710,7 @@ function CurrentDrama({ onDetailsClick }) {
             size={68}
             strokeWidth={4.5}
           />
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h3>{active.title}</h3>
             <p>Ep {curEp} of {totalEps} · ~60 min</p>
             <div className="progress-row">
@@ -639,7 +720,9 @@ function CurrentDrama({ onDetailsClick }) {
           </div>
         </div>
         <div className="current-drama-footer">
-          <span>Logged<strong>{active.logged || 'Recently'}</strong></span>
+          <span>
+            {watchingList.length > 1 ? `${activeIndex + 1} of ${watchingList.length} · ` : ''}Logged<strong>{active.logged || 'Recently'}</strong>
+          </span>
           <div>
             <button className="detail-button" type="button" onClick={() => onDetailsClick?.(active)}>Details</button>
             <button className="log-button" type="button" onClick={handleLogNextEp}>

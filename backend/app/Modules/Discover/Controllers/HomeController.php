@@ -53,19 +53,22 @@ class HomeController extends Controller
             'hours_watched' => (float) round((float) ($trackerStats->episodes_watched ?? 0), 1),
         ];
 
-        // 3. Currently Watching
+        // 3. Currently Watching & All Watching Items
         $currentlyWatching = null;
-        $watchingTracker = Tracker::where('user_id', $user->id)
+        $watchingList = [];
+        $watchingTrackers = Tracker::where('user_id', $user->id)
             ->where('status', 'watching')
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
-            ->first();
+            ->get();
 
-        if ($watchingTracker) {
-            $rawDrama = $this->trackerService->fetchRawDramaFromTmdb($watchingTracker->tmdb_id) ?? [];
+        $imageBaseUrl = rtrim(config('services.tmdb.image_url', 'https://image.tmdb.org/t/p/original'), '/');
 
-            $imageBaseUrl = rtrim(config('services.tmdb.image_url', 'https://image.tmdb.org/t/p/original'), '/');
+        foreach ($watchingTrackers as $wTracker) {
+            $rawDrama = $this->trackerService->fetchRawDramaFromTmdb($wTracker->tmdb_id) ?? [];
             $posterPath = $rawDrama['poster_path'] ?? null;
+            $backdropPath = $rawDrama['backdrop_path'] ?? null;
+
             $posterUrl = null;
             if (!empty($posterPath)) {
                 $posterUrl = str_starts_with($posterPath, 'http')
@@ -73,10 +76,17 @@ class HomeController extends Controller
                     : "{$imageBaseUrl}{$posterPath}";
             }
 
-            $totalEpisodes = $watchingTracker->total_episodes
+            $backdropUrl = null;
+            if (!empty($backdropPath)) {
+                $backdropUrl = str_starts_with($backdropPath, 'http')
+                    ? $backdropPath
+                    : "{$imageBaseUrl}{$backdropPath}";
+            }
+
+            $totalEpisodes = $wTracker->total_episodes
                 ?: (!empty($rawDrama['number_of_episodes']) ? (int) $rawDrama['number_of_episodes'] : null);
 
-            $currentEpisode = (int) $watchingTracker->current_episode;
+            $currentEpisode = (int) $wTracker->current_episode;
             $nextEpisode = $currentEpisode + 1;
             if ($totalEpisodes !== null && $nextEpisode > $totalEpisodes) {
                 $nextEpisode = $totalEpisodes;
@@ -91,23 +101,31 @@ class HomeController extends Controller
                 $episodeRuntime = (int) $rawDrama['next_episode_to_air']['runtime'];
             }
 
-            $progressPercentage = $watchingTracker->progress_percentage;
+            $progressPercentage = $wTracker->progress_percentage;
             if ($progressPercentage === 0 && $totalEpisodes && $totalEpisodes > 0) {
                 $progressPercentage = (int) min(100, max(0, round(($currentEpisode / $totalEpisodes) * 100)));
             }
 
-            $currentlyWatching = [
-                'id'                  => (int) $watchingTracker->id,
-                'tmdb_id'             => (int) $watchingTracker->tmdb_id,
+            $watchingItem = [
+                'id'                  => (int) $wTracker->id,
+                'tmdb_id'             => (int) $wTracker->tmdb_id,
                 'title'               => (string) ($rawDrama['name'] ?? $rawDrama['title'] ?? ''),
                 'poster_url'          => $posterUrl,
+                'backdrop_url'        => $backdropUrl,
                 'current_episode'     => $currentEpisode,
                 'next_episode'        => $nextEpisode,
                 'total_episodes'      => $totalEpisodes,
                 'episode_runtime'     => $episodeRuntime,
                 'progress_percentage' => $progressPercentage,
-                'status'              => (string) $watchingTracker->status,
+                'status'              => (string) $wTracker->status,
+                'updated_at'          => $wTracker->updated_at?->toISOString(),
             ];
+
+            $watchingList[] = $watchingItem;
+        }
+
+        if (!empty($watchingList)) {
+            $currentlyWatching = $watchingList[0];
         }
 
         // 4. Recommended: Curated based on user favorite genres & tracked favorites (at least 10 items)
@@ -225,6 +243,7 @@ class HomeController extends Controller
                 'greeting'           => $greeting,
                 'stats'              => $stats,
                 'currently_watching' => $currentlyWatching,
+                'watching_list'      => $watchingList,
                 'recommended'        => $recommended,
             ],
         ]);

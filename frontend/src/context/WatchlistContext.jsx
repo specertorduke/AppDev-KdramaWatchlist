@@ -306,6 +306,7 @@ export function WatchlistProvider({ children }) {
       totalEpisodesWatched,
       hoursWatched,
       currentlyWatching,
+      watchingList,
       avgRating,
       ratedCount: ratedDramas.length,
       statusBreakdown,
