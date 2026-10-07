@@ -825,10 +825,10 @@ function DramaDetailView({ drama, onBack }) {
   const isTracked = Boolean(savedItem) || isInWatchlist(dramaId)
 
   const [status, setStatus] = useState(savedItem?.status || (isTracked ? (drama.status || 'Plan to Watch') : null))
-  const [myRating, setMyRating] = useState(getPersonalRating(savedItem?.rating ?? drama.myRating))
+  const [myRating, setMyRating] = useState(isTracked ? getPersonalRating(savedItem?.rating ?? drama.myRating) : 0)
   const [hoverRating, setHoverRating] = useState(0)
   const [isFavorite, setIsFavorite] = useState(savedItem?.is_favorite || false)
-  const [myNotes, setMyNotes] = useState(savedItem?.notes || drama.myNotes || '')
+  const [myNotes, setMyNotes] = useState(isTracked ? (savedItem?.notes || drama.myNotes || '') : '')
   const [noteSaved, setNoteSaved] = useState(false)
   const [showAllEpisodes, setShowAllEpisodes] = useState(false)
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false)
@@ -1801,7 +1801,7 @@ function TrackerPage() {
     // Immediately render the detail view with the tracked item data and correct poster
     const initialDetail = {
       ...mapDramaDetail(drama),
-      myRating: drama.myRating ?? drama.rating ?? null,
+      myRating: drama.myRating ?? null,
     }
     setSelectedDrama(initialDetail)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -2704,7 +2704,7 @@ function Dashboard() {
     const tmdbId = drama.tmdb_id || drama.id
     const initialDetail = {
       ...mapDramaDetail(drama),
-      myRating: drama.myRating ?? drama.rating ?? null,
+      myRating: drama.myRating ?? null,
     }
     setSelectedDrama(initialDetail)
     window.scrollTo({ top: 0, behavior: 'smooth' })
