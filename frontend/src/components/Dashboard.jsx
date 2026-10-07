@@ -332,6 +332,8 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
                 return (
                   <article className="modal-drama-card" key={dramaId}>
                     <div className="modal-drama-poster" style={{ backgroundImage: `url(${drama.image})` }}>
+                      <img className="poster-media-img" src={drama.image} alt={drama.title} loading="lazy" />
+                      <span className="poster-gradient-overlay" />
                       <span className="modal-rating-badge">★ {drama.rating}</span>
                     </div>
 
@@ -783,6 +785,8 @@ function TrendingCard({ drama, index, onClick }) {
     <button className="trending-card" type="button" onClick={onClick}>
       <span className="trending-rank" aria-hidden="true">{index + 1}</span>
       <span className="trending-poster" style={{ backgroundImage: `url(${poster})` }}>
+        <img className="poster-media-img" src={poster} alt={drama.title} loading="lazy" />
+        <span className="poster-gradient-overlay" />
         {status && (
           <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
             <span className="recommended-status-dot" />
@@ -806,6 +810,8 @@ function RecommendedCard({ drama, onClick }) {
   return (
     <button className="recommended-card" type="button" onClick={onClick} title={drama.title}>
       <span className="recommended-poster" style={{ backgroundImage: `url(${poster})` }}>
+        <img className="poster-media-img" src={poster} alt={drama.title} loading="lazy" />
+        <span className="poster-gradient-overlay" />
         {status && (
           <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
             <span className="recommended-status-dot" />
@@ -1809,10 +1815,13 @@ function DiscoverPage() {
 
 function DiscoverCard({ drama }) {
   const statusKey = String(drama.status || drama.watch_status || '').toLowerCase().replace(/\s+/g, '-')
+  const posterImg = drama.image || drama.poster || DEFAULT_POSTER_IMAGE
 
   return (
     <article className="discover-card">
-      <div className="discover-poster" style={{ backgroundImage: `url(${drama.image})` }}>
+      <div className="discover-poster" style={{ backgroundImage: `url(${posterImg})` }}>
+        <img className="poster-media-img" src={posterImg} alt={drama.title} loading="lazy" />
+        <span className="poster-gradient-overlay" />
         {drama.status && (
           <span className={`recommended-status-badge status-${statusKey}`}>
             <span className="recommended-status-dot" />
@@ -2271,6 +2280,8 @@ function TrackerPosterCard({ drama, onStatusChange, onQuickIncrement, onToggleFa
   return (
     <article className="tracker-poster-card">
       <div className="tracker-poster" style={{ backgroundImage: `url(${poster})` }}>
+        <img className="poster-media-img" src={poster} alt={drama.title} loading="lazy" />
+        <span className="poster-gradient-overlay" />
         <span className={`tracker-poster-status status-${drama.tone || 'blue'}`} style={{ color: statusColor, backgroundColor: `${statusColor}22` }}>{drama.status || 'Plan to Watch'}</span>
         <span className="tracker-poster-progress"><i style={{ width: `${drama.progress || 0}%`, backgroundColor: statusColor }} /></span>
       </div>

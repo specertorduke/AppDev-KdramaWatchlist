@@ -2553,16 +2553,115 @@
   font-size: clamp(20px, 3vw, 28px);
 }
 
-.discover-card { min-width: 0; transition: transform 180ms ease; }
-.discover-card:hover { transform: translateY(-3px); }
-.discover-poster { position: relative; height: 267px; border: 1px solid #24232d; border-radius: 12px; background-position: center; background-size: cover; overflow: hidden; }
-.discover-poster::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 55%, rgba(3, 3, 7, .88)); }
-.show-status { position: absolute; z-index: 1; top: 13px; right: 10px; padding: 4px 9px; border: 0; border-radius: 15px; font-size: 11px; }
+/* ==========================================================================
+   Drama Posters - Cinematic Hover Effects & Smooth Zoom System
+   ========================================================================== */
+
+/* Universal Poster Media Image (Inside Frame) */
+.poster-media-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  transform: scale(1) translateZ(0);
+  transform-origin: center center;
+  backface-visibility: hidden;
+  will-change: transform, filter;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Universal Gradient Overlay */
+.poster-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 6, 12, 0) 38%,
+    rgba(6, 6, 12, 0.35) 68%,
+    rgba(4, 4, 8, 0.88) 100%
+  );
+  opacity: 0.85;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Discover Card & Poster */
+.discover-card {
+  min-width: 0;
+  cursor: pointer;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.discover-card:hover {
+  transform: translateY(-7px);
+}
+
+.discover-poster {
+  position: relative;
+  height: 267px;
+  border: 1px solid var(--color-line, #24232d);
+  border-radius: 14px;
+  background-position: center;
+  background-size: cover;
+  background-color: var(--color-panel-raised, #161622);
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.45s ease;
+  will-change: transform, box-shadow;
+}
+
+.discover-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(transparent 55%, rgba(3, 3, 7, 0.88));
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.discover-card:hover .discover-poster {
+  border-color: rgba(235, 91, 120, 0.45);
+  box-shadow: 0 20px 38px -6px rgba(0, 0, 0, 0.65),
+              0 0 0 1.5px rgba(235, 91, 120, 0.35),
+              0 8px 24px -4px rgba(235, 91, 120, 0.25);
+}
+
+.discover-card:hover .poster-media-img {
+  transform: scale(1.12);
+  filter: brightness(1.08) contrast(1.04) saturate(1.06);
+}
+
+.discover-card:hover .poster-gradient-overlay,
+.discover-card:hover .discover-poster::after {
+  opacity: 0.62;
+}
+
+.show-status { position: absolute; z-index: 3; top: 13px; right: 10px; padding: 4px 9px; border: 0; border-radius: 15px; font-size: 11px; }
 .status-pink { color: #6ba0f4; background: #202c54; }
 .status-purple { color: #9a6aec; background: #30204f; }
 .status-blue { color: #39d29e; background: #123e37; }
 .status-orange { color: #efb72c; background: #402d10; }
-.discover-card h3 { margin-top: 10px; font-size: 14px; color: var(--color-text); }
+.discover-card h3 {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--color-text);
+  transition: color 0.35s ease;
+}
+.discover-card:hover h3 {
+  color: #eb5b78;
+}
 .discover-card p { margin-top: 5px; color: var(--color-muted-subtle); font-size: 12px; }
 .discover-card p strong { float: right; color: #ef9bb0; }
 
@@ -3750,13 +3849,18 @@
   border: 1px solid #211f2d;
   border-radius: 16px;
   background: #161521;
-  transition: all 180ms ease;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.45s ease,
+              background 0.45s ease,
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .modal-drama-card:hover {
-  border-color: #38324a;
-  background: #1b1a2a;
-  transform: translateY(-1px);
+  border-color: rgba(235, 91, 120, 0.35);
+  background: #1c1a2c;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.45);
 }
 
 .modal-drama-poster {
@@ -3768,6 +3872,17 @@
   background-size: cover;
   overflow: hidden;
   border: 1px solid #2a273b;
+  isolation: isolate;
+  transition: border-color 0.45s ease;
+}
+
+.modal-drama-card:hover .poster-media-img {
+  transform: scale(1.12);
+  filter: brightness(1.08) contrast(1.04);
+}
+
+.modal-drama-card:hover .modal-drama-poster {
+  border-color: rgba(235, 91, 120, 0.45);
 }
 
 .modal-rating-badge {
@@ -4238,12 +4353,17 @@
   padding: 8px 12px;
   border-radius: 14px;
   background: #141320;
-  transition: all 180ms ease;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.45s ease,
+              border-color 0.45s ease,
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .stat-top-rated-row:hover {
-  background: #1a1829;
-  transform: translateX(2px);
+  background: #1c1a2e;
+  transform: translateX(4px) translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.45);
 }
 
 .stat-top-rated-poster-wrap {
@@ -4253,6 +4373,7 @@
   overflow: hidden;
   flex-shrink: 0;
   background: #1d1b2c;
+  isolation: isolate;
 }
 
 .stat-top-rated-poster {
@@ -4260,6 +4381,14 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1) translateZ(0);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-top-rated-row:hover .stat-top-rated-poster {
+  transform: scale(1.15);
+  filter: brightness(1.08);
 }
 
 .stat-top-rated-fallback {
@@ -6800,8 +6929,8 @@
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  padding: 0 8px 12px 14px;
-  margin: 0 -20px;
+  padding: 20px 14px 18px 16px;
+  margin: -18px -20px 0 -20px;
   scrollbar-width: thin;
   scrollbar-color: #393342 transparent;
 }
@@ -6819,15 +6948,17 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .trending-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
 }
 
 .trending-rank {
   position: absolute;
-  z-index: 2;
+  z-index: 4;
   left: -8px;
   bottom: 35px;
   color: var(--color-bg, #151522);
@@ -6837,6 +6968,11 @@
   text-shadow: 2px 2px 0px var(--color-control-shadow, #000000);
   -webkit-text-stroke: 1.5px var(--color-button-primary, #F5A9C4);
   pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trending-card:hover .trending-rank {
+  transform: scale(1.05) translateY(-2px);
 }
 
 .trending-poster {
@@ -6851,6 +6987,36 @@
   background-position: center;
   background-size: cover;
   box-shadow: 0 4px 12px var(--color-control-shadow, rgba(0, 0, 0, 0.35));
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.45s ease;
+  will-change: transform, box-shadow;
+}
+
+.trending-card:hover .trending-poster {
+  border-color: rgba(235, 91, 120, 0.45);
+  box-shadow: 0 18px 36px -6px rgba(0, 0, 0, 0.65),
+              0 0 0 1.5px rgba(235, 91, 120, 0.35),
+              0 8px 22px -4px rgba(235, 91, 120, 0.25);
+}
+
+.trending-card:hover .poster-media-img {
+  transform: scale(1.12);
+  filter: brightness(1.08) contrast(1.04) saturate(1.06);
+}
+
+.trending-card:hover .poster-gradient-overlay {
+  opacity: 0.6;
+}
+
+.trending-card .trending-title {
+  transition: color 0.35s ease;
+}
+
+.trending-card:hover .trending-title {
+  color: #eb5b78;
 }
 
 .trending-rating {
@@ -7086,8 +7252,8 @@
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  padding: 0 8px 12px 14px;
-  margin: 0 -20px;
+  padding: 20px 14px 18px 16px;
+  margin: -18px -20px 0 -20px;
   scrollbar-width: thin;
   scrollbar-color: #393342 transparent;
 }
@@ -7105,11 +7271,12 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.18s ease;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .recommended-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
 }
 
 .recommended-poster {
@@ -7125,6 +7292,35 @@
   background-size: cover;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.45s ease;
+  will-change: transform, box-shadow;
+}
+
+.recommended-card:hover .recommended-poster {
+  border-color: rgba(235, 91, 120, 0.45);
+  box-shadow: 0 18px 36px -6px rgba(0, 0, 0, 0.65),
+              0 0 0 1.5px rgba(235, 91, 120, 0.35),
+              0 8px 22px -4px rgba(235, 91, 120, 0.25);
+}
+
+.recommended-card:hover .poster-media-img {
+  transform: scale(1.12);
+  filter: brightness(1.08) contrast(1.04) saturate(1.06);
+}
+
+.recommended-card:hover .poster-gradient-overlay {
+  opacity: 0.6;
+}
+
+.recommended-card .recommended-title {
+  transition: color 0.35s ease;
+}
+
+.recommended-card:hover .recommended-title {
+  color: #eb5b78;
 }
 
 .recommended-rating {
@@ -7282,6 +7478,17 @@
   border: 1px solid var(--color-line);
   border-radius: 16px;
   background: var(--color-surface);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.45s ease;
+  will-change: transform;
+}
+
+.tracker-poster-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(235, 91, 120, 0.35);
+  box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(235, 91, 120, 0.2);
 }
 
 .tracker-poster {
@@ -7293,6 +7500,25 @@
   background-color: #151521;
   background-position: center;
   background-size: cover;
+  isolation: isolate;
+  transition: box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tracker-poster-card:hover .poster-media-img {
+  transform: scale(1.12);
+  filter: brightness(1.08) contrast(1.04) saturate(1.06);
+}
+
+.tracker-poster-card:hover .poster-gradient-overlay {
+  opacity: 0.6;
+}
+
+.tracker-poster-card h2 {
+  transition: color 0.35s ease;
+}
+
+.tracker-poster-card:hover h2 {
+  color: #eb5b78;
 }
 
 .tracker-poster-status {
@@ -7527,10 +7753,12 @@
     bottom: 1px;
   }
 
-  .trending-rail {
+  .trending-rail,
+  .recommended-rail {
     margin-right: -16px;
     margin-left: -16px;
     padding-left: 16px;
+    padding-right: 16px;
   }
 
   .discover-grid {
