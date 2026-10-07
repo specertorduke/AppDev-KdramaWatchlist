@@ -212,6 +212,7 @@ function AuthPage({ mode }) {
         const response = await sendSignupOtp({
           email: formData.email,
           name: formData.name,
+          password: formData.password,
         })
         setOtpNotice(response?.message || 'A verification code has been sent to your email.')
         setShowOtpVerification(true)
@@ -354,7 +355,7 @@ function AuthPage({ mode }) {
                 )}
 
                 {/* Strength meter and compact checklist directly under Password */}
-                <PasswordRequirementsList password={formData.password} showBreachNotice={false} />
+                <PasswordRequirementsList password={formData.password} showBreachNotice={true} />
               </div>
 
               <div className="auth-field auth-field-full">

@@ -3,6 +3,7 @@
 namespace App\Modules\Auth\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
 class SendSignupOtpRequest extends FormRequest
 {
@@ -14,8 +15,9 @@ class SendSignupOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'name'  => ['nullable', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'name'     => ['nullable', 'string', 'max:255'],
+            'password' => ['nullable', 'string', Password::defaults()],
         ];
     }
 

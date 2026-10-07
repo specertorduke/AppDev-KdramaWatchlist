@@ -20,15 +20,16 @@ export default function OtpVerification({
   const [isEditingEmail, setIsEditingEmail] = useState(!initialEmail)
   const [emailInput, setEmailInput] = useState(initialEmail)
 
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
   const [cooldown, setCooldown] = useState(initialCooldown)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState(notice)
   const [isExpiredOrInvalidated, setIsExpiredOrInvalidated] = useState(false)
+  const [isInputFocused, setIsInputFocused] = useState(false)
 
-  const inputRefs = useRef([])
+  const masterInputRef = useRef(null)
 
   // Keep email synced if initialEmail changes
   useEffect(() => {
@@ -55,80 +56,38 @@ export default function OtpVerification({
     return () => clearInterval(timer)
   }, [cooldown])
 
-  // Auto-focus first input on mount
+  // Auto-focus master input on mount
   useEffect(() => {
-    if (!isEditingEmail && inputRefs.current[0]) {
-      inputRefs.current[0].focus()
+    if (!isEditingEmail && masterInputRef.current) {
+      masterInputRef.current.focus()
     }
   }, [isEditingEmail])
 
-  // Handle single digit input
-  const handleDigitChange = (index, value) => {
-    // Only allow numbers
-    const cleaned = value.replace(/\D/g, '')
-
-    if (!cleaned) {
-      const nextOtp = [...otp]
-      nextOtp[index] = ''
-      setOtp(nextOtp)
-      setErrorMessage('')
-      return
-    }
-
-    // Take the last entered numeric digit
-    const digit = cleaned.slice(-1)
-    const nextOtp = [...otp]
-    nextOtp[index] = digit
-    setOtp(nextOtp)
+  // Handle OTP input change with natural typing & backspacing
+  const handleOtpChange = (e) => {
+    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 6)
+    setOtp(cleaned)
     setErrorMessage('')
-
-    // Auto-advance to the next input box
-    if (index < 5 && inputRefs.current[index + 1]) {
-      inputRefs.current[index + 1].focus()
-    }
   }
 
-  // Handle keyboard navigation (backspace, arrows)
-  const handleKeyDown = (index, e) => {
+  // Handle keydown to clear error on backspace
+  const handleKeyDown = (e) => {
     if (e.key === 'Backspace') {
-      if (!otp[index] && index > 0 && inputRefs.current[index - 1]) {
-        // Current box is empty, delete previous box and focus it
-        const nextOtp = [...otp]
-        nextOtp[index - 1] = ''
-        setOtp(nextOtp)
-        inputRefs.current[index - 1].focus()
-      } else {
-        const nextOtp = [...otp]
-        nextOtp[index] = ''
-        setOtp(nextOtp)
-      }
       setErrorMessage('')
-    } else if (e.key === 'ArrowLeft' && index > 0 && inputRefs.current[index - 1]) {
-      inputRefs.current[index - 1].focus()
-    } else if (e.key === 'ArrowRight' && index < 5 && inputRefs.current[index + 1]) {
-      inputRefs.current[index + 1].focus()
     }
   }
 
-  // Handle paste: extract exactly up to 6 numeric digits
+  // Handle paste: extract up to 6 numeric digits
   const handlePaste = (e) => {
     e.preventDefault()
     const pastedData = e.clipboardData.getData('text')
-    const numericChars = pastedData.replace(/\D/g, '').slice(0, 6)
-
-    if (!numericChars) return
-
-    const nextOtp = [...otp]
-    for (let i = 0; i < 6; i++) {
-      nextOtp[i] = numericChars[i] || ''
-    }
-    setOtp(nextOtp)
-    setErrorMessage('')
-
-    // Focus last populated box or the next empty box
-    const focusIndex = Math.min(numericChars.length, 5)
-    if (inputRefs.current[focusIndex]) {
-      inputRefs.current[focusIndex].focus()
+    const cleaned = pastedData.replace(/\D/g, '').slice(0, 6)
+    if (cleaned) {
+      setOtp(cleaned)
+      setErrorMessage('')
+      if (masterInputRef.current) {
+        masterInputRef.current.setSelectionRange(cleaned.length, cleaned.length)
+      }
     }
   }
 
@@ -163,9 +122,9 @@ export default function OtpVerification({
 
       setSuccessMessage(response?.message || 'A new 6-digit OTP code has been sent to your email.')
       setCooldown(60) // Reset 60s cooldown
-      setOtp(['', '', '', '', '', '']) // Clear inputs for fresh code
-      if (inputRefs.current[0]) {
-        inputRefs.current[0].focus()
+      setOtp('') // Clear inputs for fresh code
+      if (masterInputRef.current) {
+        masterInputRef.current.focus()
       }
     } catch (err) {
       if (err?.response?.status === 429) {
@@ -204,7 +163,7 @@ export default function OtpVerification({
       return
     }
 
-    const otpCode = otp.join('')
+    const otpCode = typeof otp === 'string' ? otp.trim() : otp.join('')
     if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
       setErrorMessage('Please enter all 6 numeric digits of your verification code.')
       return
@@ -249,9 +208,12 @@ export default function OtpVerification({
       if (err?.response?.status === 429) {
         setErrorMessage('Rate limit exceeded (Too many attempts). Please wait before trying again.')
       } else if (err?.response?.status === 422) {
-        const otpError = err.response.data?.errors?.otp?.[0]
+        const errors = err.response.data?.errors || {}
+        const otpError = errors.otp?.[0]
+        const passwordError = errors.password?.[0]
+        const emailError = errors.email?.[0]
         const generalMsg = err.response.data?.message || 'Verification failed. Please check the code.'
-        const activeError = otpError || generalMsg
+        const activeError = otpError || passwordError || emailError || generalMsg
 
         setErrorMessage(activeError)
 
@@ -338,7 +300,7 @@ export default function OtpVerification({
     }
   }
 
-  const fullCodeEntered = otp.every((d) => d !== '')
+  const fullCodeEntered = (typeof otp === 'string' ? otp.length : otp.filter(Boolean).length) === 6
 
   return (
     <div className="otp-container">
@@ -417,26 +379,57 @@ export default function OtpVerification({
           </div>
         )}
 
-        {/* 6-Digit OTP Input Boxes */}
+        {/* 6-Digit OTP Input Grid with Unified Master Input */}
         <form className="otp-form" onSubmit={handleVerify} noValidate>
-          <div className="otp-inputs-grid" onPaste={handlePaste}>
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={1}
-                autoComplete="one-time-code"
-                aria-label={`Digit ${index + 1} of verification code`}
-                className={`otp-digit-input ${digit ? 'is-filled' : ''} ${errorMessage ? 'has-error' : ''}`}
-                value={digit}
-                onChange={(e) => handleDigitChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e.key)}
-                disabled={isVerifying || isEditingEmail}
-              />
-            ))}
+          <div
+            className="otp-inputs-grid-wrapper"
+            onClick={() => {
+              if (masterInputRef.current) {
+                masterInputRef.current.focus()
+                const len = masterInputRef.current.value.length
+                masterInputRef.current.setSelectionRange(len, len)
+              }
+            }}
+          >
+            <input
+              ref={masterInputRef}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otp}
+              onChange={handleOtpChange}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
+              disabled={isVerifying || isEditingEmail}
+              className="otp-master-input"
+              aria-label="6-digit verification code"
+              autoFocus={!isEditingEmail}
+            />
+
+            <div className="otp-inputs-grid" aria-hidden="true">
+              {[0, 1, 2, 3, 4, 5].map((index) => {
+                const digit = otp[index] || ''
+                // Active slot: the first empty box (or the 6th box when all 6 are filled)
+                const isCurrent = isInputFocused && (
+                  otp.length < 6
+                    ? index === otp.length
+                    : index === 5
+                )
+                return (
+                  <div
+                    key={index}
+                    className={`otp-digit-input ${digit ? 'is-filled' : ''} ${isCurrent ? 'is-active' : ''} ${errorMessage ? 'has-error' : ''}`}
+                  >
+                    {digit}
+                    {isCurrent && !digit && <span className="otp-fake-caret" />}
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           {/* Submit Button */}

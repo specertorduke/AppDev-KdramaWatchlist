@@ -1,8 +1,10 @@
 import api from './api.js'
 
 export const authService = {
-  async sendSignupOtp({ email, name }) {
-    const response = await api.post('/auth/send-signup-otp', { email, name })
+  async sendSignupOtp({ email, name, password }) {
+    const payload = { email, name }
+    if (password) payload.password = password
+    const response = await api.post('/auth/send-signup-otp', payload)
     return response.data
   },
 

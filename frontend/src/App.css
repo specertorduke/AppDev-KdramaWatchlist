@@ -1210,11 +1210,37 @@
   flex-direction: column;
 }
 
+.otp-inputs-grid-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 22px;
+  cursor: text;
+}
+
+.otp-master-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  color: transparent;
+  background: transparent;
+  caret-color: transparent;
+  border: none;
+  outline: none;
+  z-index: 10;
+  cursor: text;
+}
+
 .otp-inputs-grid {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 22px;
+  position: relative;
+  z-index: 1;
 }
 
 .otp-digit-input {
@@ -1222,6 +1248,9 @@
   height: clamp(52px, 8vw, 62px);
   font-size: clamp(22px, 3.5vw, 26px);
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   border-radius: 14px;
   border: 1.5px solid var(--color-control-border, #36272d);
@@ -1230,8 +1259,11 @@
   outline: none;
   transition: all 180ms ease;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  position: relative;
+  user-select: none;
 }
 
+.otp-digit-input.is-active,
 .otp-digit-input:focus {
   border-color: var(--color-button-primary, #eb5b78);
   background: var(--color-panel-raised, #1f1418);
@@ -1246,6 +1278,23 @@
 
 .otp-digit-input.has-error {
   border-color: var(--color-danger, #ef4444);
+}
+
+.otp-fake-caret {
+  width: 2px;
+  height: 24px;
+  background-color: var(--color-button-primary, #eb5b78);
+  border-radius: 1px;
+  animation: otpCaretBlink 1s step-start infinite;
+}
+
+@keyframes otpCaretBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 .otp-submit-btn {
