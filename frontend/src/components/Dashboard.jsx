@@ -995,6 +995,7 @@ function DramaDetailView({ drama, onBack }) {
       <section className="detail-header-section">
         <div className="detail-poster-wrapper">
           <img
+            key={drama.poster || drama.image || savedItem?.poster || savedItem?.image || DEFAULT_POSTER_IMAGE}
             className="detail-poster-img"
             src={drama.poster || drama.image || savedItem?.poster || savedItem?.image || DEFAULT_POSTER_IMAGE}
             alt={drama.title}
@@ -1517,29 +1518,42 @@ function DiscoverPage() {
   }
 
   const handleOpenDetails = async (drama) => {
-    try {
-      const tmdbId = drama.tmdb_id || drama.id
-      if (tmdbId) {
+    const tmdbId = drama.tmdb_id || drama.id
+    setSelectedDrama(mapDramaDetail(drama))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    if (tmdbId) {
+      try {
         const res = await discoverService.getDramaDetails(tmdbId)
         if (res?.data) {
           const detail = mapDramaDetail(res.data)
-          setSelectedDrama(detail)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-          return
+          setSelectedDrama((prev) => {
+            if (!prev) return prev
+            const currentSelectedId = prev.tmdb_id || prev.id
+            if (String(currentSelectedId) !== String(tmdbId)) return prev
+            return {
+              ...detail,
+              status: prev.status,
+              myRating: prev.myRating,
+              myNotes: prev.myNotes,
+              is_favorite: prev.is_favorite,
+            }
+          })
         }
+      } catch {
+        // Fallback already displayed
       }
-    } catch {
-      // API detail fetch failed
     }
-
-    setSelectedDrama(mapDramaDetail(drama))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
     <DashboardLayout activeTab="discover" onOpenAddDrama={() => setIsAddDramaOpen(true)}>
       {selectedDrama ? (
-        <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
+        <DramaDetailView
+          key={selectedDrama.tmdb_id || selectedDrama.id}
+          drama={selectedDrama}
+          onBack={() => setSelectedDrama(null)}
+        />
       ) : (
         <>
           {!searchQuery && (
@@ -1876,7 +1890,11 @@ function TrackerPage() {
   return (
     <DashboardLayout activeTab="tracker" onOpenAddDrama={() => setIsAddDramaOpen(true)}>
       {selectedDrama ? (
-        <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
+        <DramaDetailView
+          key={selectedDrama.tmdb_id || selectedDrama.id}
+          drama={selectedDrama}
+          onBack={() => setSelectedDrama(null)}
+        />
       ) : (
         <>
           <section className="tracker-heading">
@@ -2751,7 +2769,11 @@ function Dashboard() {
       <div className="dashboard-content">
         {selectedDrama ? (
           <div className="dashboard-subpage">
-            <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
+            <DramaDetailView
+              key={selectedDrama.tmdb_id || selectedDrama.id}
+              drama={selectedDrama}
+              onBack={() => setSelectedDrama(null)}
+            />
           </div>
         ) : (
           <>

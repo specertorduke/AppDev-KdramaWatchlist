@@ -28,7 +28,11 @@ export default function StatsHistoryPage() {
 
       <div className="dashboard-content dashboard-subpage">
         {selectedDrama ? (
-          <DramaDetailView drama={selectedDrama} onBack={() => setSelectedDrama(null)} />
+          <DramaDetailView
+            key={selectedDrama.tmdb_id || selectedDrama.id}
+            drama={selectedDrama}
+            onBack={() => setSelectedDrama(null)}
+          />
         ) : (
           <div className="stats-page-container">
             {/* Back Button */}
