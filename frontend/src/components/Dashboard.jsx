@@ -837,6 +837,7 @@ function RecommendedCard({ drama, onClick }) {
 function DramaDetailView({ drama, onBack }) {
   const navigate = useNavigate()
   const [isPlaying, setIsPlaying] = useState(false)
+  const [playTarget, setPlayTarget] = useState(null)
   const { getWatchlistItem, updateWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist()
   const dramaId = drama.tmdb_id || drama.id
   const savedItem = getWatchlistItem(dramaId)
@@ -1059,6 +1060,11 @@ function DramaDetailView({ drama, onBack }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showRemoveConfirmation])
 
+  const handlePlaySpecificEpisode = (epNum) => {
+    setPlayTarget({ season: selectedSeasonIndex, episode: epNum });
+    setIsPlaying(true);
+  };
+
   const statusOptions = ['Watching', 'Completed', 'Plan to Watch', 'On Hold', 'Dropped']
 
   return (
@@ -1067,11 +1073,14 @@ function DramaDetailView({ drama, onBack }) {
         <Player 
           tmdbId={dramaId} 
           type={drama.seasons || drama.episodes > 1 || (drama.type && drama.type.toLowerCase() === 'tv') ? 'tv' : 'movie'} 
-          season={currentSeason ? (currentSeason.season_number || 1) : 1} 
-          episode={seasonWatchedCount < seasonEpisodeCount ? seasonWatchedCount + 1 : Math.max(1, seasonWatchedCount)} 
+          season={playTarget ? (allSeasons[playTarget.season]?.season_number || 1) : (currentSeason ? (currentSeason.season_number || 1) : 1)} 
+          episode={playTarget ? playTarget.episode : (seasonWatchedCount < seasonEpisodeCount ? seasonWatchedCount + 1 : Math.max(1, seasonWatchedCount))} 
           allSeasons={allSeasons}
           onEpisodeWatched={handleEpisodeWatchedAuto}
-          onClose={() => setIsPlaying(false)} 
+          onClose={() => {
+            setIsPlaying(false)
+            setPlayTarget(null)
+          }} 
         />
       )}
       
@@ -1429,22 +1438,36 @@ function DramaDetailView({ drama, onBack }) {
 
             <div className="episodes-list-group">
               {displayedEpisodes.map((ep) => (
-                <button
+                <div
                   key={ep.number}
-                  type="button"
                   className={`episode-item-row ${ep.watched ? 'watched' : ''}`}
-                  onClick={() => toggleEpisode(ep.number)}
-                  aria-pressed={ep.watched}
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'default' }}
                 >
-                  <span className="episode-number-badge">{ep.number}</span>
-                  <span className="episode-copy">
-                    <span className="episode-item-title">{ep.title}</span>
-                    <span className="episode-item-subtitle">{ep.watched ? 'Watched' : 'Mark as watched'}</span>
-                  </span>
-                  <span className={`episode-check-circle ${ep.watched ? 'checked' : ''}`}>
-                    {ep.watched ? <Check size={14} strokeWidth={3} /> : <Play size={12} fill="currentColor" />}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePlaySpecificEpisode(ep.number)}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', background: 'transparent', border: 'none', color: 'inherit', font: 'inherit', textAlign: 'left', cursor: 'pointer', padding: 0 }}
+                    title={`Play Episode ${ep.number}`}
+                  >
+                    <span className="episode-number-badge" style={{ flexShrink: 0 }}>{ep.number}</span>
+                    <span className="episode-copy">
+                      <span className="episode-item-title">{ep.title}</span>
+                      <span className="episode-item-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {ep.watched ? 'Watched' : <span style={{ color: '#eb5b78' }}>Play Episode</span>}
+                        {!ep.watched && <Play size={10} color="#eb5b78" fill="#eb5b78" />}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`episode-check-circle ${ep.watched ? 'checked' : ''}`}
+                    onClick={() => toggleEpisode(ep.number)}
+                    title={ep.watched ? "Unmark as watched" : "Mark as watched"}
+                    style={{ cursor: 'pointer', padding: 0 }}
+                  >
+                    {ep.watched ? <Check size={14} strokeWidth={3} /> : <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid currentColor' }} />}
+                  </button>
+                </div>
               ))}
             </div>
             {episodesList.length > 30 && (
