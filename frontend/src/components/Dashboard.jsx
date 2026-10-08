@@ -54,6 +54,7 @@ import {
 import DramaPersonaAvatar from './DramaPersonaAvatar.jsx'
 import EditProfileModal from './EditProfileModal.jsx'
 import Chatbot from './Chatbot.jsx'
+import Player from './Player.jsx'
 
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
 const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Ticket }
@@ -835,6 +836,7 @@ function RecommendedCard({ drama, onClick }) {
 
 function DramaDetailView({ drama, onBack }) {
   const navigate = useNavigate()
+  const [isPlaying, setIsPlaying] = useState(false)
   const { getWatchlistItem, updateWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist()
   const dramaId = drama.tmdb_id || drama.id
   const savedItem = getWatchlistItem(dramaId)
@@ -1000,6 +1002,15 @@ function DramaDetailView({ drama, onBack }) {
 
   return (
     <div className="drama-detail-container">
+      {isPlaying && (
+        <Player 
+          tmdbId={dramaId} 
+          type={drama.seasons || drama.episodes > 1 || (drama.type && drama.type.toLowerCase() === 'tv') ? 'tv' : 'movie'} 
+          season={currentSeason ? (currentSeason.season_number || 1) : 1} 
+          episode={seasonWatchedCount < seasonEpisodeCount ? seasonWatchedCount + 1 : Math.max(1, seasonWatchedCount)} 
+          onClose={() => setIsPlaying(false)} 
+        />
+      )}
       {/* Top Back Navigation */}
       <div className="detail-top-nav">
         <button className="detail-back-btn" type="button" onClick={onBack}>
@@ -1064,12 +1075,7 @@ function DramaDetailView({ drama, onBack }) {
               className="detail-update-status-button detail-add-button"
               style={{ backgroundColor: '#B20710', borderColor: '#B20710', color: 'white', fontWeight: 600 }}
               type="button"
-              onClick={() => {
-                const isTv = drama.seasons || drama.episodes > 1 || (drama.type && drama.type.toLowerCase() === 'tv');
-                const s = currentSeason ? (currentSeason.season_number || 1) : 1;
-                const e = seasonWatchedCount < seasonEpisodeCount ? seasonWatchedCount + 1 : Math.max(1, seasonWatchedCount);
-                navigate(`/player/${dramaId}?type=${isTv ? 'tv' : 'movie'}&s=${s}&e=${e}`);
-              }}
+              onClick={() => setIsPlaying(true)}
             >
               <Play size={16} fill="currentColor" /> Watch Now
             </button>
