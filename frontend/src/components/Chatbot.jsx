@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bot, ChevronDown, MessageSquare, RotateCcw, Send, Sparkles, X } from 'lucide-react'
+import { ChevronDown, MessageSquare, RotateCcw, Send, Sparkles, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { useNavigate } from 'react-router-dom'
 import chatbotService from '../services/chatbotService.js'
@@ -38,6 +38,7 @@ export default function Chatbot() {
 
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [, setLastFailedMessage] = useState(null)
 
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -245,7 +246,7 @@ export default function Chatbot() {
             {loading && (
               <div className="chatbot-msg-row ai">
                 <div className="chatbot-ai-avatar">
-                  <Bot size={14} />
+                  <img src="/logo.png" alt="AI" className="chatbot-avatar-img" />
                 </div>
                 <div className="chatbot-bubble ai typing-bubble" aria-label="AI is typing...">
                   <span className="typing-dot" />

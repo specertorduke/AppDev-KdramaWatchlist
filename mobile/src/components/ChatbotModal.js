@@ -19,20 +19,42 @@ import { useChatbot, QUICK_PROMPTS } from '../context/ChatbotContext';
 import { useTheme } from '../context/ThemeContext';
 import { colors } from '../theme';
 
-// Simple markdown formatter for React Native (bold **text** and bullets)
+// Lightweight markdown formatter for React Native text bubbles.
 const renderFormattedAiText = (text, defaultStyle, boldStyle) => {
   if (!text) return null;
 
   const lines = text.split('\n');
   return lines.map((line, lineIdx) => {
-    const isBullet = line.trim().startsWith('- ') || line.trim().startsWith('* ');
-    const cleanedLine = isBullet ? '• ' + line.trim().substring(2) : line;
+    const trimmed = line.trim();
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ');
+
+    let cleanedLine = line;
+    let isHeading = false;
+
+    if (headingMatch) {
+      isHeading = true;
+      cleanedLine = headingMatch[2];
+    } else if (orderedMatch) {
+      cleanedLine = `${orderedMatch[1]}. ${orderedMatch[2]}`;
+    } else if (isBullet) {
+      cleanedLine = '• ' + trimmed.substring(2);
+    }
 
     // Parse **bold** parts
     const parts = cleanedLine.split(/(\*\*.*?\*\*)/g);
 
     return (
-      <Text key={lineIdx} style={[defaultStyle, isBullet && { paddingLeft: 4, marginVertical: 2 }]}>
+      <Text
+        key={lineIdx}
+        style={[
+          defaultStyle,
+          isBullet && { paddingLeft: 4, marginVertical: 2 },
+          orderedMatch && { paddingLeft: 4, marginVertical: 2 },
+          isHeading && { fontWeight: '700', marginTop: 6, marginBottom: 2 },
+        ]}
+      >
         {parts.map((part, partIdx) => {
           if (part.startsWith('**') && part.endsWith('**')) {
             return (

@@ -10,9 +10,15 @@ export const chatbotService = {
     const trimmed = (message || '').trim()
 
     try {
-      const response = await api.post('/discover/chatbot', {
-        message: trimmed,
-      })
+      const response = await api.post(
+        '/discover/chatbot',
+        {
+          message: trimmed,
+        },
+        {
+          timeout: 35000,
+        }
+      )
 
       // Backend returns { reply: "..." }
       if (response.data && typeof response.data.reply === 'string') {
