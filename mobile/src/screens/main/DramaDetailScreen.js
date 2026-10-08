@@ -136,11 +136,16 @@ export default function DramaDetailScreen({ route, navigation }) {
       didAutoStart = true;
     }
 
+    const finalEpisodeCount =
+      finalStatus === 'completed' && episodesTotal > 0
+        ? Math.max(Number(epToSave) || 0, episodesTotal)
+        : Math.max(0, parseInt(epToSave, 10) || 0);
+
     const displayFinalStatus = toDisplayStatus(finalStatus);
 
     // Immediately update local state for instant real-time feedback
     setSelectedStatus(displayFinalStatus);
-    if (overrideEpisodes !== undefined) setWatchedEpisodes(epToSave);
+    if (overrideEpisodes !== undefined || finalStatus === 'completed') setWatchedEpisodes(finalEpisodeCount);
     if (overrideRating !== undefined) setSelectedRating(rawRating || 0);
     if (overrideNotes !== undefined) setNotes(notesToSave);
     if (overrideFavorite !== undefined) setIsFavorite(favToSave);
@@ -148,7 +153,7 @@ export default function DramaDetailScreen({ route, navigation }) {
     const payload = {
       tmdb_id: parseInt(tmdbId, 10),
       status: finalStatus,
-      current_episode: Math.max(0, parseInt(epToSave, 10) || 0),
+      current_episode: finalEpisodeCount,
       total_episodes: episodesTotal > 0 ? episodesTotal : null,
       rating: ratingToSave,
       review_notes: notesToSave || null,
@@ -878,7 +883,14 @@ export default function DramaDetailScreen({ route, navigation }) {
         <View style={styles.notesActionRow}>
           <Pressable
             style={[styles.saveAllButton, { backgroundColor: colors.pink }, savingReview && styles.saveButtonDisabled]}
-            onPress={() => saveTrackerChanges(selectedStatus, watchedEpisodes, selectedRating, notes, isFavorite, true)}
+            onPress={() => saveTrackerChanges(
+              selectedStatus,
+              selectedStatus === 'Completed' ? episodesTotal : watchedEpisodes,
+              selectedRating,
+              notes,
+              isFavorite,
+              true,
+            )}
             disabled={savingReview}
           >
             <Ionicons
