@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, ListVideo } from 'lucide-react';
+import { ArrowLeft, Loader2, ListVideo, Server, CheckSquare } from 'lucide-react';
 import { useWatchlist } from '../context/WatchlistContext.jsx';
 
 export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, allSeasons = [], onClose, onEpisodeWatched }) {
@@ -7,6 +7,7 @@ export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, a
   
   const [currentSeasonNum, setCurrentSeasonNum] = useState(season);
   const [currentEpisodeNum, setCurrentEpisodeNum] = useState(episode);
+  const [currentServer, setCurrentServer] = useState('vidlink');
   const syncedRef = useRef(false);
 
   useEffect(() => {
@@ -15,9 +16,32 @@ export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, a
     if (currentEpisodeNum === undefined) setCurrentEpisodeNum(episode);
   }, []);
 
-  let videoSrc = `https://vidlink.pro/movie/${tmdbId}?autoplay=true&primaryColor=eb5b78`;
-  if (type === 'tv') {
-    videoSrc = `https://vidlink.pro/tv/${tmdbId}/${currentSeasonNum || season}/${currentEpisodeNum || episode}?autoplay=true&primaryColor=eb5b78`;
+  let videoSrc = '';
+  if (currentServer === 'vidlink') {
+    videoSrc = `https://vidlink.pro/movie/${tmdbId}?autoplay=true&primaryColor=eb5b78`;
+    if (type === 'tv') {
+      videoSrc = `https://vidlink.pro/tv/${tmdbId}/${currentSeasonNum || season}/${currentEpisodeNum || episode}?autoplay=true&primaryColor=eb5b78`;
+    }
+  } else if (currentServer === 'vidsrc') {
+    videoSrc = `https://vidsrc.to/embed/movie/${tmdbId}`;
+    if (type === 'tv') {
+      videoSrc = `https://vidsrc.to/embed/tv/${tmdbId}/${currentSeasonNum || season}/${currentEpisodeNum || episode}`;
+    }
+  } else if (currentServer === 'vidsrcme') {
+    videoSrc = `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
+    if (type === 'tv') {
+      videoSrc = `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${currentSeasonNum || season}&episode=${currentEpisodeNum || episode}`;
+    }
+  } else if (currentServer === 'vidsrccc') {
+    videoSrc = `https://vidsrc.cc/v3/embed/movie/${tmdbId}`;
+    if (type === 'tv') {
+      videoSrc = `https://vidsrc.cc/v3/embed/tv/${tmdbId}/${currentSeasonNum || season}/${currentEpisodeNum || episode}`;
+    }
+  } else if (currentServer === 'autoembed') {
+    videoSrc = `https://player.autoembed.cc/embed/movie/${tmdbId}`;
+    if (type === 'tv') {
+      videoSrc = `https://player.autoembed.cc/embed/tv/${tmdbId}/${currentSeasonNum || season}/${currentEpisodeNum || episode}`;
+    }
   }
 
   const currentSeasonData = allSeasons.find(s => s.season_number === currentSeasonNum) || {};
@@ -31,6 +55,26 @@ export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, a
   
   const handleEpisodeChange = (e) => {
     setCurrentEpisodeNum(Number(e.target.value));
+    syncedRef.current = false;
+  };
+
+  const handleManualNext = () => {
+    if (onEpisodeWatched) {
+      onEpisodeWatched(currentSeasonNum, currentEpisodeNum);
+    }
+    
+    if (currentEpisodeNum < episodesCount) {
+      setCurrentEpisodeNum(currentEpisodeNum + 1);
+    } else {
+      // Try next season if it exists
+      const nextSeasonData = allSeasons.find(s => s.season_number === currentSeasonNum + 1);
+      if (nextSeasonData) {
+        setCurrentSeasonNum(nextSeasonData.season_number);
+        setCurrentEpisodeNum(1);
+      } else {
+        onClose(); // Close if no more seasons
+      }
+    }
     syncedRef.current = false;
   };
 
@@ -74,10 +118,26 @@ export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, a
           <span>SarangTV Player</span>
         </div>
 
-        {type === 'tv' && allSeasons.length > 0 && (
-          <div className="sarang-player-selectors" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginLeft: 'auto', marginRight: '20px', pointerEvents: 'auto' }}>
-            <div className="player-select-wrap" style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', borderRadius: '6px', padding: '6px 10px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <ListVideo size={16} style={{ marginRight: '8px', color: '#a097a8' }} />
+        <div className="sarang-player-selectors" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginLeft: 'auto', marginRight: '20px', pointerEvents: 'auto' }}>
+          <div className="player-select-wrap" style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', borderRadius: '6px', padding: '6px 10px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <Server size={16} style={{ marginRight: '8px', color: '#a097a8' }} />
+            <select 
+              value={currentServer} 
+              onChange={(e) => setCurrentServer(e.target.value)}
+              style={{ background: 'transparent', color: '#F0EEE8', border: 'none', outline: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+            >
+              <option value="vidlink" style={{ color: '#000' }}>VidLink (Primary)</option>
+              <option value="vidsrc" style={{ color: '#000' }}>VidSrc (.to)</option>
+              <option value="vidsrcme" style={{ color: '#000' }}>VidSrc (.me)</option>
+              <option value="vidsrccc" style={{ color: '#000' }}>VidSrc (.cc)</option>
+              <option value="autoembed" style={{ color: '#000' }}>AutoEmbed</option>
+            </select>
+          </div>
+
+          {type === 'tv' && allSeasons.length > 0 && (
+            <>
+              <div className="player-select-wrap" style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', borderRadius: '6px', padding: '6px 10px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <ListVideo size={16} style={{ marginRight: '8px', color: '#a097a8' }} />
               <select 
                 value={currentSeasonNum} 
                 onChange={handleSeasonChange}
@@ -103,8 +163,22 @@ export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, a
                 ))}
               </select>
             </div>
-          </div>
-        )}
+            </>
+          )}
+
+          {type === 'tv' && (
+            <button
+              onClick={handleManualNext}
+              title="Mark as watched and play next episode"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(235,91,120,0.9)', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', marginLeft: '4px', transition: 'background 0.2s' }}
+              onMouseOver={(e) => e.currentTarget.style.background = '#eb5b78'}
+              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(235,91,120,0.9)'}
+            >
+              <CheckSquare size={16} />
+              Next & Check
+            </button>
+          )}
+        </div>
 
         <button
           onClick={onClose}
