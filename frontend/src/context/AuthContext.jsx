@@ -59,14 +59,20 @@ export function AuthProvider({ children }) {
     loadUser()
   }, [token])
 
-  const updateProfile = async ({ name, avatar, avatarIcon, color, avatarType }) => {
+  const updateProfile = async ({ name, username, avatar, avatarIcon, color, avatarType, avatar_url }) => {
+    const payload = {}
+    if (name !== undefined) payload.name = name
+    if (username !== undefined) payload.username = username
+    if (avatar !== undefined || avatar_url !== undefined) {
+      const resolvedAvatar = avatar ?? avatar_url
+      payload.avatar = resolvedAvatar
+      payload.avatar_url = resolvedAvatar
+    }
+
     let apiResult = null
-    if (name !== undefined || avatar !== undefined) {
+    if (Object.keys(payload).length > 0) {
       try {
-        apiResult = await authService.updateProfile({
-          ...(name !== undefined ? { name } : {}),
-          ...(avatar !== undefined ? { avatar, avatar_url: avatar } : {}),
-        })
+        apiResult = await authService.updateProfile(payload)
       } catch {
         // Offline fallback
       }
@@ -76,8 +82,9 @@ export function AuthProvider({ children }) {
       const updated = {
         ...(prev || {}),
         ...(apiResult?.user || (apiResult?.id ? apiResult : {})),
-        ...(name ? { name } : {}),
-        ...(avatar ? { avatar, avatar_url: avatar } : {}),
+        ...(name !== undefined ? { name } : {}),
+        ...(username !== undefined ? { username } : {}),
+        ...(avatar !== undefined || avatar_url !== undefined ? { avatar: avatar ?? avatar_url, avatar_url: avatar ?? avatar_url } : {}),
         ...(avatarIcon !== undefined ? { avatarIcon } : {}),
         ...(color !== undefined ? { color } : {}),
         ...(avatarType !== undefined ? { avatarType } : {}),
@@ -89,6 +96,7 @@ export function AuthProvider({ children }) {
           `sarangtv_profile_${userKey}`,
           JSON.stringify({
             name: updated.name,
+            username: updated.username,
             avatar: updated.avatar || updated.avatar_url,
             avatar_url: updated.avatar || updated.avatar_url,
             avatarIcon: updated.avatarIcon,

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Circle, CheckCircle2, ShieldCheck } from 'lucide-react'
+import { Circle, CheckCircle2 } from 'lucide-react'
 import { PASSWORD_REQUIREMENTS, getPasswordStrength } from '../utils/passwordRequirements.js'
 
 export default function PasswordRequirementsList({
@@ -65,13 +65,6 @@ export default function PasswordRequirementsList({
         )}
       </ul>
 
-      {/* Breach check indicator */}
-      {showBreachNotice && (
-        <div className="pwd-breach-notice">
-          <ShieldCheck size={14} className="pwd-breach-icon" aria-hidden="true" />
-          <span>Checked against known data breaches</span>
-        </div>
-      )}
     </div>
   )
 }

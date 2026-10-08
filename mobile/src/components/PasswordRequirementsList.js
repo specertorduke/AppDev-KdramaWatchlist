@@ -119,13 +119,6 @@ export default function PasswordRequirementsList({
         </View>
       )}
 
-      {/* Breach check indicator (hidden by default) */}
-      {showBreachNotice && (
-        <View style={styles.breachNotice}>
-          <Ionicons name="shield-checkmark-outline" size={13} color={colors.muted} />
-          <Text style={[styles.breachNoticeText, { color: colors.muted }]}>Checked against known data breaches</Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -185,16 +178,5 @@ const styles = StyleSheet.create({
   },
   differentReqItem: {
     marginTop: 8,
-  },
-  breachNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-  },
-  breachNoticeText: {
-    fontSize: 11.5,
-    color: '#8D8B98',
-    lineHeight: 16,
   },
 });

@@ -54,6 +54,14 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
+    if (!trimmedUsername) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        username: ['Please enter a username.'],
+      }));
+      return;
+    }
+
     if (!trimmedEmail) {
       setFieldErrors((prev) => ({
         ...prev,
@@ -100,7 +108,7 @@ export default function RegisterScreen({ navigation }) {
         email: trimmedEmail,
         registrationData: {
           name: trimmedName,
-          username: trimmedUsername || undefined,
+          username: trimmedUsername,
           email: trimmedEmail,
           password,
           passwordConfirmation,
@@ -123,7 +131,7 @@ export default function RegisterScreen({ navigation }) {
           email: trimmedEmail,
           registrationData: {
             name: trimmedName,
-            username: trimmedUsername || undefined,
+            username: trimmedUsername,
             email: trimmedEmail,
             password,
             passwordConfirmation,
@@ -218,7 +226,7 @@ export default function RegisterScreen({ navigation }) {
 
           {/* Username Field */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.text }]}>@Username (Optional)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>@Username</Text>
             <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.username && styles.inputWrapperError]}>
               <TextInput
                 style={[styles.input, { color: colors.text }]}

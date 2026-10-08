@@ -93,6 +93,7 @@ export const userService = {
   getStats: () => api.get('/user/stats'),
   updatePreferences: (data) => api.patch('/user/preferences', data),
   deleteAccount: (data) => api.delete('/user', { data }),
+  checkAvailability: (field, value) => api.get('/auth/check-availability', { params: { field, value } }),
 };
 
 // Home Dashboard

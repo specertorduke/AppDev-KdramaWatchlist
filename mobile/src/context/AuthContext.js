@@ -174,20 +174,43 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateProfileName = async (name) => {
+  const updateProfile = async ({ name, username, avatarIcon, color, avatarUrl }) => {
     try {
-      const response = await userService.updateProfile({ name });
-      const updated = response.data.data;
-      if (updated) {
-        const newUser = { ...user, ...updated };
-        setUser(newUser);
-        await AsyncStorage.setItem('auth_user', JSON.stringify(newUser));
+      const payload = {};
+      if (name !== undefined) payload.name = name;
+      if (username !== undefined) payload.username = username;
+      if (avatarUrl !== undefined) payload.avatar_url = avatarUrl;
+
+      let response = null;
+      if (Object.keys(payload).length > 0) {
+        response = await userService.updateProfile(payload);
       }
-      return response.data;
+
+      const updated = response?.data?.user || response?.data?.data || response?.data || null;
+      const nextUser = {
+        ...(user || {}),
+        ...(updated || {}),
+        ...(name !== undefined ? { name } : {}),
+        ...(username !== undefined ? { username } : {}),
+        ...(avatarIcon !== undefined ? { avatarIcon } : {}),
+        ...(color !== undefined ? { color } : {}),
+        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+      };
+
+      if (nextUser && Object.keys(nextUser).length > 0) {
+        setUser(nextUser);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(nextUser));
+      }
+
+      return response?.data || { user: nextUser };
     } catch (e) {
-      console.warn('Failed to update profile name:', e);
+      console.warn('Failed to update profile:', e);
       throw e;
     }
+  };
+
+  const updateProfileName = async (name, username) => {
+    return updateProfile({ name, username });
   };
 
   const updateUserEmail = async ({ newEmail, currentPassword, verificationOtp }) => {
@@ -294,6 +317,7 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token,
         isLoading,
+        updateProfile,
         updateProfileAvatar,
         updateUserPreferences,
         updateProfileName,

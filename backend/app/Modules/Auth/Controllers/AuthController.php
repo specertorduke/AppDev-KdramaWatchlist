@@ -31,6 +31,29 @@ class AuthController extends Controller
         return response()->json($result);
     }
 
+    public function checkAvailability(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', 'string', 'in:username,email'],
+            'value' => ['required', 'string', 'max:255'],
+        ]);
+
+        $field = $validated['field'];
+        $value = trim($validated['value']);
+
+        // Validate format before hitting the DB
+        if ($field === 'username' && ! preg_match('/^[a-zA-Z0-9_]{3,30}$/', $value)) {
+            return response()->json(['available' => false, 'message' => 'Invalid username format.']);
+        }
+
+        $exists = \App\Modules\Auth\Models\User::where($field, $value)->exists();
+
+        return response()->json([
+            'available' => ! $exists,
+            'field'     => $field,
+        ]);
+    }
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $result = $this->authService->register($request->validated());

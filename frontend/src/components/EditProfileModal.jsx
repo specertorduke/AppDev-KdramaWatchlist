@@ -83,6 +83,11 @@ export default function EditProfileModal({ isOpen, onClose }) {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
+  // Real-time backend field validation
+  const [usernameStatus, setUsernameStatus] = useState(null) // null | 'checking' | 'available' | 'taken' | 'invalid'
+  const [usernameStatusMsg, setUsernameStatusMsg] = useState('')
+  const usernameTimerRef = useRef(null)
+
   // Email Change Flow States (Matching Mobile Version 2-step OTP flow)
   const [showEmailFlow, setShowEmailFlow] = useState(false)
   const [emailStep, setEmailStep] = useState('input') // 'input' | 'otp'
@@ -149,6 +154,10 @@ export default function EditProfileModal({ isOpen, onClose }) {
       setShowConfirmChangePwd(false)
       setPasswordChangeError('')
       setPasswordChangeSuccess('')
+
+      // Reset real-time validation state
+      setUsernameStatus(null)
+      setUsernameStatusMsg('')
     }
   }, [isOpen, user])
 
@@ -382,6 +391,46 @@ export default function EditProfileModal({ isOpen, onClose }) {
     }
   }
 
+  const handleUsernameChange = (val) => {
+    setUsername(val)
+    const trimmed = val.trim()
+
+    // Clear pending check
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current)
+
+    if (!trimmed || trimmed === currentUsername) {
+      setUsernameStatus(null)
+      setUsernameStatusMsg('')
+      return
+    }
+
+    // Basic format check before hitting backend
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(trimmed)) {
+      setUsernameStatus('invalid')
+      setUsernameStatusMsg('3–30 chars, letters, numbers and underscores only.')
+      return
+    }
+
+    setUsernameStatus('checking')
+    setUsernameStatusMsg('')
+
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await authService.checkAvailability('username', trimmed)
+        if (res.available) {
+          setUsernameStatus('available')
+          setUsernameStatusMsg('Username is available.')
+        } else {
+          setUsernameStatus('taken')
+          setUsernameStatusMsg('This username is already taken.')
+        }
+      } catch {
+        setUsernameStatus(null)
+        setUsernameStatusMsg('')
+      }
+    }, 600)
+  }
+
   const handleSaveProfile = async (e) => {
     e.preventDefault()
     if (showEmailFlow || showPasswordChangeFlow) return;
@@ -396,11 +445,16 @@ export default function EditProfileModal({ isOpen, onClose }) {
       return
     }
 
+    if (usernameStatus === 'taken' || usernameStatus === 'invalid') {
+      setErrorMessage(usernameStatusMsg || 'Please fix the username field before saving.')
+      return
+    }
+
     setIsSaving(true)
     try {
       await updateProfile({
         name: trimmedName,
-        username: trimmedUsername || undefined,
+        username: trimmedUsername,
         ...(avatarType === 'photo'
           ? { avatar: newAvatarData || avatarPreview, avatarType: 'photo' }
           : { avatarIcon: selectedIcon, color: selectedColor, avatarType: 'persona' }),
@@ -411,7 +465,8 @@ export default function EditProfileModal({ isOpen, onClose }) {
         onClose()
       }, 500)
     } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to update profile. Please try again.'
+      const errors = err?.response?.data?.errors || {}
+      const msg = errors.username?.[0] || err?.response?.data?.message || err?.message || 'Failed to update profile. Please try again.'
       setErrorMessage(msg)
     } finally {
       setIsSaving(false)
@@ -612,13 +667,27 @@ export default function EditProfileModal({ isOpen, onClose }) {
                 <input
                   id="edit-profile-username"
                   type="text"
-                  className="edit-profile-input"
+                  className={`edit-profile-input${
+                    usernameStatus === 'taken' || usernameStatus === 'invalid' ? ' edit-profile-input-error' : ''
+                  }${
+                    usernameStatus === 'available' ? ' edit-profile-input-success' : ''
+                  }`}
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
                   placeholder="Enter a unique username"
                   maxLength={30}
+                  autoCapitalize="none"
                   disabled={isSaving}
                 />
+                {usernameStatus === 'checking' && (
+                  <span className="edit-field-hint edit-field-hint-checking">Checking availability…</span>
+                )}
+                {usernameStatus === 'available' && (
+                  <span className="edit-field-hint edit-field-hint-ok">✓ {usernameStatusMsg}</span>
+                )}
+                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                  <span className="edit-field-hint edit-field-hint-err">✕ {usernameStatusMsg}</span>
+                )}
               </div>
 
               {/* Email Section (With 2-step OTP flow matching mobile version) */}
