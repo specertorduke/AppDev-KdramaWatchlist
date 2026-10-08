@@ -75,7 +75,6 @@ export default function AddDramaScreen({ navigation }) {
         current_episode: 0,
         rating: null,
       });
-      Alert.alert('Success', `"${drama.title || drama.name}" added to your watchlist!`);
     } catch (err) {
       setAddedIds((prev) => {
         const next = new Set(prev);
