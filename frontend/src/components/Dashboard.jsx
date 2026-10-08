@@ -114,6 +114,14 @@ function getStatusKey(status) {
   return String(status || '').trim().toLowerCase().replace(/[_-]+/g, ' ')
 }
 
+function formatStatusCss(status) {
+  return String(status || '').toLowerCase().replace(/[\s_]+/g, '-')
+}
+
+function formatStatusLabel(status) {
+  return String(status || '').split(/[_\s]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
 function getStatusColor(status) {
   return statusColors[getStatusKey(status)] || '#9A94A6'
 }
@@ -788,9 +796,9 @@ function TrendingCard({ drama, index, onClick }) {
         <img className="poster-media-img" src={poster} alt={drama.title} loading="lazy" />
         <span className="poster-gradient-overlay" />
         {status && (
-          <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
+          <span className={`recommended-status-badge status-${formatStatusCss(status)}`}>
             <span className="recommended-status-dot" />
-            {status}
+            {formatStatusLabel(status)}
           </span>
         )}
       </span>
@@ -813,9 +821,9 @@ function RecommendedCard({ drama, onClick }) {
         <img className="poster-media-img" src={poster} alt={drama.title} loading="lazy" />
         <span className="poster-gradient-overlay" />
         {status && (
-          <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
+          <span className={`recommended-status-badge status-${formatStatusCss(status)}`}>
             <span className="recommended-status-dot" />
-            {status}
+            {formatStatusLabel(status)}
           </span>
         )}
       </span>
@@ -1814,7 +1822,7 @@ function DiscoverPage() {
 }
 
 function DiscoverCard({ drama }) {
-  const statusKey = String(drama.status || drama.watch_status || '').toLowerCase().replace(/\s+/g, '-')
+  const statusKey = formatStatusCss(drama.status || drama.watch_status)
   const posterImg = drama.image || drama.poster || DEFAULT_POSTER_IMAGE
 
   return (
@@ -1825,7 +1833,7 @@ function DiscoverCard({ drama }) {
         {drama.status && (
           <span className={`recommended-status-badge status-${statusKey}`}>
             <span className="recommended-status-dot" />
-            {drama.status}
+            {formatStatusLabel(drama.status)}
           </span>
         )}
       </div>

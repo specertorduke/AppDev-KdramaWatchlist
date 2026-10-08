@@ -58,12 +58,14 @@ export const AuthProvider = ({ children }) => {
     const response = await authService.login({ email, password });
     const { user: userData, token: authToken } = response.data;
     const userWithAvatar = withDefaultProfileAvatar(userData);
+    const hasGenres = Array.isArray(userWithAvatar?.favorite_genres) && userWithAvatar.favorite_genres.length > 0;
+    
+    setNeedsOnboarding(!hasGenres);
     setUser(userWithAvatar);
     setToken(authToken);
+    
     await AsyncStorage.setItem('auth_token', authToken);
     await AsyncStorage.setItem('auth_user', JSON.stringify(userWithAvatar));
-    const hasGenres = Array.isArray(userWithAvatar?.favorite_genres) && userWithAvatar.favorite_genres.length > 0;
-    setNeedsOnboarding(!hasGenres);
     return response.data;
   };
 
@@ -103,11 +105,12 @@ export const AuthProvider = ({ children }) => {
     const { user: rawUserData, token: authToken } = response.data;
     const userData = withDefaultProfileAvatar(rawUserData);
     if (authToken && userData) {
+      setNeedsOnboarding(true);
       setUser(userData);
       setToken(authToken);
+      
       await AsyncStorage.setItem('auth_token', authToken);
       await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-      setNeedsOnboarding(true);
     }
     return response.data;
   };
@@ -219,11 +222,12 @@ export const AuthProvider = ({ children }) => {
     const { user: rawUserData, token: authToken } = response.data;
     const userData = withDefaultProfileAvatar(rawUserData);
     if (authToken && userData) {
+      setNeedsOnboarding(true);
       setUser(userData);
       setToken(authToken);
+      
       await AsyncStorage.setItem('auth_token', authToken);
       await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-      setNeedsOnboarding(true);
     }
     return response.data;
   };

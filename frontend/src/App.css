@@ -7339,6 +7339,7 @@
   position: absolute;
   top: 8px;
   right: 8px;
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   gap: 4px;
