@@ -10,7 +10,8 @@ class Genre extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    public $incrementing = false;
+    protected $fillable = ['id', 'name', 'slug', 'description'];
 
     public function discovers(): BelongsToMany
     {

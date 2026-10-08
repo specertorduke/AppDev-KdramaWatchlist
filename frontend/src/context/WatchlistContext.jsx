@@ -73,7 +73,7 @@ export function WatchlistProvider({ children }) {
     watchlistService.saveLocalWatchlist(userId, newItems)
   }
 
-  const addToWatchlist = async (drama, status = 'Plan') => {
+  const addToWatchlist = async (drama, status = 'Plan to Watch') => {
     const dramaId = drama.tmdb_id || drama.id
     const existingIndex = watchlist.findIndex(
       (item) => (item.tmdb_id || item.id) === dramaId || item.title?.toLowerCase() === drama.title?.toLowerCase()

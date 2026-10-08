@@ -242,7 +242,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
     setAddedIds((prev) => ({ ...prev, [dramaId]: true }))
     setToastMessage(`"${drama.title}" added to your Plan to Watch list!`)
 
-    const addedItem = await addToWatchlist(drama, 'Plan')
+    const addedItem = await addToWatchlist(drama, 'Plan to Watch')
     onDramaAdded?.(addedItem || drama)
 
     setTimeout(() => {

@@ -25,7 +25,7 @@ export const watchlistService = {
     localStorage.setItem(storageKey, JSON.stringify(items))
   },
 
-  async addToWatchlist(userId, drama, status = 'Plan') {
+  async addToWatchlist(userId, drama, status = 'Plan to Watch') {
     const itemData = {
       tmdb_id: drama.tmdb_id || drama.id,
       title: drama.title,
