@@ -47,6 +47,7 @@ export default function RegisterScreen({ navigation }) {
 
   const hasTypedConfirm = Boolean(passwordConfirmation && passwordConfirmation.length > 0);
   const passwordsMatch = Boolean(hasTypedConfirm && password && password === passwordConfirmation);
+  const inputTextColor = isDark ? '#F7F0F0' : colors.text;
 
   const handleUsernameChange = (val) => {
     const next = String(val || '');
@@ -325,7 +326,7 @@ export default function RegisterScreen({ navigation }) {
               <TextInput
                 style={[
                   styles.input,
-                  { color: colors.text },
+                  { color: inputTextColor },
                   usernameStatus === 'taken' || usernameStatus === 'invalid' ? styles.inputError : null,
                   usernameStatus === 'available' ? styles.inputSuccess : null,
                 ]}
@@ -334,6 +335,9 @@ export default function RegisterScreen({ navigation }) {
                 value={username}
                 maxLength={30}
                 autoCapitalize="none"
+                autoCorrect={false}
+                selectionColor={colors.pink}
+                cursorColor={colors.pink}
                 onChangeText={handleUsernameChange}
               />
             </View>
