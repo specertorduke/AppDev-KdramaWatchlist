@@ -26,6 +26,7 @@ export default function RegisterScreen({ navigation }) {
   const { colors, isDark } = useTheme();
   const { register, sendSignupOtp } = useAuth();
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -42,12 +43,13 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     const trimmedName = name.trim();
+    const trimmedUsername = username.trim();
     const trimmedEmail = email.trim();
 
     if (!trimmedName) {
       setFieldErrors((prev) => ({
         ...prev,
-        name: ['Please enter your full name.'],
+        name: ['Please enter your display name.'],
       }));
       return;
     }
@@ -98,6 +100,7 @@ export default function RegisterScreen({ navigation }) {
         email: trimmedEmail,
         registrationData: {
           name: trimmedName,
+          username: trimmedUsername || undefined,
           email: trimmedEmail,
           password,
           passwordConfirmation,
@@ -120,6 +123,7 @@ export default function RegisterScreen({ navigation }) {
           email: trimmedEmail,
           registrationData: {
             name: trimmedName,
+            username: trimmedUsername || undefined,
             email: trimmedEmail,
             password,
             passwordConfirmation,
@@ -193,11 +197,11 @@ export default function RegisterScreen({ navigation }) {
         <View style={styles.form}>
           {/* Name Field */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.text }]}>Name</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Display Name</Text>
             <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.name && styles.inputWrapperError]}>
               <TextInput
                 style={[styles.input, { color: colors.text }]}
-                placeholder="DramaFan2026"
+                placeholder="K-Drama Fan"
                 placeholderTextColor={colors.muted}
                 value={name}
                 maxLength={255}
@@ -209,6 +213,28 @@ export default function RegisterScreen({ navigation }) {
             </View>
             {fieldErrors.name && (
               <Text style={styles.fieldErrorText}>{fieldErrors.name[0]}</Text>
+            )}
+          </View>
+
+          {/* Username Field */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.text }]}>@Username (Optional)</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.username && styles.inputWrapperError]}>
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder="kdramafan2026"
+                placeholderTextColor={colors.muted}
+                value={username}
+                maxLength={30}
+                autoCapitalize="none"
+                onChangeText={(val) => {
+                  setUsername(val);
+                  if (fieldErrors.username) setFieldErrors((prev) => ({ ...prev, username: null }));
+                }}
+              />
+            </View>
+            {fieldErrors.username && (
+              <Text style={styles.fieldErrorText}>{fieldErrors.username[0]}</Text>
             )}
           </View>
 

@@ -68,10 +68,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
   const currentAvatar = user?.avatar || user?.avatar_url || dashboardUser.avatar
   const currentAvatarType = user?.avatarType || (user?.avatarIcon ? 'persona' : 'photo')
   const currentName = user?.name || ''
+  const currentUsername = user?.username || ''
   const currentEmail = user?.email || ''
 
   // Profile Form States
   const [name, setName] = useState(currentName)
+  const [username, setUsername] = useState(currentUsername)
   const [avatarType, setAvatarType] = useState(currentAvatarType)
   const [avatarPreview, setAvatarPreview] = useState(currentAvatar)
   const [newAvatarData, setNewAvatarData] = useState(null)
@@ -116,6 +118,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       setName(user?.name || '')
+      setUsername(user?.username || '')
       setAvatarType(user?.avatarType || (user?.avatarIcon ? 'persona' : 'photo'))
       setAvatarPreview(user?.avatar || user?.avatar_url || dashboardUser.avatar)
       setNewAvatarData(null)
@@ -381,12 +384,15 @@ export default function EditProfileModal({ isOpen, onClose }) {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault()
+    if (showEmailFlow || showPasswordChangeFlow) return;
+
     setErrorMessage('')
     setSuccessMessage('')
 
     const trimmedName = name.trim()
+    const trimmedUsername = username.trim()
     if (!trimmedName) {
-      setErrorMessage('Username cannot be empty.')
+      setErrorMessage('Display name cannot be empty.')
       return
     }
 
@@ -394,6 +400,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
     try {
       await updateProfile({
         name: trimmedName,
+        username: trimmedUsername || undefined,
         ...(avatarType === 'photo'
           ? { avatar: newAvatarData || avatarPreview, avatarType: 'photo' }
           : { avatarIcon: selectedIcon, color: selectedColor, avatarType: 'persona' }),
@@ -580,10 +587,10 @@ export default function EditProfileModal({ isOpen, onClose }) {
 
             {/* Profile Fields & Email Flow */}
             <div className="edit-profile-details">
-              {/* Username Field */}
+              {/* Display Name Field */}
               <div className="edit-profile-field">
                 <label htmlFor="edit-profile-name">
-                  <User size={15} /> Username
+                  <User size={15} /> Display Name
                 </label>
                 <input
                   id="edit-profile-name"
@@ -593,6 +600,23 @@ export default function EditProfileModal({ isOpen, onClose }) {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your username"
                   maxLength={50}
+                  disabled={isSaving}
+                />
+              </div>
+
+              {/* Handle/Username Field */}
+              <div className="edit-profile-field">
+                <label htmlFor="edit-profile-username">
+                  <User size={15} /> @Username
+                </label>
+                <input
+                  id="edit-profile-username"
+                  type="text"
+                  className="edit-profile-input"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter a unique username"
+                  maxLength={30}
                   disabled={isSaving}
                 />
               </div>
@@ -658,6 +682,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
                               setNewEmail(e.target.value)
                               if (emailError) setEmailError('')
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleRequestEmailChange()
+                              }
+                            }}
                             placeholder="e.g. name@example.com"
                             autoCapitalize="none"
                             autoCorrect="off"
@@ -675,6 +705,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
                               onChange={(e) => {
                                 setPassword(e.target.value)
                                 if (emailError) setEmailError('')
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  handleRequestEmailChange()
+                                }
                               }}
                               placeholder="Enter current password"
                               disabled={isRequestingOtp}
@@ -747,6 +783,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
                             onChange={(e) => {
                               setEmailOtp(e.target.value.replace(/[^0-9]/g, ''))
                               if (emailError) setEmailError('')
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleVerifyEmailChange()
+                              }
                             }}
                             placeholder="••••••"
                             autoFocus

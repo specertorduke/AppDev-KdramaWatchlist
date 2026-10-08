@@ -81,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     if (typeof nameOrData === 'object' && nameOrData !== null) {
       payload = {
         name: nameOrData.name,
+        username: nameOrData.username,
         email: nameOrData.email,
         password: nameOrData.password,
         password_confirmation: nameOrData.passwordConfirmation || nameOrData.password_confirmation,
@@ -92,6 +93,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       payload = {
         name: nameOrData,
+        username: undefined, // Or pass as an argument if needed, but object approach is preferred
         email,
         password,
         password_confirmation: passwordConfirmation,
@@ -273,6 +275,8 @@ export const AuthProvider = ({ children }) => {
 
   const setSession = async (newToken, newUser, shouldOnboard = null) => {
     const normalizedUser = withDefaultProfileAvatar(newUser);
+    const hasGenres = Array.isArray(normalizedUser?.favorite_genres) && normalizedUser.favorite_genres.length > 0;
+    setNeedsOnboarding(shouldOnboard !== null ? shouldOnboard : !hasGenres);
     setUser(normalizedUser);
     setToken(newToken);
     if (newToken) {
@@ -281,8 +285,6 @@ export const AuthProvider = ({ children }) => {
     if (normalizedUser) {
       await AsyncStorage.setItem('auth_user', JSON.stringify(normalizedUser));
     }
-    const hasGenres = Array.isArray(normalizedUser?.favorite_genres) && normalizedUser.favorite_genres.length > 0;
-    setNeedsOnboarding(shouldOnboard !== null ? shouldOnboard : !hasGenres);
   };
 
   return (

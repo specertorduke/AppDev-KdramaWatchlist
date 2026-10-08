@@ -1830,10 +1830,10 @@ function DiscoverCard({ drama }) {
       <div className="discover-poster" style={{ backgroundImage: `url(${posterImg})` }}>
         <img className="poster-media-img" src={posterImg} alt={drama.title} loading="lazy" />
         <span className="poster-gradient-overlay" />
-        {drama.status && (
+        {(drama.status || drama.watch_status) && (
           <span className={`recommended-status-badge status-${statusKey}`}>
             <span className="recommended-status-dot" />
-            {formatStatusLabel(drama.status)}
+            {formatStatusLabel(drama.status || drama.watch_status)}
           </span>
         )}
       </div>
@@ -1983,11 +1983,11 @@ function TrackerPage() {
   const displayedDramas = useMemo(() => {
     return watchlist.filter((drama) => {
       if (activeFilter === 'All') return true
-      if (activeFilter === 'Watching') return drama.status === 'Watching'
-      if (activeFilter === 'Completed') return drama.status === 'Completed' || drama.status === 'Done'
-      if (activeFilter === 'Plan') return drama.status === 'Plan' || drama.status === 'Plan to Watch'
-      if (activeFilter === 'On Hold') return drama.status === 'On Hold' || drama.status === 'Paused'
-      if (activeFilter === 'Dropped') return drama.status === 'Dropped'
+      if (activeFilter === 'Watching') return getStatusKey(drama.status) === 'watching'
+      if (activeFilter === 'Completed') return getStatusKey(drama.status) === 'completed' || getStatusKey(drama.status) === 'done'
+      if (activeFilter === 'Plan') return getStatusKey(drama.status) === 'plan' || getStatusKey(drama.status) === 'plan_to_watch'
+      if (activeFilter === 'On Hold') return getStatusKey(drama.status) === 'on_hold' || getStatusKey(drama.status) === 'paused'
+      if (activeFilter === 'Dropped') return getStatusKey(drama.status) === 'dropped'
       if (activeFilter === 'Favorites') return !!drama.is_favorite
       return true
     })

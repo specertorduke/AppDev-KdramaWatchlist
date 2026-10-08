@@ -16,7 +16,7 @@ class TrackerCardResource extends JsonResource
     {
         return [
             'id'                  => $this->id,
-            'tmdb_id'             => $this->tmdb_id,
+            'tmdb_id'             => $this->discover ? $this->discover->tmdb_id : null,
             'status'              => $this->status,
             'current_episode'     => $this->current_episode,
             'total_episodes'      => $this->total_episodes,

@@ -53,6 +53,7 @@ function AuthPage({ mode }) {
 
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     password: '',
     password_confirmation: '',
@@ -300,18 +301,34 @@ function AuthPage({ mode }) {
           {isSignup ? (
             <div className="auth-fields-grid">
               <label className="auth-field">
-                <span>Name</span>
+                <span>Display Name</span>
                 <input
                   name="name"
                   type="text"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="DramaFan2026"
+                  placeholder="K-Drama Fan"
                   maxLength={255}
                   disabled={isSubmitting}
                 />
                 {fieldErrors.name && (
                   <span className="field-error-text">{fieldErrors.name[0]}</span>
+                )}
+              </label>
+
+              <label className="auth-field">
+                <span>@Username (Optional)</span>
+                <input
+                  name="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="kdramafan2026"
+                  maxLength={30}
+                  disabled={isSubmitting}
+                />
+                {fieldErrors.username && (
+                  <span className="field-error-text">{fieldErrors.username[0]}</span>
                 )}
               </label>
 

@@ -55,8 +55,8 @@ class TrackerService
             foreach ($tmdbDetails['genres'] as $g) {
                 if (isset($g['id']) && isset($g['name'])) {
                     $genre = Genre::firstOrCreate(
-                        ['id' => $g['id']],
-                        ['name' => $g['name'], 'slug' => Str::slug($g['name'])]
+                        ['slug' => Str::slug($g['name'])],
+                        ['id' => $g['id'], 'name' => $g['name']]
                     );
                     $genreIds[] = $genre->id;
                 }

@@ -101,6 +101,7 @@ class AuthService
 
             $user = User::create([
                 'name'                       => $data['name'],
+                'username'                   => $data['username'] ?? null,
                 'email'                      => $data['email'],
                 'password'                   => $data['password'],
                 'email_verified_at'          => now(),
@@ -121,6 +122,7 @@ class AuthService
         // 2. Legacy two-step flow fallback
         $user = User::create([
             'name'                       => $data['name'],
+            'username'                   => $data['username'] ?? null,
             'email'                      => $data['email'],
             'password'                   => $data['password'],
             'email_verified_at'          => null,
