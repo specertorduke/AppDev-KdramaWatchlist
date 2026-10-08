@@ -9,6 +9,7 @@ import StatsHistoryPage from './components/StatsHistoryPage.jsx'
 import OtpVerification from './components/OtpVerification.jsx'
 import GenreOnboarding from './components/GenreOnboarding.jsx'
 import PasswordRequirementsList from './components/PasswordRequirementsList.jsx'
+import Player from './components/Player.jsx'
 import { checkPasswordRequirements } from './utils/passwordRequirements.js'
 import authService from './services/authService.js'
 import './App.css'
@@ -967,6 +968,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/player/:id"
+                element={
+                  <ProtectedRoute>
+                    <Player />
                   </ProtectedRoute>
                 }
               />

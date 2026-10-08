@@ -834,6 +834,7 @@ function RecommendedCard({ drama, onClick }) {
 }
 
 function DramaDetailView({ drama, onBack }) {
+  const navigate = useNavigate()
   const { getWatchlistItem, updateWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist()
   const dramaId = drama.tmdb_id || drama.id
   const savedItem = getWatchlistItem(dramaId)
@@ -1059,6 +1060,19 @@ function DramaDetailView({ drama, onBack }) {
           )}
 
           <div className="detail-header-actions">
+            <button
+              className="detail-update-status-button detail-add-button"
+              style={{ backgroundColor: '#B20710', borderColor: '#B20710', color: 'white', fontWeight: 600 }}
+              type="button"
+              onClick={() => {
+                const isTv = drama.seasons || drama.episodes > 1 || (drama.type && drama.type.toLowerCase() === 'tv');
+                const s = currentSeason ? (currentSeason.season_number || 1) : 1;
+                const e = seasonWatchedCount < seasonEpisodeCount ? seasonWatchedCount + 1 : Math.max(1, seasonWatchedCount);
+                navigate(`/player/${dramaId}?type=${isTv ? 'tv' : 'movie'}&s=${s}&e=${e}`);
+              }}
+            >
+              <Play size={16} fill="currentColor" /> Watch Now
+            </button>
             {!isTracked ? (
               <button
                 className="detail-update-status-button detail-add-button"
