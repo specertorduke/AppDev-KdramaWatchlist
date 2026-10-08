@@ -39,6 +39,7 @@ export default function Chatbot() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [, setLastFailedMessage] = useState(null)
+  const [isHiddenForVideo, setIsHiddenForVideo] = useState(false)
 
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -66,6 +67,18 @@ export default function Chatbot() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, loading, isOpen])
+
+  // Hide chatbot while full-screen player is active.
+  useEffect(() => {
+    const handlePlayerState = (event) => {
+      const active = Boolean(event?.detail?.active)
+      setIsHiddenForVideo(active)
+      if (active) setIsOpen(false)
+    }
+
+    window.addEventListener('sarangtv:video-player-state', handlePlayerState)
+    return () => window.removeEventListener('sarangtv:video-player-state', handlePlayerState)
+  }, [])
 
   const handleSendMessage = async (textToSend) => {
     const trimmed = (textToSend || input).trim()
@@ -310,22 +323,24 @@ export default function Chatbot() {
       )}
 
       {/* Floating Action Trigger Button (Bottom-Right) */}
-      <button
-        type="button"
-        className={`chatbot-floating-trigger ${isOpen ? 'active' : ''}`}
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-label={isOpen ? 'Close K-Drama AI Chatbot' : 'Open K-Drama AI Chatbot'}
-        title="K-Drama AI Assistant"
-      >
-        {isOpen ? (
-          <X size={22} className="trigger-icon" />
-        ) : (
-          <div className="trigger-icon-wrapper">
-            <MessageSquare size={22} className="trigger-icon" />
-            <Sparkles size={12} className="trigger-sparkle-badge" />
-          </div>
-        )}
-      </button>
+      {!isHiddenForVideo && (
+        <button
+          type="button"
+          className={`chatbot-floating-trigger ${isOpen ? 'active' : ''}`}
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-label={isOpen ? 'Close K-Drama AI Chatbot' : 'Open K-Drama AI Chatbot'}
+          title="K-Drama AI Assistant"
+        >
+          {isOpen ? (
+            <X size={22} className="trigger-icon" />
+          ) : (
+            <div className="trigger-icon-wrapper">
+              <MessageSquare size={22} className="trigger-icon" />
+              <Sparkles size={12} className="trigger-sparkle-badge" />
+            </div>
+          )}
+        </button>
+      )}
     </>
   )
 }

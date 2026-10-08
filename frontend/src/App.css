@@ -977,6 +977,105 @@
   }
 }
 
+/*
+   Branded video player shell (iframe source remains provider-controlled)
+*/
+.sarang-player-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(235, 91, 120, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(5, 5, 10, 0.9) 0%, rgba(5, 5, 10, 0.75) 16%, rgba(5, 5, 10, 0.85) 100%),
+    #000000;
+  display: flex;
+  flex-direction: column;
+}
+
+.sarang-player-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  pointer-events: none;
+}
+
+.sarang-player-brand-pill,
+.sarang-player-close-btn {
+  pointer-events: auto;
+}
+
+.sarang-player-brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-panel, #161424) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border, rgba(255, 255, 255, 0.12)) 85%, transparent);
+  color: var(--color-text, #f0eee8);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+.sarang-player-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.sarang-player-close-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-border, rgba(255, 255, 255, 0.2)) 80%, transparent);
+  background: color-mix(in srgb, var(--color-panel, #161424) 72%, transparent);
+  color: var(--color-text, #ffffff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease;
+  backdrop-filter: blur(8px);
+}
+
+.sarang-player-close-btn:hover {
+  transform: scale(1.04);
+  background: color-mix(in srgb, var(--color-primary, #eb5b78) 26%, var(--color-panel, #161424));
+}
+
+.sarang-player-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99998;
+  pointer-events: none;
+}
+
+.sarang-player-spinner {
+  color: color-mix(in srgb, var(--color-text, #f0eee8) 55%, transparent);
+}
+
+.sarang-player-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  position: relative;
+  z-index: 99999;
+}
+
 .auth-loading-screen {
   min-height: 100vh;
   display: grid;

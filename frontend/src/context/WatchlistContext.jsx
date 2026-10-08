@@ -80,13 +80,28 @@ export function WatchlistProvider({ children }) {
     )
 
     if (existingIndex >= 0) {
+      const existingItem = watchlist[existingIndex]
+      const totalEps = Number(existingItem.episodes || existingItem.total_episodes || 16) || 16
+      let nextEpisode = Number(existingItem.current_episode || existingItem.watchedCount || 0)
+      if (status === 'Completed') nextEpisode = totalEps
+      else if (status === 'Watching' && nextEpisode <= 0) nextEpisode = 1
+      else if (status === 'Plan to Watch') nextEpisode = 0
+
+      const nextProgress = totalEps > 0 ? Math.round((nextEpisode / totalEps) * 100) : 0
       const updated = [...watchlist]
       updated[existingIndex] = {
-        ...updated[existingIndex],
+        ...existingItem,
         status,
+        current_episode: nextEpisode,
+        watchedCount: nextEpisode,
+        progress: nextProgress,
       }
       saveItems(updated)
-      watchlistService.updateWatchlistItem(userId, updated[existingIndex].id, { status })
+      watchlistService.updateWatchlistItem(userId, updated[existingIndex].id, {
+        status,
+        current_episode: nextEpisode,
+        watchedCount: nextEpisode,
+      })
       logActivity({
         dramaId,
         title: updated[existingIndex].title,
@@ -142,18 +157,37 @@ export function WatchlistProvider({ children }) {
 
   const updateWatchlist = async (dramaId, updates) => {
     let affectedItem = null
+    let normalizedUpdates = updates
     const updatedList = watchlist.map((item) => {
       if ((item.tmdb_id || item.id) === dramaId || item.id === dramaId) {
-        const totalEps = updates.episodes || item.episodes || 16
-        const curEp = typeof updates.current_episode === 'number'
+        const totalEps = Number(updates.episodes || item.episodes || item.total_episodes || 16) || 16
+        const requestedStatus = updates.status || item.status || 'Watching'
+        const currentEpInput = typeof updates.current_episode === 'number'
           ? updates.current_episode
           : (typeof updates.watchedCount === 'number' ? updates.watchedCount : item.current_episode || 0)
+
+        let curEp = Number(currentEpInput) || 0
+        if (requestedStatus === 'Completed') {
+          curEp = Math.max(curEp, totalEps)
+        } else if (requestedStatus === 'Watching' && curEp <= 0) {
+          curEp = 1
+        } else if (requestedStatus === 'Plan to Watch') {
+          curEp = 0
+        }
+
         const progress = totalEps > 0 ? Math.round((curEp / totalEps) * 100) : 0
-        const newStatus = updates.status || item.status || 'Watching'
+        const newStatus = requestedStatus
+        normalizedUpdates = {
+          ...updates,
+          status: newStatus,
+          current_episode: curEp,
+          watchedCount: curEp,
+          episodes: totalEps,
+        }
 
         const updatedItem = {
           ...item,
-          ...updates,
+          ...normalizedUpdates,
           current_episode: curEp,
           watchedCount: curEp,
           progress,
@@ -168,18 +202,18 @@ export function WatchlistProvider({ children }) {
     })
 
     saveItems(updatedList)
-    watchlistService.updateWatchlistItem(userId, dramaId, updates)
+    watchlistService.updateWatchlistItem(userId, dramaId, normalizedUpdates)
 
     if (affectedItem) {
       let actionDesc = 'Updated drama'
-      if (updates.status && updates.status === 'Completed') {
+      if (normalizedUpdates.status && normalizedUpdates.status === 'Completed') {
         actionDesc = `Completed all ${affectedItem.episodes || 16} episodes`
-      } else if (updates.status) {
-        actionDesc = `Changed status to ${updates.status}`
-      } else if (typeof updates.watchedCount === 'number' || typeof updates.current_episode === 'number') {
+      } else if (normalizedUpdates.status) {
+        actionDesc = `Changed status to ${normalizedUpdates.status}`
+      } else if (typeof normalizedUpdates.watchedCount === 'number' || typeof normalizedUpdates.current_episode === 'number') {
         actionDesc = `Watched Ep ${affectedItem.current_episode} of ${affectedItem.episodes || 16}`
-      } else if (updates.rating) {
-        actionDesc = `Rated ★ ${updates.rating}`
+      } else if (normalizedUpdates.rating) {
+        actionDesc = `Rated ★ ${normalizedUpdates.rating}`
       }
       logActivity({
         dramaId: affectedItem.tmdb_id || affectedItem.id,

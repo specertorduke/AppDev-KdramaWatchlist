@@ -49,6 +49,7 @@ export const watchlistService = {
   },
 
   async addToWatchlist(userId, drama, status = 'Plan to Watch') {
+    const totalEpisodes = drama.episodes || drama.number_of_episodes || drama.total_episodes || 16
     const itemData = {
       tmdb_id: drama.tmdb_id || drama.id,
       title: drama.title,
@@ -57,8 +58,8 @@ export const watchlistService = {
       backdrop_url: drama.backdrop || drama.image,
       genres: Array.isArray(drama.genres) ? drama.genres : (drama.genres ? drama.genres.split(' · ') : []),
       release_year: drama.year || drama.release_year || 2025,
-      total_episodes: drama.episodes || drama.number_of_episodes || 16,
-      current_episode: status === 'Watching' ? 1 : 0,
+      total_episodes: totalEpisodes,
+      current_episode: status === 'Completed' ? totalEpisodes : (status === 'Watching' ? 1 : 0),
       status: typeof status === 'string' ? status.toLowerCase().replace(' ', '_').replace(' to ', '_to_') : 'plan_to_watch',
       rating: drama.myRating || null,
       notes: drama.myNotes || '',
