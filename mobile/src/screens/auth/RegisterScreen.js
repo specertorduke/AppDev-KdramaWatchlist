@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PasswordRequirementsList from '../../components/PasswordRequirementsList';
 import { checkPasswordRequirements } from '../../utils/passwordRequirements';
+import { userService } from '../../services/api';
 
 export default function RegisterScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -37,9 +38,88 @@ export default function RegisterScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [usernameStatus, setUsernameStatus] = useState(null);
+  const [usernameStatusMsg, setUsernameStatusMsg] = useState('');
+  const [emailStatus, setEmailStatus] = useState(null);
+  const [emailStatusMsg, setEmailStatusMsg] = useState('');
+  const usernameTimerRef = useRef(null);
+  const emailTimerRef = useRef(null);
 
   const hasTypedConfirm = Boolean(passwordConfirmation && passwordConfirmation.length > 0);
   const passwordsMatch = Boolean(hasTypedConfirm && password && password === passwordConfirmation);
+
+  const handleUsernameChange = (val) => {
+    const next = String(val || '');
+    setUsername(next);
+    if (fieldErrors.username) {
+      setFieldErrors((prev) => ({ ...prev, username: null }));
+    }
+
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
+    const trimmed = next.trim();
+    if (!trimmed) {
+      setUsernameStatus(null);
+      setUsernameStatusMsg('');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(trimmed)) {
+      setUsernameStatus('invalid');
+      setUsernameStatusMsg('3–30 chars: letters, numbers, underscores only.');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    setUsernameStatusMsg('');
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await userService.checkAvailability('username', trimmed);
+        const data = res?.data ?? res;
+        const available = Boolean(data?.available);
+        setUsernameStatus(available ? 'available' : 'taken');
+        setUsernameStatusMsg(available ? 'Username is available.' : 'This username is already taken.');
+      } catch {
+        setUsernameStatus(null);
+        setUsernameStatusMsg('');
+      }
+    }, 400);
+  };
+
+  const handleEmailChange = (val) => {
+    const next = String(val || '');
+    setEmail(next);
+    if (fieldErrors.email) {
+      setFieldErrors((prev) => ({ ...prev, email: null }));
+    }
+
+    if (emailTimerRef.current) clearTimeout(emailTimerRef.current);
+    const trimmed = next.trim();
+    if (!trimmed) {
+      setEmailStatus(null);
+      setEmailStatusMsg('');
+      return;
+    }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(trimmed)) {
+      setEmailStatus(null);
+      setEmailStatusMsg('');
+      return;
+    }
+
+    setEmailStatus('checking');
+    setEmailStatusMsg('');
+    emailTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await userService.checkAvailability('email', trimmed);
+        const data = res?.data ?? res;
+        const available = Boolean(data?.available);
+        setEmailStatus(available ? 'available' : 'taken');
+        setEmailStatusMsg(available ? 'Email is available.' : 'An account with this email already exists.');
+      } catch {
+        setEmailStatus(null);
+        setEmailStatusMsg('');
+      }
+    }, 400);
+  };
 
   const handleRegister = async () => {
     const trimmedName = name.trim();
@@ -61,11 +141,25 @@ export default function RegisterScreen({ navigation }) {
       }));
       return;
     }
+    if (usernameStatus === 'taken' || usernameStatus === 'invalid') {
+      setFieldErrors((prev) => ({
+        ...prev,
+        username: [usernameStatusMsg || 'Please fix the username before continuing.'],
+      }));
+      return;
+    }
 
     if (!trimmedEmail) {
       setFieldErrors((prev) => ({
         ...prev,
         email: ['Please enter your email address.'],
+      }));
+      return;
+    }
+    if (emailStatus === 'taken') {
+      setFieldErrors((prev) => ({
+        ...prev,
+        email: [emailStatusMsg || 'This email is already in use.'],
       }));
       return;
     }
@@ -229,18 +323,23 @@ export default function RegisterScreen({ navigation }) {
             <Text style={[styles.label, { color: colors.text }]}>@Username</Text>
             <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.username && styles.inputWrapperError]}>
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[
+                  styles.input,
+                  { color: colors.text },
+                  usernameStatus === 'taken' || usernameStatus === 'invalid' ? styles.inputError : null,
+                  usernameStatus === 'available' ? styles.inputSuccess : null,
+                ]}
                 placeholder="kdramafan2026"
                 placeholderTextColor={colors.muted}
                 value={username}
                 maxLength={30}
                 autoCapitalize="none"
-                onChangeText={(val) => {
-                  setUsername(val);
-                  if (fieldErrors.username) setFieldErrors((prev) => ({ ...prev, username: null }));
-                }}
+                onChangeText={handleUsernameChange}
               />
             </View>
+            {usernameStatus === 'checking' && <Text style={styles.fieldHintChecking}>Checking…</Text>}
+            {usernameStatus === 'available' && <Text style={styles.fieldHintOk}>✓ {usernameStatusMsg}</Text>}
+            {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <Text style={styles.fieldHintErr}>✕ {usernameStatusMsg}</Text>}
             {fieldErrors.username && (
               <Text style={styles.fieldErrorText}>{fieldErrors.username[0]}</Text>
             )}
@@ -251,18 +350,23 @@ export default function RegisterScreen({ navigation }) {
             <Text style={[styles.label, { color: colors.text }]}>Email</Text>
             <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.email && styles.inputWrapperError]}>
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[
+                  styles.input,
+                  { color: colors.text },
+                  emailStatus === 'taken' ? styles.inputError : null,
+                  emailStatus === 'available' ? styles.inputSuccess : null,
+                ]}
                 placeholder="you@example.com"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
-                onChangeText={(val) => {
-                  setEmail(val);
-                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: null }));
-                }}
+                onChangeText={handleEmailChange}
               />
             </View>
+            {emailStatus === 'checking' && <Text style={styles.fieldHintChecking}>Checking…</Text>}
+            {emailStatus === 'available' && <Text style={styles.fieldHintOk}>✓ {emailStatusMsg}</Text>}
+            {emailStatus === 'taken' && <Text style={styles.fieldHintErr}>✕ {emailStatusMsg}</Text>}
             {fieldErrors.email && (
               <Text style={styles.fieldErrorText}>{fieldErrors.email[0]}</Text>
             )}
@@ -696,6 +800,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
     fontWeight: '500',
+  },
+  fieldHintChecking: {
+    color: '#9D8AAB',
+    fontSize: 11.5,
+    marginTop: 6,
+    fontWeight: '500',
+  },
+  fieldHintOk: {
+    color: '#10B981',
+    fontSize: 11.5,
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  fieldHintErr: {
+    color: '#EF4444',
+    fontSize: 11.5,
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  inputSuccess: {
+    borderColor: '#10B981',
   },
   pwdMatchWrap: {
     minHeight: 20,
