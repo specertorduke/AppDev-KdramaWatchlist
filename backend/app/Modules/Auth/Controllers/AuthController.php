@@ -31,6 +31,29 @@ class AuthController extends Controller
         return response()->json($result);
     }
 
+    public function checkAvailability(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', 'string', 'in:username,email'],
+            'value' => ['required', 'string', 'max:255'],
+        ]);
+
+        $field = $validated['field'];
+        $value = trim($validated['value']);
+
+        // Validate format before hitting the DB
+        if ($field === 'username' && ! preg_match('/^[a-zA-Z0-9_]{3,30}$/', $value)) {
+            return response()->json(['available' => false, 'message' => 'Invalid username format.']);
+        }
+
+        $exists = \App\Modules\Auth\Models\User::where($field, $value)->exists();
+
+        return response()->json([
+            'available' => ! $exists,
+            'field'     => $field,
+        ]);
+    }
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $result = $this->authService->register($request->validated());
@@ -100,6 +123,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name'       => 'nullable|string|max:50',
+            'username'   => 'nullable|string|max:30|unique:users,username,' . $request->user()->id,
             'avatar_url' => 'nullable|string',
         ]);
 
@@ -148,7 +172,23 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-        $user->update($validated);
+        
+        if (isset($validated['favorite_genres'])) {
+            $genreIds = [];
+            foreach ($validated['favorite_genres'] as $genreName) {
+                $genre = \App\Modules\Discover\Models\Genre::firstOrCreate(
+                    ['name' => $genreName],
+                    ['slug' => \Illuminate\Support\Str::slug($genreName)]
+                );
+                $genreIds[] = $genre->id;
+            }
+            $user->favoriteGenres()->sync($genreIds);
+            unset($validated['favorite_genres']);
+        }
+        
+        if (!empty($validated)) {
+            $user->update($validated);
+        }
 
         return response()->json([
             'message' => 'Preferences updated successfully',

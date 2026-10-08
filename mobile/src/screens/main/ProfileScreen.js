@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -41,8 +41,8 @@ export default function ProfileScreen({ navigation }) {
   const {
     user,
     logout,
+    updateProfile,
     updateProfileAvatar,
-    updateProfileName,
     updateUserEmail,
   } = useAuth();
   const [stats, setStats] = useState(null);
@@ -52,7 +52,14 @@ export default function ProfileScreen({ navigation }) {
   // Edit Profile Modal States
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
+  const [editUsername, setEditUsername] = useState(user?.username || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState('');
+
+  // Real-time username availability state
+  const [usernameStatus, setUsernameStatus] = useState(null); // null | 'checking' | 'available' | 'taken' | 'invalid'
+  const [usernameStatusMsg, setUsernameStatusMsg] = useState('');
+  const usernameTimerRef = useRef(null);
 
   // Avatar States
   const [selectedIcon, setSelectedIcon] = useState(user?.avatarIcon || 'heart');
@@ -110,6 +117,7 @@ export default function ProfileScreen({ navigation }) {
 
   useEffect(() => {
     if (user?.name) setEditName(user.name);
+    if (user?.username !== undefined) setEditUsername(user.username || '');
     if (user?.avatarIcon) setSelectedIcon(user.avatarIcon);
     if (user?.color) setSelectedColor(user.color);
     setCustomImage(user?.avatar_url || null);
@@ -131,6 +139,10 @@ export default function ProfileScreen({ navigation }) {
 
   const handleOpenEditModal = () => {
     setEditName(user?.name || '');
+    setEditUsername(user?.username || '');
+    setUsernameStatus(null);
+    setUsernameStatusMsg('');
+    setProfileSaveError('');
     setSelectedIcon(user?.avatarIcon || 'heart');
     setSelectedColor(user?.color || '#eb5b78');
     setCustomImage(user?.avatar_url || null);
@@ -312,46 +324,72 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  // Save changes to Name and Avatar
+  const handleUsernameChange = (val) => {
+    setEditUsername(val);
+    const trimmed = val.trim();
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
+    if (!trimmed || trimmed === (user?.username || '')) {
+      setUsernameStatus(null); setUsernameStatusMsg(''); return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(trimmed)) {
+      setUsernameStatus('invalid');
+      setUsernameStatusMsg('3–30 chars: letters, numbers, underscores only.');
+      return;
+    }
+    setUsernameStatus('checking');
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await userService.checkAvailability('username', trimmed);
+        const data = res?.data;
+        setUsernameStatus(data?.available ? 'available' : 'taken');
+        setUsernameStatusMsg(data?.available ? 'Username is available.' : 'This username is already taken.');
+      } catch {
+        setUsernameStatus(null); setUsernameStatusMsg('');
+      }
+    }, 600);
+  };
+
+  // Save changes to Name, Username, and Avatar
   const handleSaveProfile = async () => {
+    setProfileSaveError('');
+    if (usernameStatus === 'taken' || usernameStatus === 'invalid') {
+      setProfileSaveError(usernameStatusMsg || 'Please fix the username before saving.');
+      return;
+    }
     setIsSavingProfile(true);
     try {
-      // 1. Update Name if changed
-      if (editName.trim() && editName.trim() !== user?.name) {
-        const nameRes = await updateProfileName(editName.trim());
-        if (!nameRes.success) {
-          Alert.alert('Error', nameRes.error || 'Failed to update name.');
-          setIsSavingProfile(false);
-          return;
+      const trimmedName = editName.trim();
+      const trimmedUsername = editUsername.trim();
+      if (trimmedName || trimmedUsername) {
+        const result = await updateProfile({
+          name: trimmedName || user?.name || '',
+          username: trimmedUsername || user?.username || '',
+        });
+        const updated = result?.user || result?.data?.user || result?.data;
+        if (updated) {
+          setEditName(updated.name || trimmedName || user?.name || '');
+          setEditUsername(updated.username || trimmedUsername || user?.username || '');
         }
       }
 
-      // 2. Update Avatar
+      // Update Avatar
       if (avatarMode === 'photo') {
         if (customImage !== user?.avatar_url) {
-          await updateProfileAvatar({
-            avatarIcon: null,
-            avatarUrl: customImage,
-          });
+          await updateProfileAvatar({ avatarIcon: null, avatarUrl: customImage });
         }
       } else {
-        if (
-          selectedIcon !== user?.avatarIcon ||
-          selectedColor !== user?.color ||
-          user?.avatar_url
-        ) {
-          await updateProfileAvatar({
-            avatarIcon: selectedIcon,
-            color: selectedColor,
-            avatarUrl: null,
-          });
+        if (selectedIcon !== user?.avatarIcon || selectedColor !== user?.color || user?.avatar_url) {
+          await updateProfileAvatar({ avatarIcon: selectedIcon, color: selectedColor, avatarUrl: null });
         }
       }
 
       setShowEditModal(false);
     } catch (e) {
-      console.warn('Failed to save profile:', e);
-      Alert.alert('Error', 'Failed to save profile changes.');
+      const msg =
+        e?.response?.data?.errors?.username?.[0] ||
+        e?.response?.data?.message ||
+        'Failed to save profile changes.';
+      setProfileSaveError(msg);
     } finally {
       setIsSavingProfile(false);
     }
@@ -649,6 +687,38 @@ export default function ProfileScreen({ navigation }) {
                   autoCapitalize="words"
                   maxLength={50}
                 />
+              </View>
+
+              {/* SECTION 1b: USERNAME */}
+              <View style={styles.editSection}>
+                <Text style={[styles.editSectionHeading, { color: colors.muted }]}>@USERNAME</Text>
+                <TextInput
+                  style={[
+                    styles.textInput,
+                    { backgroundColor: colors.inputBg || colors.panel2, color: colors.text, borderColor: colors.border },
+                    usernameStatus === 'taken' || usernameStatus === 'invalid' ? styles.textInputError : null,
+                    usernameStatus === 'available' ? styles.textInputSuccess : null,
+                  ]}
+                  value={editUsername}
+                  onChangeText={handleUsernameChange}
+                  placeholder="e.g. kdramafan2026"
+                  placeholderTextColor={colors.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={30}
+                />
+                {usernameStatus === 'checking' && (
+                  <Text style={[styles.inputHint, { color: colors.muted }]}>Checking availability…</Text>
+                )}
+                {usernameStatus === 'available' && (
+                  <Text style={[styles.inputHint, styles.inputHintOk]}>✓ {usernameStatusMsg}</Text>
+                )}
+                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                  <Text style={[styles.inputHint, styles.inputHintErr]}>✕ {usernameStatusMsg}</Text>
+                )}
+                {!!profileSaveError && (
+                  <Text style={[styles.inputHint, styles.inputHintErr]}>{profileSaveError}</Text>
+                )}
               </View>
 
               {/* SECTION 2: EMAIL (INDUSTRY STANDARD FLOW) */}
@@ -1611,6 +1681,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  textInputError: {
+    borderColor: '#EF4444',
+  },
+  textInputSuccess: {
+    borderColor: '#10B981',
+  },
+  inputHint: {
+    marginTop: 6,
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  inputHintOk: {
+    color: '#10B981',
+  },
+  inputHintErr: {
+    color: '#EF4444',
   },
   emailCard: {
     backgroundColor: '#0D0C17',

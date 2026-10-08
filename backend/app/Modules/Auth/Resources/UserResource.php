@@ -17,9 +17,10 @@ class UserResource extends JsonResource
         return [
             'id'                => $this->id,
             'name'              => $this->name,
+            'username'          => $this->username,
             'email'             => $this->email,
             'avatar_url'        => $this->avatar_url ?? null,
-            'favorite_genres'   => $this->favorite_genres ?? [],
+            'favorite_genres'   => $this->favoriteGenres->pluck('name')->toArray() ?? [],
             'email_verified_at' => $this->email_verified_at,
             'created_at'        => $this->created_at,
             'updated_at'        => $this->updated_at,

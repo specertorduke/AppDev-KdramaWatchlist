@@ -8,9 +8,10 @@ export const authService = {
     return response.data
   },
 
-  async register({ name, email, password, password_confirmation, terms_privacy_accepted, otp, device_name }) {
+  async register({ name, username, email, password, password_confirmation, terms_privacy_accepted, otp, device_name }) {
     const response = await api.post('/auth/register', {
       name,
+      username,
       email,
       password,
       password_confirmation,
@@ -39,9 +40,10 @@ export const authService = {
     return response.data
   },
 
-  async updateProfile({ name, avatar, avatar_url }) {
+  async updateProfile({ name, username, avatar, avatar_url }) {
     const payload = {}
     if (name !== undefined) payload.name = name
+    if (username !== undefined) payload.username = username
     if (avatar_url !== undefined) payload.avatar_url = avatar_url
     if (avatar !== undefined) payload.avatar = avatar
 
@@ -100,6 +102,11 @@ export const authService = {
 
   async forgotPassword({ email }) {
     const response = await api.post('/auth/forgot-password', { email })
+    return response.data
+  },
+
+  async checkAvailability(field, value) {
+    const response = await api.get('/auth/check-availability', { params: { field, value } })
     return response.data
   },
 

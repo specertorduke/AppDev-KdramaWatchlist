@@ -99,11 +99,20 @@ export default function TrackerScreen({ navigation, route }) {
     if (!editingItem) return;
     const itemToUpdate = editingItem;
     const apiStatus = toApiStatus(selectedStatus);
+    const totalEpisodes = Number(itemToUpdate.total_episodes) || 0;
+    const completedEpisodeCount = apiStatus === 'completed' && totalEpisodes > 0 ? totalEpisodes : Number(itemToUpdate.current_episode) || 0;
 
     // Optimistic immediate update
     setItems((prev) =>
       prev.map((i) =>
-        i.tmdb_id === itemToUpdate.tmdb_id ? { ...i, status: apiStatus } : i
+        i.tmdb_id === itemToUpdate.tmdb_id
+          ? {
+              ...i,
+              status: apiStatus,
+              current_episode: completedEpisodeCount,
+              progress_percentage: totalEpisodes > 0 ? Math.min(100, Math.round((completedEpisodeCount / totalEpisodes) * 100)) : i.progress_percentage,
+            }
+          : i
       )
     );
     handleCloseStatusEditor();
@@ -111,6 +120,8 @@ export default function TrackerScreen({ navigation, route }) {
     try {
       await trackerService.updateProgress(itemToUpdate.tmdb_id, {
         status: apiStatus,
+        current_episode: completedEpisodeCount,
+        total_episodes: totalEpisodes || itemToUpdate.total_episodes || null,
       });
       fetchWatchlist();
     } catch (err) {

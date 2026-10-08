@@ -221,14 +221,14 @@ export default function LoginScreen({ navigation, route }) {
         <View style={styles.form}>
           {/* Email Field */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Email or Username</Text>
             <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg || colors.panel2, borderColor: colors.border }, fieldErrors.email && styles.inputWrapperError]}>
               <TextInput
                 style={[styles.input, { color: colors.text }]}
-                placeholder="you@example.com"
+                placeholder="Email or Username"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
-                keyboardType="email-address"
+                keyboardType="default"
                 value={email}
                 onChangeText={(val) => {
                   setEmail(val);

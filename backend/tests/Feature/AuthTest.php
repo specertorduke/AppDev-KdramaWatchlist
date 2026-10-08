@@ -22,6 +22,7 @@ class AuthTest extends TestCase
 
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'John Doe',
+            'username'               => 'john_doe',
             'email'                  => 'john@example.com',
             'password'               => 'Kdrama@SecurePass2026!',
             'password_confirmation'  => 'Kdrama@SecurePass2026!',
@@ -63,6 +64,7 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                  => 'John Doe',
+            'username'              => 'john_doe_terms',
             'email'                 => 'john@example.com',
             'password'              => 'password123',
             'password_confirmation' => 'password123',
@@ -76,6 +78,7 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'John Doe',
+            'username'               => 'john_doe_false_terms',
             'email'                  => 'john@example.com',
             'password'               => 'password123',
             'password_confirmation'  => 'password123',
@@ -94,6 +97,7 @@ class AuthTest extends TestCase
 
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'Jane Doe',
+            'username'               => 'jane_agreement',
             'email'                  => 'jane.agreement@example.com',
             'password'               => 'Kdrama@SecurePass2026!',
             'password_confirmation'  => 'Kdrama@SecurePass2026!',
@@ -119,6 +123,7 @@ class AuthTest extends TestCase
 
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'Another John',
+            'username'               => 'another_john',
             'email'                  => 'john@example.com',
             'password'               => 'password123',
             'password_confirmation'  => 'password123',
@@ -566,6 +571,7 @@ class AuthTest extends TestCase
 
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'In Form User',
+            'username'               => 'inform_user',
             'email'                  => 'inform@example.com',
             'password'               => 'Kdrama@SecurePass2026!',
             'password_confirmation'  => 'Kdrama@SecurePass2026!',
@@ -610,6 +616,7 @@ class AuthTest extends TestCase
 
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'Failed User',
+            'username'               => 'failed_user',
             'email'                  => 'inform_fail@example.com',
             'password'               => 'Kdrama@SecurePass2026!',
             'password_confirmation'  => 'Kdrama@SecurePass2026!',
@@ -630,6 +637,7 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'Short Pass',
+            'username'               => 'short_pass_user',
             'email'                  => 'short@example.com',
             'password'               => 'Ab1!',
             'password_confirmation'  => 'Ab1!',
@@ -645,6 +653,7 @@ class AuthTest extends TestCase
         // Missing uppercase
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'No Upper',
+            'username'               => 'no_upper_user',
             'email'                  => 'noupper@example.com',
             'password'               => 'nouppercase123!',
             'password_confirmation'  => 'nouppercase123!',
@@ -657,6 +666,7 @@ class AuthTest extends TestCase
         // Missing lowercase
         $response2 = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'No Lower',
+            'username'               => 'no_lower_user',
             'email'                  => 'nolower@example.com',
             'password'               => 'NOLOWERCASE123!',
             'password_confirmation'  => 'NOLOWERCASE123!',
@@ -671,6 +681,7 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'No Number',
+            'username'               => 'no_number_user',
             'email'                  => 'nonumber@example.com',
             'password'               => 'NoNumbersInPassword!',
             'password_confirmation'  => 'NoNumbersInPassword!',
@@ -685,6 +696,7 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'No Symbol',
+            'username'               => 'no_symbol_user',
             'email'                  => 'nosymbol@example.com',
             'password'               => 'NoSymbolsInPass123',
             'password_confirmation'  => 'NoSymbolsInPass123',
@@ -699,6 +711,7 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/register', [
             'name'                   => 'Mismatch',
+            'username'               => 'mismatch_user',
             'email'                  => 'mismatch@example.com',
             'password'               => 'Kdrama@SecurePass2026!',
             'password_confirmation'  => 'Different@SecurePass2026#',

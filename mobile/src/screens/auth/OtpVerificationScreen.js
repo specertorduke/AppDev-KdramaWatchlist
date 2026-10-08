@@ -151,14 +151,11 @@ export default function OtpVerificationScreen({ navigation, route }) {
 
     try {
       if (mode === 'signup' && registrationData) {
-        await register(
-          registrationData.name,
-          targetEmail,
-          registrationData.password,
-          registrationData.passwordConfirmation || registrationData.password_confirmation,
-          registrationData.terms_privacy_accepted ?? true,
-          otpCode
-        );
+        await register({
+          ...registrationData,
+          email: targetEmail,
+          otp: otpCode,
+        });
       } else {
         await verifyOtp({
           email: targetEmail,

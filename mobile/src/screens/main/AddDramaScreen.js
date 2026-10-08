@@ -36,31 +36,28 @@ export default function AddDramaScreen({ navigation }) {
       .catch((e) => console.warn('Could not fetch watchlist:', e));
   }, []);
 
-  // Fetch / Search Dramas
+  // Fetch / Search Dramas without artificial delay for snappy UI
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
 
-    const timer = setTimeout(() => {
-      const fetchPromise = search.trim()
-        ? discoverService.search({ query: search.trim() })
-        : discoverService.discover({});
+    const fetchPromise = search.trim()
+      ? discoverService.search({ query: search.trim() })
+      : discoverService.discover({});
 
-      fetchPromise
-        .then((res) => {
-          if (!isCancelled) {
-            setDramas(res.data.data || []);
-          }
-        })
-        .catch((e) => console.warn('Could not fetch dramas:', e))
-        .finally(() => {
-          if (!isCancelled) setLoading(false);
-        });
-    }, 300);
+    fetchPromise
+      .then((res) => {
+        if (!isCancelled) {
+          setDramas(res.data.data || []);
+        }
+      })
+      .catch((e) => console.warn('Could not fetch dramas:', e))
+      .finally(() => {
+        if (!isCancelled) setLoading(false);
+      });
 
     return () => {
       isCancelled = true;
-      clearTimeout(timer);
     };
   }, [search]);
 
@@ -69,6 +66,8 @@ export default function AddDramaScreen({ navigation }) {
     if (!tmdbId || addingId !== null || addedIds.has(tmdbId)) return;
 
     setAddingId(tmdbId);
+    setAddedIds((prev) => new Set(prev).add(tmdbId));
+
     try {
       await trackerService.addDrama({
         tmdb_id: parseInt(tmdbId, 10),
@@ -76,9 +75,12 @@ export default function AddDramaScreen({ navigation }) {
         current_episode: 0,
         rating: null,
       });
-      setAddedIds((prev) => new Set([...prev, tmdbId]));
-      Alert.alert('Success', `"${drama.title || drama.name}" added to your watchlist!`);
     } catch (err) {
+      setAddedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(tmdbId);
+        return next;
+      });
       const msg = err.response?.data?.message || 'Could not add drama.';
       Alert.alert('Notice', msg);
     } finally {

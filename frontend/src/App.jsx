@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Eye, EyeOff, FileText, Loader2, ShieldCheck, X, XCircle } from 'lucide-react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
@@ -53,6 +53,7 @@ function AuthPage({ mode }) {
 
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     password: '',
     password_confirmation: '',
@@ -64,6 +65,14 @@ function AuthPage({ mode }) {
   const [confirmSubmitted, setConfirmSubmitted] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
+
+  // Real-time availability status: null | 'checking' | 'available' | 'taken' | 'invalid'
+  const [usernameStatus, setUsernameStatus] = useState(null)
+  const [usernameStatusMsg, setUsernameStatusMsg] = useState('')
+  const [emailStatus, setEmailStatus] = useState(null)
+  const [emailStatusMsg, setEmailStatusMsg] = useState('')
+  const usernameTimerRef = useRef(null)
+  const emailTimerRef = useRef(null)
 
   // Forgot / Reset Password state
   const [showForgotModal, setShowForgotModal] = useState(false)
@@ -152,7 +161,7 @@ function AuthPage({ mode }) {
     return (
       <OtpVerification
         email={formData.email}
-        registrationData={{ ...formData, terms_privacy_accepted: true }}
+        registrationData={{ ...formData, username: formData.username.trim(), terms_privacy_accepted: true }}
         notice={otpNotice}
         onCancel={() => setShowOtpVerification(false)}
         onSuccess={() => navigate('/onboarding', { replace: true })}
@@ -169,6 +178,41 @@ function AuthPage({ mode }) {
     // Clear error for field on change
     if (fieldErrors[name]) {
       setFieldErrors((prev) => ({ ...prev, [name]: null }))
+    }
+
+    if (name === 'username' && isSignup) {
+      const trimmed = value.trim()
+      if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current)
+      if (!trimmed) { setUsernameStatus(null); setUsernameStatusMsg(''); return }
+      if (!/^[a-zA-Z0-9_]{3,30}$/.test(trimmed)) {
+        setUsernameStatus('invalid')
+        setUsernameStatusMsg('3–30 chars: letters, numbers, underscores only.')
+        return
+      }
+      setUsernameStatus('checking')
+      usernameTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await authService.checkAvailability('username', trimmed)
+          setUsernameStatus(res.available ? 'available' : 'taken')
+          setUsernameStatusMsg(res.available ? 'Username is available.' : 'This username is already taken.')
+        } catch { setUsernameStatus(null); setUsernameStatusMsg('') }
+      }, 600)
+    }
+
+    if (name === 'email' && isSignup) {
+      const trimmed = value.trim()
+      if (emailTimerRef.current) clearTimeout(emailTimerRef.current)
+      if (!trimmed) { setEmailStatus(null); setEmailStatusMsg(''); return }
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRe.test(trimmed)) { setEmailStatus(null); setEmailStatusMsg(''); return }
+      setEmailStatus('checking')
+      emailTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await authService.checkAvailability('email', trimmed)
+          setEmailStatus(res.available ? 'available' : 'taken')
+          setEmailStatusMsg(res.available ? 'Email is available.' : 'An account with this email already exists.')
+        } catch { setEmailStatus(null); setEmailStatusMsg('') }
+      }, 600)
     }
   }
 
@@ -188,6 +232,15 @@ function AuthPage({ mode }) {
 
     // Client verification for password complexity rules before proceeding
     if (isSignup) {
+      // Username is required
+      if (!formData.username || !formData.username.trim()) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          username: ['Please enter a username.'],
+        }))
+        return
+      }
+
       const { allRulesMet, isMatch } = checkPasswordRequirements(
         formData.password,
         formData.password_confirmation
@@ -300,13 +353,13 @@ function AuthPage({ mode }) {
           {isSignup ? (
             <div className="auth-fields-grid">
               <label className="auth-field">
-                <span>Name</span>
+                <span>Display Name</span>
                 <input
                   name="name"
                   type="text"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="DramaFan2026"
+                  placeholder="K-Drama Fan"
                   maxLength={255}
                   disabled={isSubmitting}
                 />
@@ -316,6 +369,26 @@ function AuthPage({ mode }) {
               </label>
 
               <label className="auth-field">
+                <span>@Username</span>
+                <input
+                  name="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="kdramafan2026"
+                  maxLength={30}
+                  autoCapitalize="off"
+                  disabled={isSubmitting}
+                />
+                {usernameStatus === 'checking' && <span className="auth-field-hint auth-field-hint-checking">Checking…</span>}
+                {usernameStatus === 'available' && <span className="auth-field-hint auth-field-hint-ok">✓ {usernameStatusMsg}</span>}
+                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <span className="auth-field-hint auth-field-hint-err">✕ {usernameStatusMsg}</span>}
+                {fieldErrors.username && (
+                  <span className="field-error-text">{fieldErrors.username[0]}</span>
+                )}
+              </label>
+
+              <label className="auth-field auth-field-full">
                 <span>Email</span>
                 <input
                   name="email"
@@ -325,6 +398,9 @@ function AuthPage({ mode }) {
                   placeholder="you@example.com"
                   disabled={isSubmitting}
                 />
+                {emailStatus === 'checking' && <span className="auth-field-hint auth-field-hint-checking">Checking…</span>}
+                {emailStatus === 'available' && <span className="auth-field-hint auth-field-hint-ok">✓ {emailStatusMsg}</span>}
+                {emailStatus === 'taken' && <span className="auth-field-hint auth-field-hint-err">✕ {emailStatusMsg}</span>}
                 {fieldErrors.email && (
                   <span className="field-error-text">{fieldErrors.email[0]}</span>
                 )}
@@ -355,7 +431,7 @@ function AuthPage({ mode }) {
                 )}
 
                 {/* Strength meter and compact checklist directly under Password */}
-                <PasswordRequirementsList password={formData.password} showBreachNotice={true} />
+                <PasswordRequirementsList password={formData.password} />
               </div>
 
               <div className="auth-field auth-field-full">
@@ -397,13 +473,13 @@ function AuthPage({ mode }) {
           ) : (
             <div className="auth-fields-stack">
               <label className="auth-field">
-                <span>Email</span>
+                <span>Email or Username</span>
                 <input
                   name="email"
-                  type="email"
+                  type="text"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="you@example.com"
+                  placeholder="Email or Username"
                   disabled={isSubmitting}
                 />
                 {fieldErrors.email && (

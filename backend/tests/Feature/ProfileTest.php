@@ -54,7 +54,7 @@ class ProfileTest extends TestCase
         $otherUser = User::factory()->create();
 
         // User's trackers
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $user->id,
             'tmdb_id'         => 101,
             'status'          => 'watching',
@@ -63,7 +63,7 @@ class ProfileTest extends TestCase
             'rating'          => 9,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $user->id,
             'tmdb_id'         => 102,
             'status'          => 'completed',
@@ -72,7 +72,7 @@ class ProfileTest extends TestCase
             'rating'          => 10,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $user->id,
             'tmdb_id'         => 103,
             'status'          => 'plan_to_watch',
@@ -81,7 +81,7 @@ class ProfileTest extends TestCase
             'rating'          => null,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $user->id,
             'tmdb_id'         => 104,
             'status'          => 'on_hold',
@@ -91,7 +91,7 @@ class ProfileTest extends TestCase
         ]);
 
         // Other user's tracker (should not affect stats)
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $otherUser->id,
             'tmdb_id'         => 201,
             'status'          => 'completed',
@@ -210,7 +210,7 @@ class ProfileTest extends TestCase
         ]);
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $user->id,
             'tmdb_id'         => 999,
             'status'          => 'watching',
@@ -218,7 +218,7 @@ class ProfileTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('users', ['id' => $user->id]);
-        $this->assertDatabaseHas('trackers', ['user_id' => $user->id, 'tmdb_id' => 999]);
+        $this->assertDatabaseHasTracker(['user_id' => $user->id, 'tmdb_id' => 999]);
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->deleteJson('/api/v1/user', [

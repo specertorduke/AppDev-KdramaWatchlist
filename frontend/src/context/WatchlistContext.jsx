@@ -73,7 +73,7 @@ export function WatchlistProvider({ children }) {
     watchlistService.saveLocalWatchlist(userId, newItems)
   }
 
-  const addToWatchlist = async (drama, status = 'Plan') => {
+  const addToWatchlist = async (drama, status = 'Plan to Watch') => {
     const dramaId = drama.tmdb_id || drama.id
     const existingIndex = watchlist.findIndex(
       (item) => (item.tmdb_id || item.id) === dramaId || item.title?.toLowerCase() === drama.title?.toLowerCase()
@@ -226,17 +226,27 @@ export function WatchlistProvider({ children }) {
     )
   }
 
+  
+const getStatusKey = (statusString) => {
+  if (!statusString) return 'plan_to_watch'
+  const s = statusString.toLowerCase().replace(' ', '_').replace(' to ', '_to_')
+  if (s === 'plan') return 'plan_to_watch'
+  if (s === 'paused') return 'on_hold'
+  if (s === 'done') return 'completed'
+  return s
+}
+
   const stats = useMemo(() => {
     const totalTracked = watchlist.length
-    const watchingList = watchlist.filter((d) => d.status === 'Watching')
-    const completedList = watchlist.filter((d) => d.status === 'Completed' || d.status === 'Done')
-    const planList = watchlist.filter((d) => d.status === 'Plan' || d.status === 'Plan to Watch')
-    const onHoldList = watchlist.filter((d) => d.status === 'On Hold' || d.status === 'Paused')
-    const droppedList = watchlist.filter((d) => d.status === 'Dropped')
+    const watchingList = watchlist.filter((d) => getStatusKey(d.status) === 'watching')
+    const completedList = watchlist.filter((d) => getStatusKey(d.status) === 'completed')
+    const planList = watchlist.filter((d) => getStatusKey(d.status) === 'plan_to_watch')
+    const onHoldList = watchlist.filter((d) => getStatusKey(d.status) === 'on_hold')
+    const droppedList = watchlist.filter((d) => getStatusKey(d.status) === 'dropped')
     const favoritesList = watchlist.filter((d) => d.is_favorite)
 
     const totalEpisodesWatched = watchlist.reduce((sum, item) => {
-      if (item.status === 'Completed' || item.status === 'Done') {
+      if (getStatusKey(item.status) === 'completed') {
         return sum + (item.episodes || 16)
       }
       return sum + (item.current_episode || item.watchedCount || 0)

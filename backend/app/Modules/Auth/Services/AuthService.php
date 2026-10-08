@@ -101,6 +101,7 @@ class AuthService
 
             $user = User::create([
                 'name'                       => $data['name'],
+                'username'                   => $data['username'],
                 'email'                      => $data['email'],
                 'password'                   => $data['password'],
                 'email_verified_at'          => now(),
@@ -121,6 +122,7 @@ class AuthService
         // 2. Legacy two-step flow fallback
         $user = User::create([
             'name'                       => $data['name'],
+            'username'                   => $data['username'],
             'email'                      => $data['email'],
             'password'                   => $data['password'],
             'email_verified_at'          => null,
@@ -259,7 +261,10 @@ class AuthService
      */
     public function login(array $data): array
     {
-        $user = User::where('email', $data['email'])->first();
+        $loginField = $data['email']; // the frontend might still send it as 'email'
+        $user = User::where('email', $loginField)
+            ->orWhere('username', $loginField)
+            ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([

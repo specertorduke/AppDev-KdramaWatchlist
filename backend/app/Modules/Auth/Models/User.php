@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'email_verified_at', 'terms_privacy_accepted', 'terms_privacy_accepted_at', 'favorite_genres'])]
+#[Fillable(['name', 'username', 'email', 'password', 'email_verified_at', 'terms_privacy_accepted', 'terms_privacy_accepted_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -30,7 +30,6 @@ class User extends Authenticatable
             'password' => 'hashed',
             'terms_privacy_accepted' => 'boolean',
             'terms_privacy_accepted_at' => 'datetime',
-            'favorite_genres' => 'array',
         ];
     }
 
@@ -45,5 +44,10 @@ class User extends Authenticatable
     public function trackers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Modules\Tracker\Models\Tracker::class);
+    }
+
+    public function favoriteGenres(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(\App\Modules\Discover\Models\Genre::class, 'user_favorite_genres');
     }
 }

@@ -58,12 +58,14 @@ export const AuthProvider = ({ children }) => {
     const response = await authService.login({ email, password });
     const { user: userData, token: authToken } = response.data;
     const userWithAvatar = withDefaultProfileAvatar(userData);
+    const hasGenres = Array.isArray(userWithAvatar?.favorite_genres) && userWithAvatar.favorite_genres.length > 0;
+    
+    setNeedsOnboarding(!hasGenres);
     setUser(userWithAvatar);
     setToken(authToken);
+    
     await AsyncStorage.setItem('auth_token', authToken);
     await AsyncStorage.setItem('auth_user', JSON.stringify(userWithAvatar));
-    const hasGenres = Array.isArray(userWithAvatar?.favorite_genres) && userWithAvatar.favorite_genres.length > 0;
-    setNeedsOnboarding(!hasGenres);
     return response.data;
   };
 
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     if (typeof nameOrData === 'object' && nameOrData !== null) {
       payload = {
         name: nameOrData.name,
+        username: nameOrData.username,
         email: nameOrData.email,
         password: nameOrData.password,
         password_confirmation: nameOrData.passwordConfirmation || nameOrData.password_confirmation,
@@ -90,6 +93,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       payload = {
         name: nameOrData,
+        username: undefined, // Or pass as an argument if needed, but object approach is preferred
         email,
         password,
         password_confirmation: passwordConfirmation,
@@ -103,11 +107,12 @@ export const AuthProvider = ({ children }) => {
     const { user: rawUserData, token: authToken } = response.data;
     const userData = withDefaultProfileAvatar(rawUserData);
     if (authToken && userData) {
+      setNeedsOnboarding(true);
       setUser(userData);
       setToken(authToken);
+      
       await AsyncStorage.setItem('auth_token', authToken);
       await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-      setNeedsOnboarding(true);
     }
     return response.data;
   };
@@ -169,20 +174,43 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const updateProfileName = async (name) => {
+  const updateProfile = async ({ name, username, avatarIcon, color, avatarUrl }) => {
     try {
-      const response = await userService.updateProfile({ name });
-      const updated = response.data.data;
-      if (updated) {
-        const newUser = { ...user, ...updated };
-        setUser(newUser);
-        await AsyncStorage.setItem('auth_user', JSON.stringify(newUser));
+      const payload = {};
+      if (name !== undefined) payload.name = name;
+      if (username !== undefined) payload.username = username;
+      if (avatarUrl !== undefined) payload.avatar_url = avatarUrl;
+
+      let response = null;
+      if (Object.keys(payload).length > 0) {
+        response = await userService.updateProfile(payload);
       }
-      return response.data;
+
+      const updated = response?.data?.user || response?.data?.data || response?.data || null;
+      const nextUser = {
+        ...(user || {}),
+        ...(updated || {}),
+        ...(name !== undefined ? { name } : {}),
+        ...(username !== undefined ? { username } : {}),
+        ...(avatarIcon !== undefined ? { avatarIcon } : {}),
+        ...(color !== undefined ? { color } : {}),
+        ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+      };
+
+      if (nextUser && Object.keys(nextUser).length > 0) {
+        setUser(nextUser);
+        await AsyncStorage.setItem('auth_user', JSON.stringify(nextUser));
+      }
+
+      return response?.data || { user: nextUser };
     } catch (e) {
-      console.warn('Failed to update profile name:', e);
+      console.warn('Failed to update profile:', e);
       throw e;
     }
+  };
+
+  const updateProfileName = async (name, username) => {
+    return updateProfile({ name, username });
   };
 
   const updateUserEmail = async ({ newEmail, currentPassword, verificationOtp }) => {
@@ -219,11 +247,12 @@ export const AuthProvider = ({ children }) => {
     const { user: rawUserData, token: authToken } = response.data;
     const userData = withDefaultProfileAvatar(rawUserData);
     if (authToken && userData) {
+      setNeedsOnboarding(true);
       setUser(userData);
       setToken(authToken);
+      
       await AsyncStorage.setItem('auth_token', authToken);
       await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
-      setNeedsOnboarding(true);
     }
     return response.data;
   };
@@ -269,6 +298,8 @@ export const AuthProvider = ({ children }) => {
 
   const setSession = async (newToken, newUser, shouldOnboard = null) => {
     const normalizedUser = withDefaultProfileAvatar(newUser);
+    const hasGenres = Array.isArray(normalizedUser?.favorite_genres) && normalizedUser.favorite_genres.length > 0;
+    setNeedsOnboarding(shouldOnboard !== null ? shouldOnboard : !hasGenres);
     setUser(normalizedUser);
     setToken(newToken);
     if (newToken) {
@@ -277,8 +308,6 @@ export const AuthProvider = ({ children }) => {
     if (normalizedUser) {
       await AsyncStorage.setItem('auth_user', JSON.stringify(normalizedUser));
     }
-    const hasGenres = Array.isArray(normalizedUser?.favorite_genres) && normalizedUser.favorite_genres.length > 0;
-    setNeedsOnboarding(shouldOnboard !== null ? shouldOnboard : !hasGenres);
   };
 
   return (
@@ -288,6 +317,7 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token,
         isLoading,
+        updateProfile,
         updateProfileAvatar,
         updateUserPreferences,
         updateProfileName,

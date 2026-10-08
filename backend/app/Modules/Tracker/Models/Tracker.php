@@ -13,10 +13,9 @@ class Tracker extends Model
 
     protected $fillable = [
         'user_id',
-        'tmdb_id',
+        'discover_id',
         'status',
         'current_episode',
-        'total_episodes',
         'rating',
         'review_notes',
         'rewatch_count',
@@ -42,13 +41,27 @@ class Tracker extends Model
     protected function casts(): array
     {
         return [
-            'tmdb_id'         => 'integer',
+            'discover_id'     => 'integer',
             'current_episode' => 'integer',
-            'total_episodes'  => 'integer',
             'rating'          => 'integer',
             'rewatch_count'   => 'integer',
             'is_favorite'     => 'boolean',
         ];
+    }
+
+    public function discover(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Discover\Models\Discover::class);
+    }
+
+    public function getTotalEpisodesAttribute(): ?int
+    {
+        return $this->discover ? $this->discover->total_episodes : null;
+    }
+
+    public function getTmdbIdAttribute(): ?int
+    {
+        return $this->discover ? $this->discover->tmdb_id : null;
     }
 
     /**
@@ -56,11 +69,13 @@ class Tracker extends Model
      */
     public function getProgressPercentageAttribute(): int
     {
-        if (empty($this->total_episodes) || $this->total_episodes <= 0) {
+        $total = $this->total_episodes; // Uses accessor
+
+        if (empty($total) || $total <= 0) {
             return 0;
         }
 
-        $percentage = ($this->current_episode / $this->total_episodes) * 100;
+        $percentage = ($this->current_episode / $total) * 100;
 
         return (int) min(100, max(0, round($percentage)));
     }

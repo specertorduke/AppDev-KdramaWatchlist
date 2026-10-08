@@ -68,10 +68,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
   const currentAvatar = user?.avatar || user?.avatar_url || dashboardUser.avatar
   const currentAvatarType = user?.avatarType || (user?.avatarIcon ? 'persona' : 'photo')
   const currentName = user?.name || ''
+  const currentUsername = user?.username || ''
   const currentEmail = user?.email || ''
 
   // Profile Form States
   const [name, setName] = useState(currentName)
+  const [username, setUsername] = useState(currentUsername)
   const [avatarType, setAvatarType] = useState(currentAvatarType)
   const [avatarPreview, setAvatarPreview] = useState(currentAvatar)
   const [newAvatarData, setNewAvatarData] = useState(null)
@@ -80,6 +82,11 @@ export default function EditProfileModal({ isOpen, onClose }) {
   const [isSaving, setIsSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+
+  // Real-time backend field validation
+  const [usernameStatus, setUsernameStatus] = useState(null) // null | 'checking' | 'available' | 'taken' | 'invalid'
+  const [usernameStatusMsg, setUsernameStatusMsg] = useState('')
+  const usernameTimerRef = useRef(null)
 
   // Email Change Flow States (Matching Mobile Version 2-step OTP flow)
   const [showEmailFlow, setShowEmailFlow] = useState(false)
@@ -116,6 +123,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       setName(user?.name || '')
+      setUsername(user?.username || '')
       setAvatarType(user?.avatarType || (user?.avatarIcon ? 'persona' : 'photo'))
       setAvatarPreview(user?.avatar || user?.avatar_url || dashboardUser.avatar)
       setNewAvatarData(null)
@@ -146,6 +154,10 @@ export default function EditProfileModal({ isOpen, onClose }) {
       setShowConfirmChangePwd(false)
       setPasswordChangeError('')
       setPasswordChangeSuccess('')
+
+      // Reset real-time validation state
+      setUsernameStatus(null)
+      setUsernameStatusMsg('')
     }
   }, [isOpen, user])
 
@@ -379,14 +391,62 @@ export default function EditProfileModal({ isOpen, onClose }) {
     }
   }
 
+  const handleUsernameChange = (val) => {
+    setUsername(val)
+    const trimmed = val.trim()
+
+    // Clear pending check
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current)
+
+    if (!trimmed || trimmed === currentUsername) {
+      setUsernameStatus(null)
+      setUsernameStatusMsg('')
+      return
+    }
+
+    // Basic format check before hitting backend
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(trimmed)) {
+      setUsernameStatus('invalid')
+      setUsernameStatusMsg('3–30 chars, letters, numbers and underscores only.')
+      return
+    }
+
+    setUsernameStatus('checking')
+    setUsernameStatusMsg('')
+
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await authService.checkAvailability('username', trimmed)
+        if (res.available) {
+          setUsernameStatus('available')
+          setUsernameStatusMsg('Username is available.')
+        } else {
+          setUsernameStatus('taken')
+          setUsernameStatusMsg('This username is already taken.')
+        }
+      } catch {
+        setUsernameStatus(null)
+        setUsernameStatusMsg('')
+      }
+    }, 600)
+  }
+
   const handleSaveProfile = async (e) => {
     e.preventDefault()
+    if (showEmailFlow || showPasswordChangeFlow) return;
+
     setErrorMessage('')
     setSuccessMessage('')
 
     const trimmedName = name.trim()
+    const trimmedUsername = username.trim()
     if (!trimmedName) {
-      setErrorMessage('Username cannot be empty.')
+      setErrorMessage('Display name cannot be empty.')
+      return
+    }
+
+    if (usernameStatus === 'taken' || usernameStatus === 'invalid') {
+      setErrorMessage(usernameStatusMsg || 'Please fix the username field before saving.')
       return
     }
 
@@ -394,6 +454,7 @@ export default function EditProfileModal({ isOpen, onClose }) {
     try {
       await updateProfile({
         name: trimmedName,
+        username: trimmedUsername,
         ...(avatarType === 'photo'
           ? { avatar: newAvatarData || avatarPreview, avatarType: 'photo' }
           : { avatarIcon: selectedIcon, color: selectedColor, avatarType: 'persona' }),
@@ -404,7 +465,8 @@ export default function EditProfileModal({ isOpen, onClose }) {
         onClose()
       }, 500)
     } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Failed to update profile. Please try again.'
+      const errors = err?.response?.data?.errors || {}
+      const msg = errors.username?.[0] || err?.response?.data?.message || err?.message || 'Failed to update profile. Please try again.'
       setErrorMessage(msg)
     } finally {
       setIsSaving(false)
@@ -580,10 +642,10 @@ export default function EditProfileModal({ isOpen, onClose }) {
 
             {/* Profile Fields & Email Flow */}
             <div className="edit-profile-details">
-              {/* Username Field */}
+              {/* Display Name Field */}
               <div className="edit-profile-field">
                 <label htmlFor="edit-profile-name">
-                  <User size={15} /> Username
+                  <User size={15} /> Display Name
                 </label>
                 <input
                   id="edit-profile-name"
@@ -595,6 +657,37 @@ export default function EditProfileModal({ isOpen, onClose }) {
                   maxLength={50}
                   disabled={isSaving}
                 />
+              </div>
+
+              {/* Handle/Username Field */}
+              <div className="edit-profile-field">
+                <label htmlFor="edit-profile-username">
+                  <User size={15} /> @Username
+                </label>
+                <input
+                  id="edit-profile-username"
+                  type="text"
+                  className={`edit-profile-input${
+                    usernameStatus === 'taken' || usernameStatus === 'invalid' ? ' edit-profile-input-error' : ''
+                  }${
+                    usernameStatus === 'available' ? ' edit-profile-input-success' : ''
+                  }`}
+                  value={username}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
+                  placeholder="Enter a unique username"
+                  maxLength={30}
+                  autoCapitalize="none"
+                  disabled={isSaving}
+                />
+                {usernameStatus === 'checking' && (
+                  <span className="edit-field-hint edit-field-hint-checking">Checking availability…</span>
+                )}
+                {usernameStatus === 'available' && (
+                  <span className="edit-field-hint edit-field-hint-ok">✓ {usernameStatusMsg}</span>
+                )}
+                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                  <span className="edit-field-hint edit-field-hint-err">✕ {usernameStatusMsg}</span>
+                )}
               </div>
 
               {/* Email Section (With 2-step OTP flow matching mobile version) */}
@@ -658,6 +751,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
                               setNewEmail(e.target.value)
                               if (emailError) setEmailError('')
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleRequestEmailChange()
+                              }
+                            }}
                             placeholder="e.g. name@example.com"
                             autoCapitalize="none"
                             autoCorrect="off"
@@ -675,6 +774,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
                               onChange={(e) => {
                                 setPassword(e.target.value)
                                 if (emailError) setEmailError('')
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  handleRequestEmailChange()
+                                }
                               }}
                               placeholder="Enter current password"
                               disabled={isRequestingOtp}
@@ -747,6 +852,12 @@ export default function EditProfileModal({ isOpen, onClose }) {
                             onChange={(e) => {
                               setEmailOtp(e.target.value.replace(/[^0-9]/g, ''))
                               if (emailError) setEmailError('')
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleVerifyEmailChange()
+                              }
                             }}
                             placeholder="••••••"
                             autoFocus

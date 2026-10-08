@@ -54,6 +54,7 @@ import {
 import DramaPersonaAvatar from './DramaPersonaAvatar.jsx'
 import EditProfileModal from './EditProfileModal.jsx'
 import Chatbot from './Chatbot.jsx'
+import Player from './Player.jsx'
 
 const statIcons = { bookmark: Bookmark, play: Play, check: Check, clock: Clock3 }
 const quickIcons = { clipboard: ClipboardList, plus: Plus, pause: Pause, send: Ticket }
@@ -112,6 +113,14 @@ function interleaveRecommendations(groups, limit = 20) {
 
 function getStatusKey(status) {
   return String(status || '').trim().toLowerCase().replace(/[_-]+/g, ' ')
+}
+
+function formatStatusCss(status) {
+  return String(status || '').toLowerCase().replace(/[\s_]+/g, '-')
+}
+
+function formatStatusLabel(status) {
+  return String(status || '').split(/[_\s]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 function getStatusColor(status) {
@@ -242,7 +251,7 @@ function AddDramaModal({ isOpen, onClose, onDramaAdded }) {
     setAddedIds((prev) => ({ ...prev, [dramaId]: true }))
     setToastMessage(`"${drama.title}" added to your Plan to Watch list!`)
 
-    const addedItem = await addToWatchlist(drama, 'Plan')
+    const addedItem = await addToWatchlist(drama, 'Plan to Watch')
     onDramaAdded?.(addedItem || drama)
 
     setTimeout(() => {
@@ -788,9 +797,9 @@ function TrendingCard({ drama, index, onClick }) {
         <img className="poster-media-img" src={poster} alt={drama.title} loading="lazy" />
         <span className="poster-gradient-overlay" />
         {status && (
-          <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
+          <span className={`recommended-status-badge status-${formatStatusCss(status)}`}>
             <span className="recommended-status-dot" />
-            {status}
+            {formatStatusLabel(status)}
           </span>
         )}
       </span>
@@ -813,9 +822,9 @@ function RecommendedCard({ drama, onClick }) {
         <img className="poster-media-img" src={poster} alt={drama.title} loading="lazy" />
         <span className="poster-gradient-overlay" />
         {status && (
-          <span className={`recommended-status-badge status-${String(status).toLowerCase().replace(/\s+/g, '-')}`}>
+          <span className={`recommended-status-badge status-${formatStatusCss(status)}`}>
             <span className="recommended-status-dot" />
-            {status}
+            {formatStatusLabel(status)}
           </span>
         )}
       </span>
@@ -826,6 +835,8 @@ function RecommendedCard({ drama, onClick }) {
 }
 
 function DramaDetailView({ drama, onBack }) {
+  const navigate = useNavigate()
+  const [isPlaying, setIsPlaying] = useState(false)
   const { getWatchlistItem, updateWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist()
   const dramaId = drama.tmdb_id || drama.id
   const savedItem = getWatchlistItem(dramaId)
@@ -991,6 +1002,15 @@ function DramaDetailView({ drama, onBack }) {
 
   return (
     <div className="drama-detail-container">
+      {isPlaying && (
+        <Player 
+          tmdbId={dramaId} 
+          type={drama.seasons || drama.episodes > 1 || (drama.type && drama.type.toLowerCase() === 'tv') ? 'tv' : 'movie'} 
+          season={currentSeason ? (currentSeason.season_number || 1) : 1} 
+          episode={seasonWatchedCount < seasonEpisodeCount ? seasonWatchedCount + 1 : Math.max(1, seasonWatchedCount)} 
+          onClose={() => setIsPlaying(false)} 
+        />
+      )}
       {/* Top Back Navigation */}
       <div className="detail-top-nav">
         <button className="detail-back-btn" type="button" onClick={onBack}>
@@ -1051,6 +1071,14 @@ function DramaDetailView({ drama, onBack }) {
           )}
 
           <div className="detail-header-actions">
+            <button
+              className="detail-update-status-button detail-add-button"
+              style={{ backgroundColor: '#B20710', borderColor: '#B20710', color: 'white', fontWeight: 600 }}
+              type="button"
+              onClick={() => setIsPlaying(true)}
+            >
+              <Play size={16} fill="currentColor" /> Watch Now
+            </button>
             {!isTracked ? (
               <button
                 className="detail-update-status-button detail-add-button"
@@ -1814,7 +1842,7 @@ function DiscoverPage() {
 }
 
 function DiscoverCard({ drama }) {
-  const statusKey = String(drama.status || drama.watch_status || '').toLowerCase().replace(/\s+/g, '-')
+  const statusKey = formatStatusCss(drama.status || drama.watch_status)
   const posterImg = drama.image || drama.poster || DEFAULT_POSTER_IMAGE
 
   return (
@@ -1822,10 +1850,10 @@ function DiscoverCard({ drama }) {
       <div className="discover-poster" style={{ backgroundImage: `url(${posterImg})` }}>
         <img className="poster-media-img" src={posterImg} alt={drama.title} loading="lazy" />
         <span className="poster-gradient-overlay" />
-        {drama.status && (
+        {(drama.status || drama.watch_status) && (
           <span className={`recommended-status-badge status-${statusKey}`}>
             <span className="recommended-status-dot" />
-            {drama.status}
+            {formatStatusLabel(drama.status || drama.watch_status)}
           </span>
         )}
       </div>
@@ -1975,11 +2003,11 @@ function TrackerPage() {
   const displayedDramas = useMemo(() => {
     return watchlist.filter((drama) => {
       if (activeFilter === 'All') return true
-      if (activeFilter === 'Watching') return drama.status === 'Watching'
-      if (activeFilter === 'Completed') return drama.status === 'Completed' || drama.status === 'Done'
-      if (activeFilter === 'Plan') return drama.status === 'Plan' || drama.status === 'Plan to Watch'
-      if (activeFilter === 'On Hold') return drama.status === 'On Hold' || drama.status === 'Paused'
-      if (activeFilter === 'Dropped') return drama.status === 'Dropped'
+      if (activeFilter === 'Watching') return getStatusKey(drama.status) === 'watching'
+      if (activeFilter === 'Completed') return getStatusKey(drama.status) === 'completed' || getStatusKey(drama.status) === 'done'
+      if (activeFilter === 'Plan') return getStatusKey(drama.status) === 'plan' || getStatusKey(drama.status) === 'plan_to_watch'
+      if (activeFilter === 'On Hold') return getStatusKey(drama.status) === 'on_hold' || getStatusKey(drama.status) === 'paused'
+      if (activeFilter === 'Dropped') return getStatusKey(drama.status) === 'dropped'
       if (activeFilter === 'Favorites') return !!drama.is_favorite
       return true
     })

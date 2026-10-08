@@ -107,7 +107,7 @@ class HomeTest extends TestCase
         Sanctum::actingAs($this->user);
 
         // Trackers
-        $watchingTracker = Tracker::create([
+        $watchingTracker = $this->createTestTracker([
             'user_id' => $this->user->id,
             'tmdb_id' => 12345,
             'status' => 'watching',
@@ -115,7 +115,7 @@ class HomeTest extends TestCase
             'total_episodes' => 16,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id' => $this->user->id,
             'tmdb_id' => 22222,
             'status' => 'completed',
@@ -123,7 +123,7 @@ class HomeTest extends TestCase
             'total_episodes' => 14,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id' => $this->user->id,
             'tmdb_id' => 33333,
             'status' => 'plan_to_watch',
@@ -131,7 +131,7 @@ class HomeTest extends TestCase
             'total_episodes' => 16,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id' => $this->user->id,
             'tmdb_id' => 44444,
             'status' => 'plan_to_watch',
@@ -216,7 +216,7 @@ class HomeTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        $older = Tracker::create([
+        $older = $this->createTestTracker([
             'user_id' => $this->user->id,
             'tmdb_id' => 11111,
             'status' => 'watching',
@@ -227,7 +227,7 @@ class HomeTest extends TestCase
         $older->updated_at = now()->subDays(2);
         $older->save();
 
-        $newer = Tracker::create([
+        $newer = $this->createTestTracker([
             'user_id' => $this->user->id,
             'tmdb_id' => 22222,
             'status' => 'watching',
@@ -263,7 +263,7 @@ class HomeTest extends TestCase
         Sanctum::actingAs($this->user);
 
         // Other user has trackers
-        Tracker::create([
+        $this->createTestTracker([
             'user_id' => $this->otherUser->id,
             'tmdb_id' => 99999,
             'status' => 'watching',
@@ -329,8 +329,9 @@ class HomeTest extends TestCase
 
     public function test_home_recommends_thriller_and_horror_when_in_user_favorite_genres(): void
     {
-        $this->user->favorite_genres = ['Thriller', 'Horror'];
-        $this->user->save();
+        $thriller = \App\Modules\Discover\Models\Genre::firstOrCreate(['name' => 'Thriller', 'slug' => 'thriller']);
+        $horror = \App\Modules\Discover\Models\Genre::firstOrCreate(['name' => 'Horror', 'slug' => 'horror']);
+        $this->user->favoriteGenres()->sync([$thriller->id, $horror->id]);
 
         Sanctum::actingAs($this->user);
 
