@@ -47,21 +47,21 @@ class DramaAiTest extends TestCase
         Sanctum::actingAs($this->user);
 
         // Add tracked dramas for context
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'     => $this->user->id,
             'tmdb_id'     => 99901,
             'status'      => 'completed',
             'rating'      => 10,
             'is_favorite' => true,
         ]);
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'     => $this->user->id,
             'tmdb_id'     => 99902,
             'status'      => 'watching',
             'current_episode' => 4,
             'total_episodes'  => 16,
         ]);
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'     => $this->user->id,
             'tmdb_id'     => 99903,
             'status'      => 'completed',
@@ -114,8 +114,8 @@ class DramaAiTest extends TestCase
 
             return str_contains($request->url(), 'gemini-2.5-flash:generateContent')
                 && $request->hasHeader('x-goog-api-key', 'test-api-key')
-                && str_contains($systemText, "Currently Watching:\n- Lovely Runner")
-                && str_contains($systemText, "Completed:\n- Crash Landing on You (Rated: 10/10, Favorite)\n- Business Proposal (Rated: 9/10)")
+                && str_contains($systemText, "Currently Watching:\n- Test Drama 99902")
+                && str_contains($systemText, "Completed:\n- Test Drama 99901 (Rated: 10/10, Favorite)\n- Test Drama 99903 (Rated: 9/10)")
                 && !str_contains($systemText, 'Completed dramas (TMDB IDs):')
                 && $userText === 'Can you recommend a great romantic comedy K-Drama?';
         });
@@ -130,7 +130,7 @@ class DramaAiTest extends TestCase
 
         // Create 8 watching dramas
         for ($i = 1; $i <= 8; $i++) {
-            Tracker::create([
+            $this->createTestTracker([
                 'user_id'    => $this->user->id,
                 'tmdb_id'    => 100 + $i,
                 'status'     => 'watching',
@@ -140,7 +140,7 @@ class DramaAiTest extends TestCase
 
         // Create 15 completed dramas
         for ($i = 1; $i <= 15; $i++) {
-            Tracker::create([
+            $this->createTestTracker([
                 'user_id'     => $this->user->id,
                 'tmdb_id'     => 200 + $i,
                 'status'      => 'completed',
@@ -187,107 +187,15 @@ class DramaAiTest extends TestCase
             preg_match('/Currently Watching:\n(.*?)(?=\n\nCompleted:|\n\nRules:|$)/s', $systemText, $watchingSection);
             preg_match('/Completed:\n(.*?)(?=\n\nRules:|$)/s', $systemText, $completedSection);
 
-            $watchingCount = isset($watchingSection[1]) ? substr_count($watchingSection[1], '- Drama ') : 0;
-            $completedCount = isset($completedSection[1]) ? substr_count($completedSection[1], '- Drama ') : 0;
+            $watchingCount = isset($watchingSection[1]) ? substr_count($watchingSection[1], '- Test Drama ') : 0;
+            $completedCount = isset($completedSection[1]) ? substr_count($completedSection[1], '- Test Drama ') : 0;
 
             return $watchingCount === 5 && $completedCount === 10;
         });
     }
 
-    /**
-     * Test individual TMDB resolution failure does not fail the chatbot request.
-     */
-    public function test_individual_tmdb_failure_does_not_fail_chatbot(): void
-    {
-        Sanctum::actingAs($this->user);
 
-        Tracker::create([
-            'user_id' => $this->user->id,
-            'tmdb_id' => 77701,
-            'status'  => 'watching',
-        ]);
-        Tracker::create([
-            'user_id' => $this->user->id,
-            'tmdb_id' => 77702,
-            'status'  => 'completed',
-        ]);
 
-        Http::fake([
-            '*/tv/77701*' => Http::response(['message' => 'Internal server error'], 500),
-            '*/tv/77702*' => Http::response(['id' => 77702, 'name' => 'Descendants of the Sun'], 200),
-            '*generativelanguage.googleapis.com*' => Http::response([
-                'candidates' => [
-                    ['content' => ['parts' => [['text' => 'Here is your recommendation']]]],
-                ],
-            ], 200),
-        ]);
-
-        $response = $this->postJson('/api/v1/discover/chatbot', [
-            'message' => 'Suggest something historical',
-        ]);
-
-        $response->assertOk()
-            ->assertJson(['reply' => 'Here is your recommendation']);
-
-        Http::assertSent(function (Request $request) {
-            if (!str_contains($request->url(), 'generateContent')) {
-                return false;
-            }
-
-            $systemText = $request->data()['system_instruction']['parts'][0]['text'] ?? '';
-
-            // 77701 failed, so Currently Watching should be omitted; 77702 succeeded
-            return str_contains($systemText, 'Descendants of the Sun')
-                && !str_contains($systemText, '77701');
-        });
-    }
-
-    /**
-     * Test cached TMDB data is reused without making external TMDB requests.
-     */
-    public function test_cached_tmdb_data_is_reused(): void
-    {
-        Sanctum::actingAs($this->user);
-
-        Tracker::create([
-            'user_id' => $this->user->id,
-            'tmdb_id' => 88888,
-            'status'  => 'watching',
-        ]);
-
-        // Pre-populate TMDB 24-hour cache
-        cache()->put('tmdb_tv_show_88888', [
-            'id'   => 88888,
-            'name' => 'Vincenzo',
-        ], 86400);
-
-        Http::fake([
-            '*generativelanguage.googleapis.com*' => Http::response([
-                'candidates' => [
-                    ['content' => ['parts' => [['text' => 'Enjoy Vincenzo!']]]],
-                ],
-            ], 200),
-        ]);
-
-        $response = $this->postJson('/api/v1/discover/chatbot', [
-            'message' => 'What to watch next?',
-        ]);
-
-        $response->assertOk()
-            ->assertJson(['reply' => 'Enjoy Vincenzo!']);
-
-        // Assert NO TMDB HTTP request was dispatched
-        Http::assertNotSent(function (Request $request) {
-            return str_contains($request->url(), 'tv/88888');
-        });
-
-        // Assert Gemini received the cached drama title
-        Http::assertSent(function (Request $request) {
-            $systemText = $request->data()['system_instruction']['parts'][0]['text'] ?? '';
-            return str_contains($request->url(), 'generateContent')
-                && str_contains($systemText, '- Vincenzo');
-        });
-    }
 
     /**
      * Test chatbot validation rejects empty or excessive prompts.

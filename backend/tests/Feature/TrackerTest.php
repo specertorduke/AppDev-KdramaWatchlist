@@ -105,7 +105,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.rating', 9)
             ->assertJsonPath('data.review_notes', 'Great drama!');
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -139,7 +139,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.current_episode', 0)
             ->assertJsonPath('data.progress_percentage', 0);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'        => $this->user->id,
             'tmdb_id'        => 67890,
             'total_episodes' => 16,
@@ -170,7 +170,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.total_episodes', 16)
             ->assertJsonPath('data.progress_percentage', 0);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 99999,
             'status'          => 'plan_to_watch',
@@ -183,7 +183,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -224,7 +224,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 111,
             'status'          => 'watching',
@@ -232,7 +232,7 @@ class TrackerTest extends TestCase
             'total_episodes'  => 16,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->otherUser->id,
             'tmdb_id'         => 222,
             'status'          => 'completed',
@@ -258,7 +258,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 101,
             'status'          => 'watching',
@@ -266,7 +266,7 @@ class TrackerTest extends TestCase
             'total_episodes'  => 16,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 102,
             'status'          => 'completed',
@@ -274,7 +274,7 @@ class TrackerTest extends TestCase
             'total_episodes'  => 16,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 103,
             'status'          => 'plan_to_watch',
@@ -320,7 +320,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -412,7 +412,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -437,7 +437,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.review_notes', 'Masterpiece!')
             ->assertJsonPath('data.rewatch_count', 1);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'       => $this->user->id,
             'tmdb_id'       => 12345,
             'status'        => 'completed',
@@ -450,7 +450,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -470,7 +470,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->otherUser->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -489,7 +489,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -510,7 +510,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.progress_percentage', 31)
             ->assertJsonPath('data.status', 'watching');
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'current_episode' => 5,
@@ -522,7 +522,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -543,7 +543,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.progress_percentage', 100)
             ->assertJsonPath('data.status', 'completed');
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'current_episode' => 16,
@@ -555,7 +555,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'completed',
@@ -576,7 +576,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.progress_percentage', 88)
             ->assertJsonPath('data.status', 'watching');
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'current_episode' => 14,
@@ -588,7 +588,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'completed',
@@ -609,7 +609,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.progress_percentage', 0)
             ->assertJsonPath('data.status', 'plan_to_watch');
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'current_episode' => 0,
@@ -625,7 +625,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -643,7 +643,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.current_episode', 6)
             ->assertJsonPath('data.status', 'watching');
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'current_episode' => 6,
@@ -654,7 +654,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -673,7 +673,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.status', 'completed')
             ->assertJsonPath('data.progress_percentage', 100);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'current_episode' => 16,
@@ -685,7 +685,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'completed',
@@ -722,7 +722,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.status', 'completed')
             ->assertJsonPath('data.progress_percentage', 100);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id' => $this->user->id,
             'tmdb_id' => 555,
             'status'  => 'completed',
@@ -733,7 +733,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -768,7 +768,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -791,7 +791,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->otherUser->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -802,7 +802,7 @@ class TrackerTest extends TestCase
         $response = $this->deleteJson('/api/v1/tracker/12345');
         $response->assertStatus(404);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id' => $this->otherUser->id,
             'tmdb_id' => 12345,
         ]);
@@ -834,7 +834,7 @@ class TrackerTest extends TestCase
             ->assertJsonPath('data.tmdb_id', 12345)
             ->assertJsonPath('data.is_favorite', true);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'     => $this->user->id,
             'tmdb_id'     => 12345,
             'is_favorite' => 1,
@@ -845,7 +845,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 12345,
             'status'          => 'watching',
@@ -866,7 +866,7 @@ class TrackerTest extends TestCase
         $response1->assertStatus(200)
             ->assertJsonPath('data.is_favorite', true);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'     => $this->user->id,
             'tmdb_id'     => 12345,
             'is_favorite' => 1,
@@ -880,7 +880,7 @@ class TrackerTest extends TestCase
         $response2->assertStatus(200)
             ->assertJsonPath('data.is_favorite', false);
 
-        $this->assertDatabaseHas('trackers', [
+        $this->assertDatabaseHasTracker([
             'user_id'     => $this->user->id,
             'tmdb_id'     => 12345,
             'is_favorite' => 0,
@@ -891,7 +891,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 101,
             'status'          => 'watching',
@@ -900,7 +900,7 @@ class TrackerTest extends TestCase
             'is_favorite'     => true,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 102,
             'status'          => 'completed',
@@ -909,7 +909,7 @@ class TrackerTest extends TestCase
             'is_favorite'     => true,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 103,
             'status'          => 'plan_to_watch',
@@ -919,7 +919,7 @@ class TrackerTest extends TestCase
         ]);
 
         // Another user's favorite shouldn't appear
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->otherUser->id,
             'tmdb_id'         => 104,
             'status'          => 'watching',
@@ -955,7 +955,7 @@ class TrackerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 201,
             'status'          => 'watching',
@@ -964,7 +964,7 @@ class TrackerTest extends TestCase
             'is_favorite'     => true,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 202,
             'status'          => 'completed',
@@ -973,7 +973,7 @@ class TrackerTest extends TestCase
             'is_favorite'     => true,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 203,
             'status'          => 'plan_to_watch',
@@ -982,7 +982,7 @@ class TrackerTest extends TestCase
             'is_favorite'     => false,
         ]);
 
-        Tracker::create([
+        $this->createTestTracker([
             'user_id'         => $this->user->id,
             'tmdb_id'         => 204,
             'status'          => 'on_hold',

@@ -148,7 +148,23 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-        $user->update($validated);
+        
+        if (isset($validated['favorite_genres'])) {
+            $genreIds = [];
+            foreach ($validated['favorite_genres'] as $genreName) {
+                $genre = \App\Modules\Discover\Models\Genre::firstOrCreate(
+                    ['name' => $genreName],
+                    ['slug' => \Illuminate\Support\Str::slug($genreName)]
+                );
+                $genreIds[] = $genre->id;
+            }
+            $user->favoriteGenres()->sync($genreIds);
+            unset($validated['favorite_genres']);
+        }
+        
+        if (!empty($validated)) {
+            $user->update($validated);
+        }
 
         return response()->json([
             'message' => 'Preferences updated successfully',

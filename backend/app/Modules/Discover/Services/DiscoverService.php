@@ -586,9 +586,6 @@ class DiscoverService
         return $names;
     }
 
-    /**
-     * Retrieve the user's watch status for a given drama.
-     */
     public function getWatchStatus(int $tmdbId, ?User $user = null): ?string
     {
         if (!$user) {
@@ -596,7 +593,9 @@ class DiscoverService
         }
 
         return \App\Modules\Tracker\Models\Tracker::where('user_id', $user->id)
-            ->where('tmdb_id', $tmdbId)
+            ->whereHas('discover', function($q) use ($tmdbId) {
+                $q->where('tmdb_id', $tmdbId);
+            })
             ->value('status');
     }
 }

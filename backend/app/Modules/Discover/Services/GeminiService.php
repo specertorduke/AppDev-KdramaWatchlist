@@ -111,30 +111,29 @@ class GeminiService
         return $fallbackMessage;
     }
 
-    /**
-     * Build the user's tracked viewing history context for Gemini.
-     */
     protected function buildTrackingContext(User $user): string
     {
         // 1. Fetch up to 5 currently watching dramas, prioritized by most recently updated
         $watchingTrackers = $user->trackers()
+            ->with('discover')
             ->where('status', 'watching')
             ->orderByDesc('updated_at')
             ->limit(5)
-            ->get(['tmdb_id', 'status', 'rating', 'is_favorite', 'updated_at']);
+            ->get();
 
         // 2. Fetch up to 10 completed dramas, prioritized by favorite, highest rating, and most recently updated
         $completedTrackers = $user->trackers()
+            ->with('discover')
             ->where('status', 'completed')
             ->orderByDesc('is_favorite')
             ->orderByDesc('rating')
             ->orderByDesc('updated_at')
             ->limit(10)
-            ->get(['tmdb_id', 'status', 'rating', 'is_favorite', 'updated_at']);
+            ->get();
 
         $watchingLines = [];
         foreach ($watchingTrackers as $tracker) {
-            $title = $this->resolveDramaTitle((int) $tracker->tmdb_id);
+            $title = $tracker->discover ? $tracker->discover->title : null;
             if ($title !== null) {
                 $watchingLines[] = $this->formatTrackerLine($tracker, $title);
             }
@@ -142,15 +141,15 @@ class GeminiService
 
         $completedLines = [];
         foreach ($completedTrackers as $tracker) {
-            $title = $this->resolveDramaTitle((int) $tracker->tmdb_id);
+            $title = $tracker->discover ? $tracker->discover->title : null;
             if ($title !== null) {
                 $completedLines[] = $this->formatTrackerLine($tracker, $title);
             }
         }
 
         $sections = [];
-        if (!empty($user->favorite_genres)) {
-            $sections[] = "User's Favorite Genres:\n" . implode(', ', (array) $user->favorite_genres);
+        if ($user->favoriteGenres && $user->favoriteGenres->count() > 0) {
+            $sections[] = "User's Favorite Genres:\n" . implode(', ', $user->favoriteGenres->pluck('name')->toArray());
         }
         if (!empty($watchingLines)) {
             $sections[] = "Currently Watching:\n" . implode("\n", $watchingLines);
@@ -162,25 +161,6 @@ class GeminiService
         return !empty($sections)
             ? "User's Taste & Tracked K-Drama History:\n\n" . implode("\n\n", $sections)
             : "User's Taste & Tracked K-Drama History:\nNo dramas tracked yet.";
-    }
-
-    /**
-     * Resolve TMDB ID into drama title using the 24-hour cache and DiscoverService.
-     */
-    protected function resolveDramaTitle(int $tmdbId): ?string
-    {
-        try {
-            $drama = Cache::remember("tmdb_tv_show_{$tmdbId}", 86400, function () use ($tmdbId) {
-                return $this->discoverService->show($tmdbId);
-            });
-
-            $title = $drama['name'] ?? $drama['title'] ?? null;
-
-            return !empty($title) ? (string) $title : null;
-        } catch (\Throwable $e) {
-            Log::warning("GeminiService: Failed to resolve drama title for TMDB ID [{$tmdbId}]: " . $e->getMessage());
-            return null;
-        }
     }
 
     /**

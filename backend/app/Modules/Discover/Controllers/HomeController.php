@@ -134,12 +134,12 @@ class HomeController extends Controller
             $recPage = rand(1, 5);
         }
 
-        $userFavoriteGenres = $user ? ($user->favorite_genres ?? []) : [];
+        $userFavoriteGenres = $user ? $user->favoriteGenres->pluck('name')->toArray() : [];
         $genreMap = $this->discoverService->getGenreMap();
         $genreMapFlipped = array_change_key_case(array_flip($genreMap), CASE_LOWER);
 
         // Also check if user has favorite dramas in tracker to extract genres
-        $favoriteTrackers = $user ? $user->trackers()->where('is_favorite', true)->pluck('tmdb_id')->toArray() : [];
+        $favoriteTrackers = $user ? $user->trackers()->where('is_favorite', true)->with('discover')->get()->pluck('discover.tmdb_id')->filter()->toArray() : [];
 
         // Map custom genres to TMDB TV genre IDs:
         // TMDB TV: 10759 (Action & Adv), 35 (Comedy), 80 (Crime), 18 (Drama), 10751 (Family), 9648 (Mystery), 10765 (Sci-Fi & Fantasy), 10766 (Soap)

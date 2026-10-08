@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use App\Modules\Discover\Models\Discover;
+use App\Modules\Discover\Models\Genre;
+use Illuminate\Support\Str;
 
 class TrackerService
 {
@@ -19,15 +22,57 @@ class TrackerService
         protected DiscoverService $discoverService
     ) {}
 
+    public function syncDiscoverFromTmdb(int $tmdbId): Discover
+    {
+        $discover = Discover::where('tmdb_id', $tmdbId)->first();
+        if ($discover) {
+            return $discover;
+        }
+
+        $tmdbDetails = $this->fetchRawDramaFromTmdb($tmdbId);
+        if (!$tmdbDetails) {
+            throw new NotFoundHttpException('Drama could not be found on TMDB.');
+        }
+
+        $discover = Discover::create([
+            'tmdb_id' => $tmdbId,
+            'title' => $tmdbDetails['name'] ?? 'Unknown',
+            'original_title' => $tmdbDetails['original_name'] ?? null,
+            'overview' => $tmdbDetails['overview'] ?? null,
+            'poster_path' => $tmdbDetails['poster_path'] ?? null,
+            'backdrop_path' => $tmdbDetails['backdrop_path'] ?? null,
+            'first_air_date' => !empty($tmdbDetails['first_air_date']) ? $tmdbDetails['first_air_date'] : null,
+            'rating' => isset($tmdbDetails['vote_average']) ? (float)$tmdbDetails['vote_average'] : null,
+            'vote_count' => $tmdbDetails['vote_count'] ?? 0,
+            'total_episodes' => $tmdbDetails['number_of_episodes'] ?? null,
+            'total_seasons' => $tmdbDetails['number_of_seasons'] ?? null,
+            'episode_runtime' => !empty($tmdbDetails['episode_run_time'][0]) ? $tmdbDetails['episode_run_time'][0] : null,
+            'status' => $tmdbDetails['status'] ?? null,
+        ]);
+
+        if (!empty($tmdbDetails['genres'])) {
+            $genreIds = [];
+            foreach ($tmdbDetails['genres'] as $g) {
+                if (isset($g['id']) && isset($g['name'])) {
+                    $genre = Genre::firstOrCreate(
+                        ['id' => $g['id']],
+                        ['name' => $g['name'], 'slug' => Str::slug($g['name'])]
+                    );
+                    $genreIds[] = $genre->id;
+                }
+            }
+            $discover->genres()->sync($genreIds);
+        }
+
+        return $discover;
+    }
+
     /**
      * Retrieve user's tracked dramas with filtering, pagination, and status breakdown.
-     *
-     * @param  array<string, mixed>  $filters
-     * @return array{data: LengthAwarePaginator, counts: array<string, int>}
      */
     public function getUserTrackers(User $user, array $filters = []): array
     {
-        $query = Tracker::where('user_id', $user->id);
+        $query = Tracker::where('user_id', $user->id)->with('discover');
 
         $status = $filters['status'] ?? 'all';
         if (!empty($status) && $status !== 'all') {
@@ -81,7 +126,8 @@ class TrackerService
     public function getTracker(User $user, int $tmdbId): Tracker
     {
         $tracker = Tracker::where('user_id', $user->id)
-            ->where('tmdb_id', $tmdbId)
+            ->whereHas('discover', fn($q) => $q->where('tmdb_id', $tmdbId))
+            ->with('discover')
             ->first();
 
         if (!$tracker) {
@@ -95,15 +141,13 @@ class TrackerService
 
     /**
      * Add a drama to the user's tracker.
-     *
-     * @param  array<string, mixed>  $data
      */
     public function storeTracker(User $user, array $data): Tracker
     {
         $tmdbId = (int) $data['tmdb_id'];
 
         $exists = Tracker::where('user_id', $user->id)
-            ->where('tmdb_id', $tmdbId)
+            ->whereHas('discover', fn($q) => $q->where('tmdb_id', $tmdbId))
             ->exists();
 
         if ($exists) {
@@ -111,18 +155,18 @@ class TrackerService
                 'tmdb_id' => ['You are already tracking this drama.'],
             ]);
         }
+        
+        $discover = $this->syncDiscoverFromTmdb($tmdbId);
 
-        // If total_episodes is not provided or empty, attempt to fetch from TMDB
-        if (empty($data['total_episodes'])) {
-            $tmdbDetails = $this->fetchRawDramaFromTmdb($tmdbId);
-            if (!empty($tmdbDetails['number_of_episodes'])) {
-                $data['total_episodes'] = (int) $tmdbDetails['number_of_episodes'];
-            }
+        // Allow user override of total_episodes
+        if (isset($data['total_episodes']) && $data['total_episodes'] !== null) {
+            $discover->total_episodes = (int) $data['total_episodes'];
+            $discover->save();
         }
 
         $status = $data['status'] ?? 'plan_to_watch';
         $current = (int) ($data['current_episode'] ?? 0);
-        $total = isset($data['total_episodes']) ? (int) $data['total_episodes'] : null;
+        $total = $discover->total_episodes;
 
         if ($total !== null && $current > $total) {
             throw ValidationException::withMessages([
@@ -138,11 +182,16 @@ class TrackerService
         $data['status'] = $status;
         $data['current_episode'] = $current;
         $data['rewatch_count'] = (int) ($data['rewatch_count'] ?? 0);
+        $data['discover_id'] = $discover->id;
+
+        unset($data['total_episodes']);
+        unset($data['tmdb_id']);
 
         $tracker = Tracker::create(array_merge($data, [
             'user_id' => $user->id,
         ]));
-
+        
+        $tracker->load('discover');
         $tracker->dramaMetadata = $this->getDramaDetailMetadata($tmdbId);
 
         return $tracker;
@@ -150,26 +199,29 @@ class TrackerService
 
     /**
      * Update an existing tracker item for a user.
-     *
-     * @param  array<string, mixed>  $data
      */
     public function updateTracker(User $user, int $tmdbId, array $data): Tracker
     {
         $tracker = Tracker::where('user_id', $user->id)
-            ->where('tmdb_id', $tmdbId)
+            ->whereHas('discover', fn($q) => $q->where('tmdb_id', $tmdbId))
+            ->with('discover')
             ->first();
 
         if (!$tracker) {
             throw new NotFoundHttpException('Drama is not in your tracker.');
         }
 
+        // Allow user override of total_episodes
+        if (array_key_exists('total_episodes', $data)) {
+            $tracker->discover->total_episodes = !is_null($data['total_episodes']) ? (int) $data['total_episodes'] : null;
+            $tracker->discover->save();
+        }
+
         $newCurrent = array_key_exists('current_episode', $data)
             ? (int) $data['current_episode']
             : (int) $tracker->current_episode;
 
-        $newTotal = array_key_exists('total_episodes', $data)
-            ? (!is_null($data['total_episodes']) ? (int) $data['total_episodes'] : null)
-            : $tracker->total_episodes;
+        $newTotal = $tracker->total_episodes; // Uses accessor
 
         if ($newTotal !== null && $newCurrent > $newTotal) {
             throw ValidationException::withMessages([
@@ -188,8 +240,10 @@ class TrackerService
             }
         }
 
-        $tracker->update($data);
+        unset($data['total_episodes']);
+        unset($data['tmdb_id']);
 
+        $tracker->update($data);
         $tracker->dramaMetadata = $this->getDramaDetailMetadata($tmdbId);
 
         return $tracker;
@@ -201,7 +255,8 @@ class TrackerService
     public function incrementEpisode(User $user, int $tmdbId): Tracker
     {
         $tracker = Tracker::where('user_id', $user->id)
-            ->where('tmdb_id', $tmdbId)
+            ->whereHas('discover', fn($q) => $q->where('tmdb_id', $tmdbId))
+            ->with('discover')
             ->first();
 
         if (!$tracker) {
@@ -221,7 +276,6 @@ class TrackerService
         }
 
         $tracker->save();
-
         $tracker->dramaMetadata = $this->getDramaDetailMetadata($tmdbId);
 
         return $tracker;
@@ -233,7 +287,7 @@ class TrackerService
     public function deleteTracker(User $user, int $tmdbId): void
     {
         $tracker = Tracker::where('user_id', $user->id)
-            ->where('tmdb_id', $tmdbId)
+            ->whereHas('discover', fn($q) => $q->where('tmdb_id', $tmdbId))
             ->first();
 
         if (!$tracker) {
@@ -245,8 +299,6 @@ class TrackerService
 
     /**
      * Fetch raw drama data from TMDB with caching.
-     *
-     * @return array<string, mixed>|null
      */
     public function fetchRawDramaFromTmdb(int $tmdbId): ?array
     {
@@ -262,8 +314,6 @@ class TrackerService
 
     /**
      * Fetch raw season data (including episodes) from TMDB with caching.
-     *
-     * @return array<string, mixed>|null
      */
     public function fetchSeasonDetailsFromTmdb(int $tmdbId, int $seasonNumber = 1): ?array
     {
@@ -279,8 +329,6 @@ class TrackerService
 
     /**
      * Get lightweight drama card metadata for tracker lists.
-     *
-     * @return array<string, mixed>|null
      */
     public function getDramaCardMetadata(int $tmdbId): ?array
     {
@@ -294,8 +342,6 @@ class TrackerService
 
     /**
      * Get comprehensive drama detail metadata for individual tracker items.
-     *
-     * @return array<string, mixed>|null
      */
     public function getDramaDetailMetadata(int $tmdbId): ?array
     {
