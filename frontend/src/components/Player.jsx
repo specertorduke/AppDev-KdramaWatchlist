@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, ListVideo, Server, CheckSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, ListVideo, Server, CheckSquare, Info } from 'lucide-react';
 import { useWatchlist } from '../context/WatchlistContext.jsx';
 
 export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, allSeasons = [], onClose, onEpisodeWatched }) {
@@ -119,6 +119,13 @@ export default function Player({ tmdbId, type = 'tv', season = 1, episode = 1, a
         </div>
 
         <div className="sarang-player-selectors" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginLeft: 'auto', marginRight: '20px', pointerEvents: 'auto' }}>
+          {currentServer !== 'vidlink' && (
+            <div style={{ background: 'rgba(255, 170, 0, 0.15)', color: '#ffb84d', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255, 170, 0, 0.3)', fontWeight: 500 }}>
+              <Info size={14} />
+              <span className="hide-on-mobile">Auto-sync disabled on backup server</span>
+            </div>
+          )}
+          
           <div className="player-select-wrap" style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', borderRadius: '6px', padding: '6px 10px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <Server size={16} style={{ marginRight: '8px', color: '#a097a8' }} />
             <select 

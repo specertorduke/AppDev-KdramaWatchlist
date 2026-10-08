@@ -838,6 +838,7 @@ function DramaDetailView({ drama, onBack }) {
   const navigate = useNavigate()
   const [isPlaying, setIsPlaying] = useState(false)
   const [playTarget, setPlayTarget] = useState(null)
+  const [uncheckConfirmTarget, setUncheckConfirmTarget] = useState(null)
   const { getWatchlistItem, updateWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist()
   const dramaId = drama.tmdb_id || drama.id
   const savedItem = getWatchlistItem(dramaId)
@@ -947,11 +948,15 @@ function DramaDetailView({ drama, onBack }) {
     const episodeIsWatched = globalEpNum <= globalWatchedEpisodes
 
     if (episodeIsWatched) {
-      const confirmUncheck = window.confirm("Are you sure you want to uncheck this episode? This will also uncheck any subsequent episodes you've watched.");
-      if (!confirmUncheck) return;
+      setUncheckConfirmTarget(globalEpNum);
+      return;
     }
 
-    const newGlobalWatched = episodeIsWatched ? globalEpNum - 1 : globalEpNum
+    executeToggleEpisode(globalEpNum, false);
+  }
+
+  const executeToggleEpisode = (globalEpNum, isWatched) => {
+    const newGlobalWatched = isWatched ? globalEpNum - 1 : globalEpNum
     const newStatus = newGlobalWatched >= totalEpisodes ? 'Completed' : (newGlobalWatched > 0 ? 'Watching' : (status || 'Plan to Watch'))
     setStatus(newStatus)
 
@@ -1525,6 +1530,41 @@ function DramaDetailView({ drama, onBack }) {
               </button>
             </div>
           </section>
+        </div>
+      )}
+      {/* Custom Confirmation Modal */}
+      {uncheckConfirmTarget && (
+        <div className="custom-confirm-overlay" style={{ position: 'fixed', inset: 0, zIndex: 1000000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="custom-confirm-modal" style={{ background: 'var(--color-panel)', borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '380px', border: '1px solid var(--color-surface-border)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ margin: '0 0 12px 0', color: 'var(--color-text)', fontSize: '18px', fontWeight: 'bold' }}>Uncheck Episode?</h3>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px', lineHeight: 1.5, margin: '0 0 24px 0' }}>
+              Are you sure you want to uncheck this episode? This will also uncheck any subsequent episodes you've marked as watched.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                type="button"
+                onClick={() => setUncheckConfirmTarget(null)}
+                style={{ background: 'transparent', color: 'var(--color-text)', border: '1px solid var(--color-control-border)', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'var(--color-control-hover)'; e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)' }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--color-control-border)'; e.currentTarget.style.color = 'var(--color-text)' }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  const target = uncheckConfirmTarget;
+                  setUncheckConfirmTarget(null);
+                  executeToggleEpisode(target, true);
+                }}
+                style={{ background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(235,91,120,0.3)' }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                Yes, uncheck
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
