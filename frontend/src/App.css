@@ -4745,7 +4745,8 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  height: 390px;
+  min-height: 390px;
+  height: auto;
   padding: 14px 18px;
   background: #151322;
   border: 1px solid #252236;
@@ -4758,10 +4759,10 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  border: 2px solid #eb5b78;
+  border: 2px solid rgba(255, 255, 255, 0.16);
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(235, 91, 120, 0.25);
+  box-shadow: 0 4px 14px rgba(14, 10, 24, 0.42);
   display: grid;
   place-items: center;
   background: #1c1b2a;
@@ -4775,6 +4776,21 @@
 .edit-profile-avatar-section.photo-mode .edit-avatar-preview-wrapper {
   width: 164px;
   height: 164px;
+  border-color: #eb5b78;
+  box-shadow: 0 0 0 6px rgba(235, 91, 120, 0.18), 0 8px 18px rgba(235, 91, 120, 0.22);
+}
+
+.edit-profile-avatar-section.persona-mode {
+  justify-content: flex-start;
+  gap: 18px;
+}
+
+.edit-profile-avatar-section.persona-mode .edit-avatar-preview-wrapper {
+  width: 110px;
+  height: 110px;
+  border-width: 3px;
+  border-color: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.06), 0 12px 24px rgba(13, 12, 21, 0.38);
 }
 
 .edit-avatar-preview-wrapper .drama-persona-avatar {
@@ -4904,31 +4920,32 @@
   border-radius: 50%;
   color: #fff;
   cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .edit-persona-color.selected {
   border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
   transform: scale(1.08);
 }
 
 .edit-persona-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px 6px;
 }
 
 .edit-persona-option {
   display: flex;
   min-width: 0;
-  min-height: 58px;
+  min-height: 62px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 5px 3px;
+  padding: 7px 4px 6px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #141322;
   color: #a19ea9;
   font: inherit;
@@ -4936,14 +4953,21 @@
   line-height: 1.15;
   text-align: center;
   cursor: pointer;
-  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
-.edit-persona-option:hover,
+.edit-persona-option:hover {
+  border-color: rgba(235, 91, 120, 0.6);
+  background: #1a1628;
+  color: #fff;
+}
+
 .edit-persona-option.selected {
   border-color: #eb5b78;
-  background: #1e1a2c;
+  background: #1d182a;
   color: #fff;
+  box-shadow: 0 0 0 1px rgba(235, 91, 120, 0.18);
+  transform: translateY(-1px);
 }
 
 .edit-persona-option-icon {
@@ -4954,6 +4978,13 @@
   border-radius: 50%;
   background: #1c1b2a;
   color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.edit-persona-option.selected .edit-persona-option-icon {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+  transform: scale(1.05);
 }
 
 .edit-persona-option:disabled,
