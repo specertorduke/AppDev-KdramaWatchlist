@@ -944,6 +944,12 @@ function DramaDetailView({ drama, onBack }) {
   const toggleEpisode = (epNum) => {
     const globalEpNum = priorSeasonEps + epNum
     const episodeIsWatched = globalEpNum <= globalWatchedEpisodes
+
+    if (episodeIsWatched) {
+      const confirmUncheck = window.confirm("Are you sure you want to uncheck this episode? This will also uncheck any subsequent episodes you've watched.");
+      if (!confirmUncheck) return;
+    }
+
     const newGlobalWatched = episodeIsWatched ? globalEpNum - 1 : globalEpNum
     const newStatus = newGlobalWatched >= totalEpisodes ? 'Completed' : (newGlobalWatched > 0 ? 'Watching' : (status || 'Plan to Watch'))
     setStatus(newStatus)
@@ -987,6 +993,61 @@ function DramaDetailView({ drama, onBack }) {
     setShowRemoveConfirmation(false)
   }
 
+  const [autoTrackPopup, setAutoTrackPopup] = useState(null);
+
+  const playPingSound = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {}
+  };
+
+  const handleEpisodeWatchedAuto = (seasonNum, epNum) => {
+    let count = 0;
+    if (allSeasons.length > 1) {
+      for (const s of allSeasons) {
+        if (s.season_number < seasonNum) {
+          count += (s.episode_count || 0);
+        }
+      }
+    }
+    const globalEpNum = count + epNum;
+    
+    if (globalEpNum > globalWatchedEpisodes || (!savedItem && !isTracked)) {
+      const newStatus = globalEpNum >= totalEpisodes ? 'Completed' : 'Watching';
+      setStatus(newStatus);
+      
+      if (savedItem || isTracked) {
+        updateWatchlist(dramaId, {
+          watchedCount: globalEpNum,
+          current_episode: globalEpNum,
+          status: newStatus,
+        });
+      } else {
+        addToWatchlist({ ...drama, watchedCount: globalEpNum, current_episode: globalEpNum }, newStatus);
+      }
+      
+      setAutoTrackPopup(`Episode ${epNum} checked!`);
+      playPingSound();
+      setTimeout(() => {
+        setAutoTrackPopup(null);
+      }, 4000);
+    }
+  };
+
   useEffect(() => {
     if (!showRemoveConfirmation) return undefined
 
@@ -1008,9 +1069,34 @@ function DramaDetailView({ drama, onBack }) {
           type={drama.seasons || drama.episodes > 1 || (drama.type && drama.type.toLowerCase() === 'tv') ? 'tv' : 'movie'} 
           season={currentSeason ? (currentSeason.season_number || 1) : 1} 
           episode={seasonWatchedCount < seasonEpisodeCount ? seasonWatchedCount + 1 : Math.max(1, seasonWatchedCount)} 
+          allSeasons={allSeasons}
+          onEpisodeWatched={handleEpisodeWatchedAuto}
           onClose={() => setIsPlaying(false)} 
         />
       )}
+      
+      {autoTrackPopup && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 100000,
+          background: '#EB5B78',
+          color: '#fff',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontWeight: 600,
+          animation: 'slideUp 0.3s ease-out'
+        }}>
+          <Check size={18} />
+          {autoTrackPopup}
+        </div>
+      )}
+
       {/* Top Back Navigation */}
       <div className="detail-top-nav">
         <button className="detail-back-btn" type="button" onClick={onBack}>
